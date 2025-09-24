@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "pyret": "^0.0.2",
+    "pyret-npm": "^0.0.69"
+  }
+}
