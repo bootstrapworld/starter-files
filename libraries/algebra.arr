@@ -1,49 +1,12 @@
-use context starter2024
+use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr")
 ################################################################
 # Bootstrap: Algebra
 # Support files, as of Fall 2026
 
 provide *
 
-import color as C
-provide from C:
-  color,
-  type *,
-  data *
-end
-
-import lists as L
-provide from L:
-    * hiding(filter, sort, range),
-  type *,
-  data *
-end
-
-
-import image as I
-provide from I:
-    * hiding(translate),
-  type *,
-  data *
-end
-
-import starter2024 as Starter
-provide from Starter: expt, sqrt, sqr, abs, negate, random end
-import constants as Consts
-provide from Consts: PI, E end
-include charts
-
-
-import either as Eth
-import error as Err
-
-import math as Math
 include reactors
 import image-structs as IS
-
-import sets as Sets
-include tables
-
 
 
 ################# UTILITY FUNCTIONS ###########################
@@ -89,9 +52,6 @@ fun guess-arity(f :: Function) -> TaggedFunction:
 end
 
 
-################################################################
-#################### CUSTOM TRANSLATE DEFN #####################
-shadow translate = put-image
 fun min(a,b): Math.min([list: a,b]) end
 fun max(a,b): Math.max([list: a,b]) end
 
@@ -1093,19 +1053,6 @@ fun def-to-table(f):
   xs = L.range-by(start, start + 100, step)
   ys = xs.map(f)
   [table-from-columns: {"x"; xs}, {"y"; ys}]
-end
-
-def-to-graph :: (f :: (Number -> Number)) -> Image
-# Same as make-table, but makes a line-plot of the resulting table
-fun def-to-graph(f) block:
-  render-chart(from-list.function-plot(f))
-    .x-axis("x")
-    .y-axis("y")
-    .x-min(-10)
-    .x-max(10)
-    .y-min(-10)
-    .y-max(10)
-    .display()
 end
 
 table-to-graph :: (t :: Table) -> Image
