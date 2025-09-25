@@ -1,8 +1,9 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/libraries/algebra.arr")
-
+use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/algebra.arr")
 
 ####################################################
+japan-flag =  image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/projects/flags/japan-flag-image.png")
 
+####################################################
 # DO NOW: Click run and type "japan-flag" into the interactions window to see what the flag of Japan should look like.
 
 ####################################################
@@ -24,6 +25,6 @@ japan = translate(dot, 50, 40, background)
 ###################################################
 # EXTENSION: Flag of Somalia
 
-somalia-flag = image-url("https://code.pyret.org/shared-image-contents?sharedImageId=1j7sxfBP_DNNUf8bVCtZJ4u4aOZNLJDL5")
+somalia-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/somalia-flag-image.png")
 
 # Type "somalia-flag" into the interactions window to see what the flag of Somalia should look like. Then, using "japan" as a model, write code to generate an image "somalia" to match "somalia-flag"

@@ -1,39 +1,49 @@
 use context starter2024
+################################################################
+# Bootstrap: Algebra
+# Support files, as of Fall 2026
+
 provide *
 
-include either
-import error as Err
 import color as C
 provide from C:
   color,
   type *,
   data *
 end
-import math as M
-include reactors
-import image-structs as IS
-include reactors
-import starter2024 as Starter 
-provide from Starter: expt, sqrt, sqr, abs, negate end
-import constants as Const
-provide from Const:
-  *
-end
-import sets as S
-include tables
-include charts
+
 import lists as L
-provide from L: 
-  *,
-  type *, 
+provide from L:
+    * hiding(filter, sort, range),
+  type *,
   data *
 end
+
+
 import image as I
 provide from I:
     * hiding(translate),
   type *,
   data *
 end
+
+import starter2024 as Starter
+provide from Starter: expt, sqrt, sqr, abs, negate, random end
+import constants as Consts
+provide from Consts: PI, E end
+include charts
+
+
+import either as Eth
+import error as Err
+
+import math as Math
+include reactors
+import image-structs as IS
+
+import sets as Sets
+include tables
+
 
 
 ################# UTILITY FUNCTIONS ###########################
@@ -48,23 +58,23 @@ end
 
 # then, we use exceptions (!) to figure out which structure to return..
 fun guess-arity(f :: Function) -> TaggedFunction:
-  cases (Either) run-task({(): f(0) }):
+  cases (Eth.Either) run-task({(): f(0) }):
     | left(v) => one(f)
-    | right(v) => 
+    | right(v) =>
       err = exn-unwrap(v)
       if Err.is-arity-mismatch(err):
-        cases (Either) run-task({(): f(0, 0)}):
+        cases (Eth.Either) run-task({(): f(0, 0)}):
           | left(shadow v) => two(f)
           | right(shadow v) =>
             shadow err = exn-unwrap(v)
             if Err.is-arity-mismatch(err):
-              cases (Either) run-task({(): f(0, 0, 0)}):
+              cases (Eth.Either) run-task({(): f(0, 0, 0)}):
                 | left(shadow v) => three(f)
                 | right(shadow v) =>
                   shadow err = exn-unwrap(v)
                   if Err.is-arity-mismatch(err):
                     raise("Unknown function arity")
-                  else: 
+                  else:
                     three(f)
                   end
               end
@@ -82,8 +92,8 @@ end
 ################################################################
 #################### CUSTOM TRANSLATE DEFN #####################
 shadow translate = put-image
-fun min(a,b): M.min([list: a,b]) end
-fun max(a,b): M.max([list: a,b]) end
+fun min(a,b): Math.min([list: a,b]) end
+fun max(a,b): Math.max([list: a,b]) end
 
 ################################################################
 ######################### BLEND IMAGES ########################
@@ -327,7 +337,7 @@ fun blastoff(fn) block:
     title: "Blastoff!",
     init: {0; fn},
     on-key: tock,
-    to-draw: lam(w): 
+    to-draw: lam(w):
         {v;shadow fn} = w
         above(plain-draw(v, fn), legend(w))
       end,
@@ -503,7 +513,7 @@ end
 
 
 is-continent :: String -> Boolean
-fun is-continent(x) block: 
+fun is-continent(x) block:
   test = string-to-lower(x)
   ask:
     | string-equal(test, "europe") then: true
@@ -518,7 +528,7 @@ fun is-continent(x) block:
 end
 
 is-primary-color :: String -> Boolean
-fun is-primary-color(x): 
+fun is-primary-color(x):
   ask:
     | string-equal(x, "blue") then: true
     | string-equal(x, "red") then: true
@@ -553,12 +563,12 @@ c1 = C.color(100, 100, 255, 0.5)
 
 strip = rectangle(STRIP-WIDTH + 48, STRIP-HEIGHT, "outline", "transparent")
 inequalities-bg = overlay(rectangle(STRIP-WIDTH, 2, "solid", "black"), strip)
-axis = translate(flip-horizontal(tri), 
-  STRIP-WIDTH + 38, STRIP-HEIGHT / 2, 
+axis = translate(flip-horizontal(tri),
+  STRIP-WIDTH + 38, STRIP-HEIGHT / 2,
   translate(tri, 10, STRIP-HEIGHT / 2, inequalities-bg))
 
 fun num-to-mark(n):
-  if num-is-integer(n): num-to-string(n) 
+  if num-is-integer(n): num-to-string(n)
   else: num-to-string-digits(n, 2) end
 end
 
@@ -590,7 +600,7 @@ end
 # given an inequality fn and a reverse-projection fn, test every pixel
 # on a 600px range and mark "true" pixels as transparent blue
 fun draw-shade(f, rProject, c):
-  range-by(0, STRIP-WIDTH, 2).foldl(lam(p, img): 
+  range-by(0, STRIP-WIDTH, 2).foldl(lam(p, img):
       shadow color = if f(rProject(p)): c else: "transparent" end
       beside(img, rectangle(2, 15, "solid", color))
     end,
@@ -599,8 +609,8 @@ end
 
 fun draw-inequality(points, f, msg-img) block:
   # find the start and stop of the range
-  start = M.min(points)
-  stop = M.max(points)
+  start = Math.min(points)
+  stop = Math.max(points)
   # given one of the points on the range, project to pixels on the axis
   fun project(p): (p - start) * (STRIP-WIDTH / (stop - start)) end
   # given a pixel on the axis, reverse-project back to a point on the range
@@ -632,7 +642,7 @@ end
 # check to see if the list contains 8 elements, then graph
 # the inequality and the points on a numberline
 # report back which points passed
-fun inequality(f, points): 
+fun inequality(f, points):
   passed = points.foldl(lam(p, count): (if f(p): count + 1 else: count end) end, 0)
   msg-img = if (passed == 4):
     text(" ", 20, "green")
@@ -650,8 +660,8 @@ fun or-union(f1, f2, points):
 end
 
 fun and-intersection(f1, f2, points):
-  start = M.min(points)
-  stop = M.max(points)
+  start = Math.min(points)
+  stop = Math.max(points)
   f = lam(x): f1(x) and f2(x) end
   has-intersection = L.any(f, range-by(0, 600, 1))
   msg-img = if has-intersection:
@@ -740,11 +750,11 @@ end
 
 
 data Posn:
-  | posn(x :: Number, y :: Number) 
+  | posn(x :: Number, y :: Number)
 end
 
 data Being:
-  | being(posn :: Posn, costume :: Image, cullable :: Boolean) 
+  | being(posn :: Posn, costume :: Image, cullable :: Boolean)
 end
 
 type world = {
@@ -844,7 +854,7 @@ end
 
 
 
-fun make-game(title, title-color, background, 
+fun make-game(title, title-color, background,
     dangerImgs, update-danger,
     targetImgs, update-target,
     playerImg, update-player,
@@ -852,7 +862,7 @@ fun make-game(title, title-color, background,
     show-distances, line-length, distance,
     collide, onscreen):
   [list:
-    title, title-color, background, 
+    title, title-color, background,
     dangerImgs, update-danger,
     targetImgs, update-target,
     playerImg, update-player,
@@ -903,7 +913,7 @@ end
 
 # passes all the args to animate-proc, wrapping all the animation
 # functions so they take in a consistent number of args regardless
-# of arity. This allows kids to write simple functions first, then 
+# of arity. This allows kids to write simple functions first, then
 # make them more complex
 fun play(g) block:
   animate-proc(
@@ -935,7 +945,7 @@ fun flatten(x):
   end
 end
 
-fun animate-proc(title, title-color, background, 
+fun animate-proc(title, title-color, background,
     dangerImgs, update-danger,
     targetImgs, update-target,
     playerImg, update-player,
@@ -972,15 +982,15 @@ fun animate-proc(title, title-color, background,
   end
 
   player = being(
-    posn(GAME-WIDTH / 2, GAME-HEIGHT / 2), 
-    center-pinhole(playerImg), 
+    posn(GAME-WIDTH / 2, GAME-HEIGHT / 2),
+    center-pinhole(playerImg),
     false)
   is-onscreen = lam(b): onscreen(b.posn.x, b.posn.y) end
   is-collision = lam(b1, b2): collide(b1.posn.x, b1.posn.y, b2.posn.x, b2.posn.y) end
 
   is-hit-by = lam(b, enemies): L.any(lam(e): is-collision(b, e) end, enemies) end
   reset-chars = lam(chars, enemies, update):
-    #| 
+    #|
        for each character....
        1) if it's been hit, reset it
        2) if it's onscreen, update it and make sure cullable=true
@@ -992,7 +1002,7 @@ fun animate-proc(title, title-color, background,
         reset(b, update)
       else if is-onscreen(b):
         update(being(b.posn, b.costume, true))
-      else if not(b.cullable): 
+      else if not(b.cullable):
         update(b)
       else:
         reset(b, update)
@@ -1003,15 +1013,15 @@ fun animate-proc(title, title-color, background,
   init-world = {
     dangers: for map(img from flatten([list: dangerImgs])):
         reset(being(posn(0, 0), center-pinhole(img), false), update-danger)
-      end, 
-    shots: empty, 
+      end,
+    shots: empty,
     targets: for map(img from flatten([list: targetImgs])):
         reset(being(posn(0, 0), center-pinhole(img), false), update-target)
-      end, 
-    player: player, 
-    bg: background, 
-    score: 100, 
-    title: title, 
+      end,
+    player: player,
+    bg: background,
+    score: 100,
+    title: title,
     timer: 0
   }
 
@@ -1073,7 +1083,7 @@ end
 
 
 ################################################################
-############### GRAPHING AND TABLE FUNCTIONS 
+############### GRAPHING AND TABLE FUNCTIONS
 
 def-to-table :: (f :: (Number -> Number)) -> Table
 # Consumes a function, and produces an x/y table
@@ -1102,13 +1112,13 @@ table-to-graph :: (t :: Table) -> Image
 # Consumes a table, and makes a line-plot from the first 2 columns
 fun table-to-graph(t) block:
   cols = t.column-names()
-  if (cols.length() < 2): 
+  if (cols.length() < 2):
     raise("The table must have at least two columns")
   else: nothing
   end
   xs = t.column(cols.get(0))
   ys = t.column(cols.get(1))
-  
+
   xMin = if (num-round(min(xs)) == num-round(max(xs))):
     num-round(min(xs)) - 5
   else: num-round(min(xs))
@@ -1117,7 +1127,7 @@ fun table-to-graph(t) block:
     num-round(min(xs)) + 5
   else: num-round(max(xs))
   end
-  
+
   yMin = if (num-round(min(ys)) == num-round(max(ys))):
     num-round(min(ys)) - 5
   else: num-round(min(ys))
@@ -1126,7 +1136,7 @@ fun table-to-graph(t) block:
     num-round(min(ys)) + 5
   else: num-round(max(ys))
   end
-  
+
   render-chart(from-list.line-plot(xs, ys))
     .x-axis(cols.get(0))
     .y-axis(cols.get(1))
@@ -1150,22 +1160,6 @@ end
 
 
 ################################################################
-############### FLAGS ##################
-japan-flag =  image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/flags/japan-flag-image.png")
-
-lebanon-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/flags/lebanon-flag-image.png")
-
-mexico-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/flags/mexico-flag-image.png")
-
-panama-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/flags/panama-flag-image.png")
-
-puerto-rico-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/flags/pr-flag-image.png")
-
-trinidad-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/flags/trinidad-and-tobago-flag-image.png")
-
-turkey-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/flags/turkey-flag-image.png")
-
-################################################################
 ############### PERMUTATIONS AND COMBINATIONS ##################
 factorial :: (n :: NumNonNegative) -> Number
 fun factorial(n):
@@ -1181,7 +1175,7 @@ fun permute-wo-replace(items, choose):
   else if choose == 1: items.map(lam(e): [list: e] end)
   else:
     items.foldl(lam(e, acc):
-        rest = permute-wo-replace(items.remove(e), choose - 1).map(lam(p): 
+        rest = permute-wo-replace(items.remove(e), choose - 1).map(lam(p):
           link(e, p) end)
         acc.append(rest)
       end,
@@ -1192,13 +1186,13 @@ end
 examples "permute-wo-replace":
   permute-wo-replace([list: 1], 1) is [list: [list:1]]
   permute-wo-replace([list: 1, 2], 2) is [list: [list:1,2], [list:2,1]]
-  permute-wo-replace([list: 1, 2, 3], 2) is [list: 
+  permute-wo-replace([list: 1, 2, 3], 2) is [list:
     [list: 1, 2], [list: 1, 3],
     [list: 2, 1], [list: 2, 3],
     [list: 3, 1], [list: 3, 2]]
-  permute-wo-replace([list: 1, 2, 3], 3) is [list: 
-    [list: 1, 2, 3], [list: 1, 3, 2], 
-    [list: 2, 1, 3], [list: 2, 3, 1], 
+  permute-wo-replace([list: 1, 2, 3], 3) is [list:
+    [list: 1, 2, 3], [list: 1, 3, 2],
+    [list: 2, 1, 3], [list: 2, 3, 1],
     [list: 3, 1, 2], [list: 3, 2, 1]]
 end
 
@@ -1209,7 +1203,7 @@ fun permute-w-replace(items, choose):
   else if choose == 1: items.map(lam(e): [list: e] end)
   else:
     items.foldl(lam(e, acc):
-        rest = permute-w-replace(items, choose - 1).map(lam(p): 
+        rest = permute-w-replace(items, choose - 1).map(lam(p):
           link(e, p) end)
         acc.append(rest)
       end,
@@ -1221,19 +1215,19 @@ end
    examples "permute-w-replace":
   permute-w-replace([list: 1], 1) is [list: [list:1]]
   permute-w-replace([list: 1, 2], 2) is [list: [list:1,1], [list:1,2], [list:2,1], [list:2,2]]
-  permute-w-replace([list: 1, 2, 3], 2) is [list: 
+  permute-w-replace([list: 1, 2, 3], 2) is [list:
     [list: 1, 1], [list: 1, 2], [list: 1, 3],
-    [list: 2, 1], [list: 2, 2], [list: 2, 3], 
+    [list: 2, 1], [list: 2, 2], [list: 2, 3],
     [list: 3, 1], [list: 3, 2], [list: 3, 3]]
-  permute-w-replace([list: 1, 2, 3], 3) is [list: 
-    [list: 1, 1, 1], [list: 1, 1, 2], [list: 1, 1, 3], 
-    [list: 1, 2, 1], [list: 1, 2, 2], [list: 1, 2, 3], 
-    [list: 1, 3, 1], [list: 1, 3, 2], [list: 1, 3, 3], 
-    [list: 2, 1, 1], [list: 2, 1, 2], [list: 2, 1, 3], 
-    [list: 2, 2, 1], [list: 2, 2, 2], [list: 2, 2, 3], 
-    [list: 2, 3, 1], [list: 2, 3, 2], [list: 2, 3, 3], 
-    [list: 3, 1, 1], [list: 3, 1, 2], [list: 3, 1, 3], 
-    [list: 3, 2, 1], [list: 3, 2, 2], [list: 3, 2, 3], 
+  permute-w-replace([list: 1, 2, 3], 3) is [list:
+    [list: 1, 1, 1], [list: 1, 1, 2], [list: 1, 1, 3],
+    [list: 1, 2, 1], [list: 1, 2, 2], [list: 1, 2, 3],
+    [list: 1, 3, 1], [list: 1, 3, 2], [list: 1, 3, 3],
+    [list: 2, 1, 1], [list: 2, 1, 2], [list: 2, 1, 3],
+    [list: 2, 2, 1], [list: 2, 2, 2], [list: 2, 2, 3],
+    [list: 2, 3, 1], [list: 2, 3, 2], [list: 2, 3, 3],
+    [list: 3, 1, 1], [list: 3, 1, 2], [list: 3, 1, 3],
+    [list: 3, 2, 1], [list: 3, 2, 2], [list: 3, 2, 3],
     [list: 3, 3, 1], [list: 3, 3, 2], [list: 3, 3, 3]]
    end
 |#
@@ -1268,14 +1262,14 @@ examples "combine-wo-replace":
   combine-wo-replace([list:], 0) is [list: [list:]]
   combine-wo-replace([list:1], 1) is [list: [list: 1]]
   combine-wo-replace([list:1, 2], 1) is [list: [list:1], [list: 2]]
-  combine-wo-replace([list:1, 2, 3], 2) is 
+  combine-wo-replace([list:1, 2, 3], 2) is
   [list: [list:1,2], [list: 1,3], [list:2,3]]
 end
 
 render-list :: (lst :: List) -> Image
 fun render-list(lst):
   lst-imgs = lst.map(lam(l):
-      elt-imgs = l.map(lam(e): 
+      elt-imgs = l.map(lam(e):
           if is-image(e): e
           else if is-string(to-repr(e)): text(e, 12, "black")
           else: to-repr(e)
@@ -1287,8 +1281,8 @@ fun render-list(lst):
 end
 
 fun whats-missing(answer, test):
-  answer-set = S.list-to-set(answer)
-  test-set = S.list-to-set(test)
+  answer-set = Sets.list-to-set(answer)
+  test-set = Sets.list-to-set(test)
   diff = answer-set.difference(test-set)
   if diff.size() > 0: diff.to-list()
   else: "You got them all!"

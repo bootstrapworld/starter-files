@@ -1,4 +1,4 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/libraries/linearity-library.arr")
+use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/linearity-library.arr")
 
 # There are EIGHT "mystery tables" defined: tableA, tableB...tableH. 
 

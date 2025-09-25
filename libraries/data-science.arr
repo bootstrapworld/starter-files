@@ -4,45 +4,10 @@ use context starter2024
 # Support files, as of Fall 2026
 
 provide *
-import starter2024 as Starter 
-import constants as Consts
-provide from Consts: PI, E end
-provide from Starter: expt, sqrt, sqr, abs, random end
-include charts
-include image
-import math as Math
-provide from Math:
-    * hiding(sum),
-  type *,
-  data *
-end
-import statistics as Stats
-import sets as Sets
-import string-dict as SD
-import either as Eth
-include error
-include constants
 
 import color as C
 provide from C:
-  type *,
-end
-import gdrive-sheets as G
-provide from G: 
-    * hiding(load-spreadsheet),
-  type *, 
-  data *
-end
-import tables as T
-provide from T:
-  *,
-  type *,
-  data *
-end
-
-import image as I
-provide from I:
-    * hiding(translate),
+  color,
   type *,
   data *
 end
@@ -53,6 +18,50 @@ provide from L:
   type *,
   data *
 end
+
+include image # remove?
+import image as I
+provide from I:
+    * hiding(translate),
+  type *,
+  data *
+end
+
+import starter2024 as Starter
+provide from Starter: expt, sqrt, sqr, abs, negate, random end
+import constants as Consts
+provide from Consts: PI, E end
+include charts
+
+
+import either as Eth
+import error as Err
+
+import math as Math
+provide from Math:
+    * hiding(sum),
+  type *,
+  data *
+end
+import statistics as Stats
+import sets as Sets
+import string-dict as SD
+
+import gdrive-sheets as G
+provide from G:
+    * hiding(load-spreadsheet),
+  type *,
+  data *
+end
+import tables as T
+provide from T:
+  *,
+  type *,
+  data *
+end
+
+
+
 
 # override Pyret's native range (list) with range (stats)
 shadow range = lam(t :: Table, col :: String) block:
@@ -662,27 +671,27 @@ end
 fun check-integrity(t :: Table, cols :: List<String>) block:
   t-cols = t.column-names()
   check-col = lam(c): if t-cols.member(c): nothing
-    else: raise(message-exception("'" + c + "' is not a column in this table. Columns are: " + t-cols.join-str(", "))) 
+    else: raise(Err.message-exception("'" + c + "' is not a column in this table. Columns are: " + t-cols.join-str(", ")))
     end
   end
   cols.each(check-col)
   if (t.all-rows().length() == 0):
-    raise(message-exception("This table contains no data rows (it's empty!)"))      
+    raise(Err.message-exception("This table contains no data rows (it's empty!)"))
   else:
-    L.each(lam(c): 
+    L.each(lam(c):
         if is-Option(t.row-n(0)[c]):
-          raise(message-exception("This table contains blank cells in column " + c))
+          raise(Err.message-exception("This table contains blank cells in column " + c))
         else:
           nothing
         end
-      end, 
+      end,
       t.column-names())
   end
 end
 
 # shadow the built-in function, with one naive twist:
 # if it looks like a sheets URL, try parsing out the fileID
-# for the user. Otherwise, just fall back to the native 
+# for the user. Otherwise, just fall back to the native
 # library function
 fun load-spreadsheet(url :: String) block:
   if (string-length(url) < 39):
@@ -699,12 +708,12 @@ end
 # more than 2 decimals are displayed as roughnums
 fun get-labels(t, ls) block:
   ls-col = t.column(ls)
-  if is-number(ls-col.get(0)): 
+  if is-number(ls-col.get(0)):
     ls-col.map(lam(x) block:
         rounded = num-round(x * 100) / 100
         if num-is-integer(x): num-to-string-digits(x, 0)
-        else if (x == rounded): num-to-string-digits(x, 2) 
-        else: "~" + num-to-string-digits(x, 2) 
+        else if (x == rounded): num-to-string-digits(x, 2)
+        else: "~" + num-to-string-digits(x, 2)
         end
       end)
   else:
@@ -712,39 +721,39 @@ fun get-labels(t, ls) block:
   end
 end
 
-# Optimally-distinct list of colors taken from 
+# Optimally-distinct list of colors taken from
 # https://stackoverflow.com/a/12224359/12026982
-COLORS = [list: 
-  C.color(51,102,204, 1), 
-  C.color(220,57,18, 1), 
-  C.color(255,153,0, 1), 
-  C.color(16,150,24, 1), 
-  C.color(153,0,153, 1), 
-  C.color(0,153,198, 1), 
-  C.color(221,68,119, 1), 
-  C.color(102,170,0, 1), 
-  C.color(184,46,46, 1), 
-  C.color(49,99,149, 1), 
-  C.color(153,68,153, 1), 
-  C.color(34,170,153, 1), 
-  C.color(170,170,17, 1), 
-  C.color(102,51,204, 1), 
-  C.color(230,115,0, 1), 
-  C.color(139,7,7, 1), 
-  C.color(101,16,103, 1), 
-  C.color(50,146,98, 1), 
-  C.color(85,116,166, 1), 
-  C.color(59,62,172, 1), 
-  C.color(183,115,34, 1), 
-  C.color(22,214,32, 1), 
-  C.color(185,19,131, 1), 
-  C.color(244,53,158, 1), 
-  C.color(156,89,53, 1), 
-  C.color(169,196,19, 1), 
-  C.color(42,119,141, 1), 
-  C.color(102,141,28, 1), 
-  C.color(190,164,19, 1), 
-  C.color(12,89,34, 1), 
+COLORS = [list:
+  C.color(51,102,204, 1),
+  C.color(220,57,18, 1),
+  C.color(255,153,0, 1),
+  C.color(16,150,24, 1),
+  C.color(153,0,153, 1),
+  C.color(0,153,198, 1),
+  C.color(221,68,119, 1),
+  C.color(102,170,0, 1),
+  C.color(184,46,46, 1),
+  C.color(49,99,149, 1),
+  C.color(153,68,153, 1),
+  C.color(34,170,153, 1),
+  C.color(170,170,17, 1),
+  C.color(102,51,204, 1),
+  C.color(230,115,0, 1),
+  C.color(139,7,7, 1),
+  C.color(101,16,103, 1),
+  C.color(50,146,98, 1),
+  C.color(85,116,166, 1),
+  C.color(59,62,172, 1),
+  C.color(183,115,34, 1),
+  C.color(22,214,32, 1),
+  C.color(185,19,131, 1),
+  C.color(244,53,158, 1),
+  C.color(156,89,53, 1),
+  C.color(169,196,19, 1),
+  C.color(42,119,141, 1),
+  C.color(102,141,28, 1),
+  C.color(190,164,19, 1),
+  C.color(12,89,34, 1),
   C.color(116,52,17, 1)]
 
 # maintain a mutable dict mapping string values to colors, so that any
@@ -754,7 +763,7 @@ var string-colors = [SD.mutable-string-dict:]
 var colorIdx = 0
 
 fun nextColor() block:
-  if (colorIdx < (COLORS.length() - 1)): 
+  if (colorIdx < (COLORS.length() - 1)):
     colorIdx := colorIdx + 1
   else: colorIdx := 0
   end
@@ -769,9 +778,9 @@ end
 # no color is assigned, grab a new one from the colors list and assign it
 distinct-colors :: (t :: Table, col :: String) -> Table
 fun distinct-colors(t, col):
-  t.build-column("_color", lam(r) block: 
+  t.build-column("_color", lam(r) block:
       key = to-repr(r.get-value(col))
-      when not(string-colors.has-key-now(key)): 
+      when not(string-colors.has-key-now(key)):
         string-colors.set-now(key, nextColor())
       end
       string-colors.get-value-now(key)
@@ -781,11 +790,11 @@ end
 fun add-margin(img) block:
   margin = 75
   overlay(
-    center-pinhole(img), 
+    center-pinhole(img),
     rectangle(
-      image-width(img) + margin, 
-      image-height(img) + margin, 
-      "outline", 
+      image-width(img) + margin,
+      image-height(img) + margin,
+      "outline",
       "transparent"))
 end
 
@@ -814,20 +823,20 @@ end
 # if the column is a boolean, convert to a number and sort
 shadow sort = lam(t :: Table, col :: String, asc :: Boolean):
   if ((t.all-rows().length() > 0) and is-boolean(t.row-n(0)[col])): t.build-column("tmp", lam(r):to-repr(r[col]) end).order-by("tmp", asc).drop("tmp")
-  else: t.order-by(col, asc) 
+  else: t.order-by(col, asc)
   end
 end
 
-shadow filter = lam(t :: Table, fn :: (Row->Boolean)): 
-  t.filter(fn) 
+shadow filter = lam(t :: Table, fn :: (Row->Boolean)):
+  t.filter(fn)
 end
 
-fun build-column(t :: Table, col :: String, fn :: (Row->Any)): 
-  t.build-column(col, fn) 
+fun build-column(t :: Table, col :: String, fn :: (Row->Any)):
+  t.build-column(col, fn)
 end
 
-fun transform-column(t :: Table, col :: String, fn :: (Row->Any)): 
-  t.transform-column(col, fn) 
+fun transform-column(t :: Table, col :: String, fn :: (Row->Any)):
+  t.transform-column(col, fn)
 end
 
 fun find-by-id(t :: Table, id):
@@ -841,44 +850,44 @@ mean :: (t :: Table, col :: String) -> Number
 fun mean(t, col) block:
   check-integrity(t, [list: col])
   if not(is-number(t.column(col).get(0))):
-    raise(message-exception("Cannot compute the mean, because the specified column does not contain numeric data"))
+    raise(Err.message-exception("Cannot compute the mean, because the specified column does not contain numeric data"))
   else:
-    Stats.mean(ensure-numbers(t.column(col))) 
+    Stats.mean(ensure-numbers(t.column(col)))
   end
 end
 
 median :: (t :: Table, col :: String) -> Number
-fun median(t, col) block: 
+fun median(t, col) block:
   check-integrity(t, [list: col])
   if not(is-number(t.column(col).get(0))):
-    raise(message-exception("Cannot compute the median, because the specified column does not contain numeric data"))
+    raise(Err.message-exception("Cannot compute the median, because the specified column does not contain numeric data"))
   else:
-    Stats.median(ensure-numbers(t.column(col))) 
+    Stats.median(ensure-numbers(t.column(col)))
   end
 end
 
 modes  :: (t :: Table, col :: String) -> List<Number>
-fun modes( t, col) block: 
+fun modes( t, col) block:
   check-integrity(t, [list: col])
   Stats.modes(t.column(col))
 end
 
-shadow sum = lam(t :: Table, col :: String) block: 
+shadow sum = lam(t :: Table, col :: String) block:
   check-integrity(t, [list: col])
   if not(is-number(t.column(col).get(0))):
-    raise(message-exception("Cannot compute the sum, because the specified column does not contain numeric data"))
+    raise(Err.message-exception("Cannot compute the sum, because the specified column does not contain numeric data"))
   else:
-    Math.sum(ensure-numbers(t.column(col))) 
+    Math.sum(ensure-numbers(t.column(col)))
   end
 end
 
 stdev  :: (t :: Table, col :: String) -> Number
-fun stdev( t, col) block: 
+fun stdev( t, col) block:
   check-integrity(t, [list: col])
   if not(is-number(t.column(col).get(0))):
-    raise(message-exception("Cannot compute the mean, because the specified column does not contain numeric data"))
+    raise(Err.message-exception("Cannot compute the mean, because the specified column does not contain numeric data"))
   else:
-    Stats.stdev-sample(ensure-numbers(t.column(col))) 
+    Stats.stdev-sample(ensure-numbers(t.column(col)))
   end
 end
 
@@ -889,7 +898,7 @@ fun r-value(t, xs, ys) block:
     raise("Cannot compute the mean, because the specified columns do not contain numeric data")
   else:
     fn = Stats.linear-regression(
-      ensure-numbers(t.column(xs)), 
+      ensure-numbers(t.column(xs)),
       ensure-numbers(t.column(ys)))
     dir = if ((fn(1) - fn(0)) < 0): -1 else: 1 end
     dir * num-sqrt(Stats.r-squared(t.column(xs), t.column(ys), fn))
@@ -899,14 +908,14 @@ end
 ## PIE AND BAR CHARTS ###########################################
 
 # given a summary table with columns <col> and "frequency",
-# apply a function <f> to each row and produce the 
+# apply a function <f> to each row and produce the
 # resulting image-list, or a helpful error
 fun make-images-from-grouped-rows(summary, col, f):
   cases(Eth.Either) run-task(lam():
           summary.all-rows().map(f)
         end):
     | left(v) => v
-    | right(v) => raise(message-exception("Could not find an image for one of the values in the '" + col + "' column. Check to make sure that your drawing function correctly produces an image for each unique entry"))
+    | right(v) => raise(Err.message-exception("Could not find an image for one of the values in the '" + col + "' column. Check to make sure that your drawing function correctly produces an image for each unique entry"))
   end
 end
 
@@ -957,7 +966,7 @@ fun image-pie-chart(t, col, f) block:
   images = make-images-from-grouped-rows(summary, col, f)
   series = from-list.image-pie-chart(
     images,
-    get-labels(summary, col), 
+    get-labels(summary, col),
     ensure-numbers(summary.column("frequency")))
   img = render-chart(series)
     .display()
@@ -987,7 +996,7 @@ fun image-bar-chart(t, col, f) block:
   images = make-images-from-grouped-rows(summary, col, f)
   series = from-list.image-bar-chart(
     images,
-    get-labels(summary, col), 
+    get-labels(summary, col),
     ensure-numbers(summary.column("frequency")))
   img = render-chart(series)
     .y-min(0)
@@ -1001,17 +1010,17 @@ end
 fun pie-chart-summarized(t, ls, vs) block:
   check-integrity(t, [list: ls, vs])
   if not(is-number(t.column(vs).get(0))):
-    raise(message-exception("Cannot make a summarized pie chart, because the 'values' column does not contain numeric data"))
+    raise(Err.message-exception("Cannot make a summarized pie chart, because the 'values' column does not contain numeric data"))
   else:
     color-table = distinct-colors(t, ls)
     pie-chart-raw(color-table, ls, vs, ls)
   end
-end  
+end
 
 fun bar-chart-summarized(t, ls, vs) block:
   check-integrity(t, [list: ls, vs])
   if not(is-number(t.column(vs).get(0))):
-    raise(message-exception("Cannot make a summarized bar chart, because the 'values' column does not contain numeric data"))
+    raise(Err.message-exception("Cannot make a summarized bar chart, because the 'values' column does not contain numeric data"))
   else:
     color-table = distinct-colors(t, vs)
     bar-chart-raw(color-table, ls, vs, ls)
@@ -1026,8 +1035,8 @@ fun stacked-bar-chart(t, col, subcol) block:
   color-list = segments.map(lam(_): nextColor() end)
   tab = group-and-subgroup(t, col, subcol)
   series = from-list.stacked-bar-chart(
-      tab.get-column("group").map(to-repr), 
-      tab.get-column("data"), 
+      tab.get-column("group").map(to-repr),
+      tab.get-column("data"),
       segments)
     .stacking-type(percent)
     .colors(color-list)
@@ -1048,8 +1057,8 @@ fun stacked-bar-chart-summarized(t, categories, column-list) block:
       map_n(lam(m,_): raw_data.get(m).get(n) end, 0, raw_data)
     end, 0, raw_data.get(0))
   series = from-list.stacked-bar-chart(
-    groups, 
-    zipped_data, 
+    groups,
+    zipped_data,
     column-list)
     .colors(color-list)
   render-chart(series).display()
@@ -1064,8 +1073,8 @@ fun multi-bar-chart(t, col, subcol) block:
   color-list = segments.map(lam(_): nextColor() end)
   tab = group-and-subgroup(t, col, subcol)
   series = from-list.grouped-bar-chart(
-      tab.get-column("group").map(to-repr), 
-      tab.get-column("data"), 
+      tab.get-column("group").map(to-repr),
+      tab.get-column("data"),
       segments)
     .colors(color-list)
   img = render-chart(series)
@@ -1085,8 +1094,8 @@ fun multi-bar-chart-summarized(t, categories, column-list) block:
       map_n(lam(m,_): raw_data.get(m).get(n) end, 0, raw_data)
     end, 0, raw_data.get(0))
   series = from-list.grouped-bar-chart(
-    groups, 
-    zipped_data, 
+    groups,
+    zipped_data,
     column-list)
     .colors(color-list)
   render-chart(series).display()
@@ -1102,8 +1111,8 @@ fun simple-dot-plot(t, vals) block:
   vs = t.column(vals)
   series = if is-number(vs.get(0)):
     from-list.num-dot-chart(vs)
-  else: 
-    raise(message-exception("Cannot make a dot-plot, because the '" + vals + "' column does not contain quantitative data"))
+  else:
+    raise(Err.message-exception("Cannot make a dot-plot, because the '" + vals + "' column does not contain quantitative data"))
   end
   img = render-chart(series.point-size(8))
     .x-axis(vals)
@@ -1119,8 +1128,8 @@ fun dot-plot(t, labels, vals) block:
   ls = t.column(labels).map(to-repr)
   series = if is-number(t.column(vals).get(0)):
     from-list.labeled-num-dot-chart(ls, t.column(vals)).point-size(8)
-  else: 
-    raise(message-exception("Cannot make a dot-plot, because the '" + vals + "' column does not contain quantitative data"))
+  else:
+    raise(Err.message-exception("Cannot make a dot-plot, because the '" + vals + "' column does not contain quantitative data"))
   end
   img = render-chart(series)
     .x-axis(vals)
@@ -1137,7 +1146,7 @@ fun image-dot-plot(t, vals, f :: (Row -> Image)) block:
   max-height = images.map(image-height).foldl(num-max, 0)
   series = if is-number(t.column(vals).get(0)):
     from-list.image-num-dot-chart(images, t.column(vals)).point-size(max-height)
-  else: 
+  else:
     from-list.dot-chart(t.column(vals))
   end
   img = render-chart(series)
@@ -1156,7 +1165,7 @@ fun simple-histogram(t, vals, bin-width) block:
   doc: "wrap histogram so that the bin-width is set"
   check-integrity(t, [list: vals])
   if not(is-number(t.column(vals).get(0))):
-    raise(message-exception("Cannot make a histogram, because the '" + vals + "' column does not contain quantitative data"))
+    raise(Err.message-exception("Cannot make a histogram, because the '" + vals + "' column does not contain quantitative data"))
   else:
     img = render-chart(from-list.histogram(ensure-numbers(t.column(vals))).bin-width(bin-width))
       .x-axis(vals)
@@ -1172,7 +1181,7 @@ fun histogram(t, labels, vals, bin-width) block:
   doc: "wrap histogram so that the bin-width is set"
   check-integrity(t, [list: labels, vals])
   if not(is-number(t.column(vals).get(0))):
-    raise(message-exception("Cannot make a histogram, because the '" + vals + "' column does not contain quantitative data"))
+    raise(Err.message-exception("Cannot make a histogram, because the '" + vals + "' column does not contain quantitative data"))
   else:
     img = render-chart(from-list.labeled-histogram(
         t.column(labels).map(to-repr),
@@ -1195,7 +1204,7 @@ fun image-histogram(t, vals, bin-width, f) block:
   check-integrity(t, [list: vals])
   images = t.all-rows().map(f)
   if not(is-number(t.column(vals).get(0))):
-    raise(message-exception("Cannot make a histogram, because the '" + vals + "' column does not contain quantitative data"))
+    raise(Err.message-exception("Cannot make a histogram, because the '" + vals + "' column does not contain quantitative data"))
   else:
     img = render-chart(from-list.image-histogram(images, ensure-numbers(t.column(vals))).bin-width(bin-width))
       .x-axis(vals)
@@ -1211,7 +1220,7 @@ fun scaled-histogram(t, vals, bin-width, low, high) block:
   doc: "wrap histogram so that the bin-width is set"
   check-integrity(t, [list: vals])
   if not(is-number(t.column(vals).get(0))):
-    raise(message-exception("Cannot make a histogram, because the '" + vals + "' column does not contain quantitative data"))
+    raise(Err.message-exception("Cannot make a histogram, because the '" + vals + "' column does not contain quantitative data"))
   else:
     img = render-chart(from-list.histogram(ensure-numbers(t.column(vals))).bin-width(bin-width))
       .x-axis(vals)
@@ -1230,7 +1239,7 @@ end
 fun minimum(t :: Table, col :: String) block:
   check-integrity(t, [list: col])
   if not(is-number(t.column(col).get(0))):
-    raise(message-exception("Cannot compute the minimum, because the '" + col + "' column does not contain quantitative data"))
+    raise(Err.message-exception("Cannot compute the minimum, because the '" + col + "' column does not contain quantitative data"))
   else:
     Math.min(t.column(col))
   end
@@ -1239,7 +1248,7 @@ end
 fun maximum(t :: Table, col :: String) block:
   check-integrity(t, [list: col])
   if not(is-number(t.column(col).get(0))):
-    raise(message-exception("Cannot compute the maximum, because the '" + col + "' column does not contain quantitative data"))
+    raise(Err.message-exception("Cannot compute the maximum, because the '" + col + "' column does not contain quantitative data"))
   else:
     Math.max(t.column(col))
   end
@@ -1273,9 +1282,9 @@ box-plot-raw :: (t :: Table, vs :: String, low :: Number, high :: Number, horizo
 fun box-plot-raw(t, vs, low, high, horizontal, showOutliers) block:
   l = ensure-numbers(t.column(vs))
   if not(is-number(l.get(0))):
-    raise(message-exception("Cannot make a box plot, because the 'values' column does not contain numeric data"))
+    raise(Err.message-exception("Cannot make a box plot, because the 'values' column does not contain numeric data"))
   else if (low > high):
-    raise(message-exception("Min value must be lower than Max value"))
+    raise(Err.message-exception("Min value must be lower than Max value"))
   else:
     series = from-list.labeled-box-plot([list: vs], [list: l])
       .horizontal(horizontal).show-outliers(showOutliers)
@@ -1363,7 +1372,7 @@ fun scatter-plot(t, labels, xs, ys) block:
   check-integrity(t, [list: labels, xs, ys])
   ls = get-labels(t, labels)
   if not(is-number(t.column(xs).get(0)) and is-number(t.column(ys).get(0))):
-    raise(message-exception("Cannot make a scatter plot, because the 'xs' and 'ys' columns must both contain numeric data"))
+    raise(Err.message-exception("Cannot make a scatter plot, because the 'xs' and 'ys' columns must both contain numeric data"))
   else:
     img = render-chart(from-list.labeled-scatter-plot(ls, ensure-numbers(t.column(xs)), ensure-numbers(t.column(ys))))
       .x-axis(xs)
@@ -1378,7 +1387,7 @@ simple-scatter-plot :: (t :: Table, xs :: String, ys :: String) -> Image
 fun simple-scatter-plot(t, xs, ys) block:
   check-integrity(t, [list: xs, ys])
   if not(is-number(t.column(xs).get(0)) and is-number(t.column(ys).get(0))):
-    raise(message-exception("Cannot make a scatter plot, because the 'xs' and 'ys' columns must both contain numeric data"))
+    raise(Err.message-exception("Cannot make a scatter plot, because the 'xs' and 'ys' columns must both contain numeric data"))
   else:
     img = render-chart(from-list.scatter-plot(ensure-numbers(t.column(xs)), ensure-numbers(t.column(ys))))
       .x-axis(xs)
@@ -1398,7 +1407,7 @@ image-scatter-plot :: (t :: Table, xs :: String, ys :: String, f :: (Row -> Imag
 fun image-scatter-plot(t, xs, ys, f) block:
   check-integrity(t, [list: xs, ys])
   if not(is-number(t.column(xs).get(0)) and is-number(t.column(ys).get(0))):
-    raise(message-exception("Cannot make an image scatter plot, because the 'xs' and 'ys' columns must both contain numeric data"))
+    raise(Err.message-exception("Cannot make an image scatter plot, because the 'xs' and 'ys' columns must both contain numeric data"))
   else:
     images = t.all-rows().map(f)
     img = render-chart(from-list.image-scatter-plot(images, ensure-numbers(t.column(xs)), ensure-numbers(t.column(ys))))
@@ -1412,14 +1421,14 @@ end
 
 
 multiple-regression :: (
-  t :: Table, 
-  explanations :: List<String>, 
-  response :: String) -> 
+  t :: Table,
+  explanations :: List<String>,
+  response :: String) ->
 (List<Number> -> Number)
 fun multiple-regression(t, explanations, response):
   # convert the table to a list of rows, then each row to a list of values
   if explanations.length() > t.length():
-      raise(message-exception("This data set contains too few data samples and too many independent variables to produce a unique regression.  If all the independent variables are needed, you'll need to collect more data samples; otherwise, try removing ones that aren't relevant"))
+      raise(Err.message-exception("This data set contains too few data samples and too many independent variables to produce a unique regression.  If all the independent variables are needed, you'll need to collect more data samples; otherwise, try removing ones that aren't relevant"))
       else:
       explanation-lists = t.all-rows().map(
         lam(r): explanations.map(lam(exp): r[exp] end) end)
@@ -1446,7 +1455,7 @@ fun lr-plot(t, ls, xs, ys) block:
   check-integrity(t, [list: ls, xs, ys])
   labels = get-labels(t, ls)
   if not(is-number(t.column(xs).get(0)) and is-number(t.column(ys).get(0))):
-    raise(message-exception("Cannot make an lr-plot, because the 'xs' and 'ys' columns must both contain numeric data"))
+    raise(Err.message-exception("Cannot make an lr-plot, because the 'xs' and 'ys' columns must both contain numeric data"))
   else:
     scatter = from-list.labeled-scatter-plot(labels, ensure-numbers(t.column(xs)), ensure-numbers(t.column(ys)))
       .legend("Data")
@@ -1469,10 +1478,10 @@ simple-lr-plot :: (t :: Table, xs :: String, ys :: String) -> Image
 fun simple-lr-plot(t, xs, ys) block:
   check-integrity(t, [list: xs, ys])
   if not(is-number(t.column(xs).get(0)) and is-number(t.column(ys).get(0))):
-    raise(message-exception("Cannot make an lr-plot, because the 'xs' and 'ys' columns must both contain numeric data"))
+    raise(Err.message-exception("Cannot make an lr-plot, because the 'xs' and 'ys' columns must both contain numeric data"))
   else:
     scatter = from-list.scatter-plot(
-      ensure-numbers(t.column(xs)), 
+      ensure-numbers(t.column(xs)),
       ensure-numbers(t.column(ys)))
     fn = Stats.linear-regression(t.column(xs), t.column(ys))
     fn-plot = from-list.function-plot(fn)
@@ -1482,7 +1491,7 @@ fun simple-lr-plot(t, xs, ys) block:
       .title(make-lr-title(fn, r-sqr-num, s-num))
       .x-axis(xs)
       .y-axis(ys)
-      .display()    
+      .display()
     title = make-title([list:"", ys, "vs.", xs])
     above(title, add-margin(img))
   end
@@ -1492,12 +1501,12 @@ image-lr-plot :: (t :: Table, xs :: String, ys :: String, f :: (Row -> Image)) -
 fun image-lr-plot(t, xs, ys, f) block:
   check-integrity(t, [list: xs, ys])
   if not(is-number(t.column(xs).get(0)) and is-number(t.column(ys).get(0))):
-    raise(message-exception("Cannot make an image-lr-plot, because the 'xs' and 'ys' columns must both contain numeric data"))
+    raise(Err.message-exception("Cannot make an image-lr-plot, because the 'xs' and 'ys' columns must both contain numeric data"))
   else:
     images = t.all-rows().map(f)
     scatter = from-list.image-scatter-plot(
-      images, 
-      ensure-numbers(t.column(xs)), 
+      images,
+      ensure-numbers(t.column(xs)),
       ensure-numbers(t.column(ys)))
       .legend("Data")
     fn = Stats.linear-regression(t.column(xs), t.column(ys))
@@ -1509,7 +1518,7 @@ fun image-lr-plot(t, xs, ys, f) block:
       .title(make-lr-title(fn, r-sqr-num, s-num))
       .x-axis(xs)
       .y-axis(ys)
-      .display()       
+      .display()
     title = make-title([list:"", ys, "vs.", xs])
     above(title, add-margin(img))
   end
@@ -1519,11 +1528,11 @@ residuals :: (t :: Table, xs :: String, ys :: String, fn :: (Number -> Number)) 
 fun residuals(t, xs, ys, fn) block:
   check-integrity(t, [list: xs, ys])
   if not(is-number(t.column(xs).get(0)) and is-number(t.column(ys).get(0))):
-    raise(message-exception("Cannot calculate residuals, because the 'xs' and 'ys' columns must both contain numeric data"))
+    raise(Err.message-exception("Cannot calculate residuals, because the 'xs' and 'ys' columns must both contain numeric data"))
   else:
     map2(
-      lam(y, prediction): y - prediction end, 
-      t.column(ys), 
+      lam(y, prediction): y - prediction end,
+      t.column(ys),
       map(fn, t.column(xs)))
   end
 end
@@ -1533,7 +1542,7 @@ fun S(t, xs, ys, fn) block:
   check-integrity(t, [list: xs, ys])
   datapoints = t.column(xs).length()
   if (datapoints <= 2):
-    raise(message-exception("Cannot calculate S for this model and function, because a model with two parameters requires a table with at least 3 rows"))
+    raise(Err.message-exception("Cannot calculate S for this model and function, because a model with two parameters requires a table with at least 3 rows"))
   else:
     residuals-sqr = residuals(t,xs,ys,fn).map(num-sqr)
     degrees-of-freedom = datapoints - 2
@@ -1545,7 +1554,7 @@ fit-model :: (t :: Table, ls :: String, xs :: String, ys :: String, fn :: (Numbe
 fun fit-model(t, ls, xs, ys, fn) block:
   check-integrity(t, [list: ls, xs, ys])
   labels = get-labels(t, ls)
-  
+
   # the line below calls S, which does our error-checking
   S-value     = S(t, xs, ys, fn)
   R-sqr-value = Stats.r-squared(t.column(xs), t.column(ys), fn)
@@ -1554,16 +1563,16 @@ fun fit-model(t, ls, xs, ys, fn) block:
   r-sqr-str   = easy-num-repr(R-sqr-value, 10)
 
   scatter = from-list.labeled-scatter-plot(
-    labels, 
-    ensure-numbers(t.column(xs)), 
+    labels,
+    ensure-numbers(t.column(xs)),
     ensure-numbers(t.column(ys)))
     .legend("Data")
     .point-size(5)
   fn-plot = from-list.function-plot(fn)
     .legend("Model")
   intervals = from-list.interval-chart(
-    t.column(xs), 
-    t.column(ys), 
+    t.column(xs),
+    t.column(ys),
     residuals(t, xs, ys, fn))
     .point-size(1)
     .pointer-color(C.green)
@@ -1606,8 +1615,8 @@ fun compute-outliers(t, col) block:
   check-integrity(t, [list: col])
   lower-boundary = q1(t, col) - (1.5 * (q3(t, col) - q1(t, col)))
   upper-boundary = q3(t, col) + (1.5 * (q3(t, col) - q1(t, col)))
-  t.build-column("is-outlier", 
-    (lam(r): 
+  t.build-column("is-outlier",
+    (lam(r):
         ask:
           | (r[col] < lower-boundary) then: "low"
           | (r[col] > upper-boundary) then: "high"
@@ -1671,7 +1680,7 @@ examples:
   sample-variance(height, "inches") is 13.6
 end
 
-  
+
 paired-t :: (t :: Table, col1 :: String, col2 :: String) -> Number
 fun paired-t(t, col1, col2) block:
   check-integrity(t, [list: col1, col2])
@@ -1694,7 +1703,7 @@ fun eq-variance-t(t, col1, col2) block:
   var2 = sample-variance(t, col2)
   n1 = t.length()
   n2 = t.length()
-  (mean1 - mean2) / num-sqrt((var1 / n1) + (var2 / n2)) 
+  (mean1 - mean2) / num-sqrt((var1 / n1) + (var2 / n2))
 end
 
 uneq-variance-t :: (t :: Table, col1 :: String, col2 :: String) -> Number
@@ -1709,7 +1718,7 @@ fun uneq-variance-t(t, col1, col2) block:
   n2 = t.length()
   df = n1 + n2 + -2
   dfs-and-sq-vars = (((n1 - 1) * num-sqr(var1)) + ((n2 - 1) * num-sqr(var2)))
-  (mean1 - mean2) / ((dfs-and-sq-vars / df) * num-sqrt((1 / n1) + (1 / n2))) 
+  (mean1 - mean2) / ((dfs-and-sq-vars / df) * num-sqrt((1 / n1) + (1 / n2)))
 end
 
 |#
@@ -1720,16 +1729,16 @@ fun row-id(t, id):
   id-col = t.column-names().get(0)
   matching-rows = t.filter(lam(r): r[id-col] == id end)
   if (matching-rows.length() > 1):
-    raise(message-exception("The identifier column should contain unique IDs, but this ID matched more than one row"))
+    raise(Err.message-exception("The identifier column should contain unique IDs, but this ID matched more than one row"))
   else if (matching-rows.length() == 0) :
-    raise(message-exception("No rows have this ID in their identifier column (did you check spelling and capitalization?"))
+    raise(Err.message-exception("No rows have this ID in their identifier column (did you check spelling and capitalization?"))
   else: matching-rows.row-n(0)
   end
 end
 
 split-and-reduce :: (
-  t :: Table, 
-  col-to-split :: String, 
+  t :: Table,
+  col-to-split :: String,
   col-to-reduce :: String,
   reducer :: (Table, String -> Any)
   ) -> Table
@@ -1737,11 +1746,11 @@ fun split-and-reduce(t, col-to-split, col-to-reduce, reducer) block:
   split = group(t, col-to-split)
   cases(Eth.Either) run-task(lam():
           split.build-column(
-            "result", 
+            "result",
             {(r): reducer(r["subtable"], col-to-reduce)})
         end):
     | left(v) => v
-    | right(v) => raise(message-exception("An error occurred when trying to use your reducer. Are you sure it consumes *only* a valid Table and column name?",v))
+    | right(v) => raise(Err.message-exception("An error occurred when trying to use your reducer. Are you sure it consumes *only* a valid Table and column name?",v))
   end.drop("subtable")
 end
 
@@ -1788,15 +1797,15 @@ fun group-and-subgroup(t :: Table, col :: String, subcol :: String) block:
   tab = group(t, col)
     .rename-column("value", "group")
     .build-column(
-    "data", 
+    "data",
     # take a count of the subgroups, then see which subgroups are missing
     # for each one, add a row with a count of zero. Then order the rows
     # and extract the count as a list
-    lam(r) block: 
+    lam(r) block:
       segments = count(r["subtable"], subcol)
       missing = subgroups.difference(Sets.list-to-set(segments.get-column(subcol)))
       missing.fold(
-        lam(table, subgroup): 
+        lam(table, subgroup):
           table.add-row([T.raw-row: {subcol; subgroup}, {"frequency"; 0}])
         end,
         segments)
@@ -1838,7 +1847,7 @@ fun make-sample-selections(n :: Number, u :: Number) -> {Boolean; SD.StringDict<
        now, so this plus filter is best and actually reasonably performant.
        ```
   when n > u:
-    raise(message-exception("make-sample-selections: num-samples too large"))
+    raise(Err.message-exception("make-sample-selections: num-samples too large"))
   end
   fun help(num-samples-remaining-to-get, dict-so-far):
     if num-samples-remaining-to-get == 0: dict-so-far
@@ -1875,11 +1884,11 @@ fun transpose(t :: Table) block:
   first-col = cols.get(0)
   # use the old header row as the first column in the new table
   var new_t = T.table-from-column(first-col, row-names)
-  
+
   split = split-at(1, t.all-columns())
   new-cols = split.prefix.get(0)
   old-rows = split.suffix
-  
+
   # for each column in our new table, mine the old rows for their values
   map_n(lam(n, col) block:
       new_t := new_t.add-column(col, map_n(lam(m, v): old-rows.get(m).get(n) end, 0, row-names))
@@ -1956,7 +1965,7 @@ table-to-graph :: (t :: Table) -> Image
 fun table-to-graph(t) block:
   check-integrity(t, [list: "x", "y"])
   cols = t.column-names()
-  if (cols.length() < 2): raise(message-exception("The table must have at least two columns"))
+  if (cols.length() < 2): raise(Err.message-exception("The table must have at least two columns"))
   else: 
     xs = t.column(cols.get(0))
     ys = t.column(cols.get(1))

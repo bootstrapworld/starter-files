@@ -1,11 +1,15 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/libraries/algebra.arr")
+use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/algebra.arr")
 
+##################################################
+puerto-rico-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/projects/flags/pr-flag-image.png")
+
+##################################################
 # DO NOW: Click Run and type "puerto-rico-flag" into the interactions window to see an image of the flag of Puerto Rico. 
 
 ##################################################
-# Describe what the Puerto Rican flag should look like, using as much detail as possible.
+# After the (#) below, describe what the Puerto Rican flag should look like, using as much detail as possible.
 #
-#
+
 
 # Type "puerto-rico" into the Interactions Area to see the image of what the code below produces. 
 
@@ -14,7 +18,7 @@ use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/
 # Go through the code below line by line and adjust it to make the images match. As you work, click run and type "puerto-rico" into the Interactions Area to see your progress!
 
 ##################################################
-#Code for the flag of Puerto Rico
+# Code for the flag of Puerto Rico
 
 # 1) Start by defining the shapes we will need to make the flag. Type them into the Interactions Area to see what they produce.
 

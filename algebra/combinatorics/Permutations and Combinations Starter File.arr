@@ -1,12 +1,12 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/libraries/algebra.arr")
+use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/algebra.arr")
 
 # Images for "Luigi's Italian Safari"
-ravioli = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/combinatorics/ravioli.png")
-pizza = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/combinatorics/pizza.png")
-ziti = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/combinatorics/ziti.png")
-chicken = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/combinatorics/chicken.png")
-lasagna = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/combinatorics/lasagna.png")
-soup = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/combinatorics/soup.png")
+ravioli = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra/combinatorics/ravioli.png")
+pizza = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra/combinatorics/pizza.png")
+ziti = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra/combinatorics/ziti.png")
+chicken = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra/combinatorics/chicken.png")
+lasagna = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra/combinatorics/lasagna.png")
+soup = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra/combinatorics/soup.png")
 
 # Luigi's 6-item menu
 menu = [list: lasagna, pizza, chicken, ravioli, soup, ziti]

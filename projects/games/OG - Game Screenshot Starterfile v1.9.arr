@@ -1,4 +1,4 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/libraries/algebra.arr")
+use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/algebra.arr")
 
 # A. Game title: Write the title of your game here
 TITLE = "My Game"
@@ -8,10 +8,10 @@ TITLE-COLOR = "white"
 # You can replace any of the definitions below with other images
 # And scale them to whatever size makes the most sense! 
 
-BACKGROUND = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/game/Night%20Forest.jpg")
+BACKGROUND = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/projects/game/Night%20Forest.jpg")
 DANGER = triangle(30, "solid", "red")
 TARGET = circle(20, "solid", "yellow")
-PLAYER = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/game/Robot.png")
+PLAYER = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/projects/game/Robot.png")
 
 # C. Here's a screenshot of the game.
 # The BACKGROUND is 640 x 480 with the characters placed on that field.

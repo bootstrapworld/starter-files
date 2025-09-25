@@ -1,20 +1,20 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/libraries/algebra.arr")
+use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/algebra.arr")
 
 # 0. Game title: Write the title of your game here
-TITLE = "Alfred Alfer's Awesome Adventure"
+TITLE = "My Game"
 TITLE-COLOR = "white"
 
-# Graphics - danger, target, background and player images
-BACKGROUND = scale(0.9, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/games/space_background.png"))
-DANGER = scale(0.5,image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/games/popsicle.png"))
-TARGET = scale(0.6, image-url("image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/games/dog_treat.png")"))
-PLAYER = scale(0.75, image-url("image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/games/Alfer.png")"))
+# Graphics - danger, target, projectile and player images
+BACKGROUND = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/projects/game/Night%20Forest.jpg")
+DANGER = triangle(30, "solid", "red")
+TARGET = circle(20, "solid", "green")
+PLAYER = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/projects/game/Robot.png")
 
 # here's a screenshot of the game, with the PLAYER at (320, 240),
 # the TARGET at (400 500) and the DANGER at (150, 200)
 SCREENSHOT = 
   translate(DANGER, 150, 200,
-    translate(TARGET, 500, 400, 
+    translate(TARGET, 400, 500, 
       translate(PLAYER, 320, 240, BACKGROUND)))
 
 ######################################################
@@ -22,25 +22,22 @@ SCREENSHOT =
 
 update-danger :: Number -> Number
 # given the danger's x-coordinate, output the NEXT x
-examples:
-  update-danger(140) is 140 - 15
-  update-danger(80) is 80 - 15
-end
+
+# write EXAMPLEs for update-danger below this line
+
 
 fun update-danger(x):
-  x - 15
+  x
 end
 
 
 update-target :: Number -> Number
 # given the target's x-coordinate, output the NEXT x
-examples:
-  update-target(200) is 200 + 20
-  update-target(180) is 180 + 20
-end
-  
+
+# write EXAMPLEs for update-target below this line
+
 fun update-target(x):
-  x + 20
+  x
 end
 
 ######################################################
@@ -50,60 +47,43 @@ end
 
 is-safe-left :: Number -> Boolean
 # Is the character visible on the left side of the screen?
-examples:
-  is-safe-left(200) is 200 > -50  #true
-  is-safe-left(-400) is -400 > -50 #false
-end
-  
-  
+
+# Write an EXAMPLE that makes this true, and one that makes this false:
+
 fun is-safe-left(x):
-  x > -50
+  true
 end
 
 is-safe-right :: Number -> Boolean
 # Is the character visible on the right side of the screen?
-examples:
-  is-safe-right(100) is 100 < 690
-  is-safe-right(700) is 700 < 690
-end
+
+# Write an EXAMPLE that makes this true, and one that makes this false:
 
 fun is-safe-right(x):
-  x < 690
+  true
 end
 
 
-is-onscreen :: Number, Number -> Boolean
+is-onscreen :: Number -> Boolean
 # Determines if the coordinate is on the screen
-fun is-onscreen(x, y):
-  is-safe-left(x) and is-safe-right(x)
+
+# EXAMPLEs:
+
+fun is-onscreen(x):
+  true
 end
+
 
 ######################################################
 # 3. Get our Player moving!
 
 update-player :: Number, String -> Number
-# given the player's y-coordinate, and a direction, output the NEXT y
-examples:
-  update-player(320, "up") is 320 + 10
-  update-player(100, "up") is 100 + 10
-  update-player(400, "down") is 400 - 10
-  update-player(120, "down") is 120 - 10
-  update-player(1000, "up") is 1000 + 0
-  update-player(-200, "down") is -200 + 0
-  update-player(200, "j") is 200
-end
+# given the player's y-coordinate and a direction, output the NEXT y
+
+# EXAMPLEs:
 
 fun update-player(y, key):
-  if (key == "up") and (y >= 480): # Block the player at the top
-    y + 0
-  else if (key == "down") and (y <= -120): # Block the player at the bottom
-    y + 0
-  else if (key == "up"): # default up
-    y + 10
-  else if (key == "down"): # default down
-    y - 10
-  else: y # any other key
-  end
+  y
 end
 
 
@@ -117,7 +97,7 @@ end
 # a yellow triangle between the player and each character. 
 # That triangle will be labelled with line-length on the legs,
 # and with distance on the hypotenuse. (This works for any valid color)
-_distances-color_ = "white"
+_distances-color_ = ""
 
 line-length :: Number, Number -> Number
 # the distance between two points on a number line
@@ -138,24 +118,21 @@ distance :: Number, Number, Number, Number -> Number
 # The distance between two points on screen:
 # We have the player's x and y, and a character's x and y.
 # How far apart are they?
-examples: 
-  distance(0, 0, 3, 4) is 
-  sqrt((sqr(3 - 0)) + (sqr(4 - 0)))
-  
-  distance(30, 12, 54, 3) is-roughly 
-  sqrt((sqr(54 - 30)) + (sqr(3 - 12))) 
-end
+# EXAMPLEs:
 
-fun distance(x1, y1, x2, y2):
-  sqrt((sqr(x2 - x1)) + (sqr(y2 - y1)))
+fun distance(px, py, cx, cy):
+  0
 end
 
 is-collision :: Number, Number, Number, Number -> Boolean 
 # How close is close enough?  
 # We have the player's x and y, and a character's x and y.
 # We can ask how far apart they are.  Did they collide?
+# EXAMPLEs:
+
+
 fun is-collision(px, py, cx, cy):
-  distance(px, py, cx, cy) < 50
+  false
 end
 
 

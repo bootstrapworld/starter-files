@@ -1,10 +1,10 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/libraries/algebra.arr")
+use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/algebra.arr")
 
-ireland-flag = image-url("https://code.pyret.org/shared-image-contents?sharedImageId=1rW_fyYPZC1XpkfXAowWKCb_hmG1NIlEU")
+##################################################
+netherlands-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/netherlands-flag-image.png")
 
-mauritius-flag = image-url("https://code.pyret.org/shared-image-contents?sharedImageId=1wR6zWkbat409PjCQzb9xpfrZ8Dm_Jjfd")
-
-# DO NOW: Click Run and type "netherlands" into the interactions window to see an image of the flag and look at the code below to answer questions with your class.
+##################################################
+# DO NOW: Click Run and type "netherlands-flag" into the interactions window to see an image of the flag and look at the code below to answer questions with your class.
 
 ##################################################
 
@@ -26,6 +26,7 @@ netherlands =
       background-nl))
   
 ##################################################
+ireland-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/ireland-flag-image.png")
 
 # Getting ready to write Code for the Flag of Ireland...
 
@@ -34,8 +35,7 @@ netherlands =
 # In what ways is the Irish flag different from the flag of the Netherlands?
 
 ##################################################
-
-#Code for the flag of Ireland
+# Code for the flag of Ireland
 
 # 1) Define the shapes needed to make the Irish flag, starting with a 300 x 200 background, and type them into the Interactions Area to see what they produce.
 
@@ -45,6 +45,7 @@ netherlands =
 # 3) Define a variable "ireland" to build the image of the Irish flag, identifying what coordinates will correctly locate the center of each piece.
 
 ##################################################
+mauritius-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/mauritius-flag-image.png")
 
 # Getting ready to write Code for the flag of Mauritius
 
@@ -55,12 +56,12 @@ netherlands =
 
 ##################################################
 
-#Code for the flag of Mauritius
+# Code for the flag of Mauritius
 
 # 1) Define the shapes needed to make the flag of Mauritius, starting with a 300 x 200 background, and type them into the Interactions Area to see what they produce.. 
 
 # 2) Describe the image you intend to compose. Be as specific as possible.
-#
+
 
 # 3) Define a variable called "mauritius" to build the image of the flag of Mauritius, identifying what coordinates will correctly locate the center of each piece.
 
@@ -73,5 +74,5 @@ netherlands =
 #################################################
 
 # CHALLENGES : 
-# You probably wrote code for "ireland" as if the background of this flag is white. Define a variable "ireland-green" that writes the code to produce an image of this flag starting with a green background.
+# You probably wrote code for "ireland" as if the background of this flag is white or transparent. Define a variable "ireland-green" that writes the code to produce an image of this flag starting with a green background instead!
 # All of these flags are 300 x 200. Write new code to make one of the flags be 450 X 300.

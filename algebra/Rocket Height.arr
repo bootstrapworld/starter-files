@@ -1,4 +1,4 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/libraries/algebra.arr")
+use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/algebra.arr")
 
 # WARNING - THERE'S SOME SLOPPY CODE IN THIS FILE! 
 # GOOD NEWS - YOU WILL FIX IT!

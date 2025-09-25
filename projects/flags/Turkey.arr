@@ -1,5 +1,9 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/libraries/algebra.arr")
+use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/algebra.arr")
 
+##################################################
+turkey-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/projects/flags/turkey-flag-image.png")
+
+##################################################
 # Do Now: Click run and type "turkey-flag" into the interactions window to see a version of the flag of Turkey
 
 #################################################
