@@ -1,4 +1,4 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/libraries/algebra.arr")
+use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/libraries/algebra.arr")
 
 # Do Now: Click run and type "lebanon-flag" into the interactions window to see an image of the flag you are trying to create.
 
@@ -9,7 +9,7 @@ use context url("https://raw.githubusercontent.com/bootstrapworld/curriculum/ref
 # 1) Define the shapes needed to make the flag, begininng with a background that is 450 x 300. 
 
 # Note: One of the shapes for this flag is a cedar tree, which is an image that we will need to import (see code below). 
-cedar = image-url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/algebra/flags/cedar-tree-image.png")
+cedar = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/flags/cedar-tree-image.png")
 
 #Define the other shapes...
 

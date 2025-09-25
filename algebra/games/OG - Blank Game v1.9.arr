@@ -1,14 +1,14 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/libraries/algebra.arr")
+use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/libraries/algebra.arr")
 
 # 0. Game title: Write the title of your game here
 TITLE = "My Game"
 TITLE-COLOR = "white"
 
 # Graphics - danger, target, projectile and player images
-BACKGROUND = image-url("http://www.bootstrapworld.org/clipart/Backgrounds/Night%20Forest.jpg")
+BACKGROUND = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/game/Night%20Forest.jpg")
 DANGER = triangle(30, "solid", "red")
 TARGET = circle(20, "solid", "green")
-PLAYER = image-url("http://www.bootstrapworld.org/clipart/Monsters/Robot.png")
+PLAYER = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/game/Robot.png")
 
 # here's a screenshot of the game, with the PLAYER at (320, 240),
 # the TARGET at (400 500) and the DANGER at (150, 200)

@@ -1151,19 +1151,19 @@ end
 
 ################################################################
 ############### FLAGS ##################
-japan-flag =  image-url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/algebra/flags/japan-flag-image.png")
+japan-flag =  image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/flags/japan-flag-image.png")
 
-lebanon-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/algebra/flags/lebanon-flag-image.png")
+lebanon-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/flags/lebanon-flag-image.png")
 
-mexico-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/algebra/flags/mexico-flag-image.png")
+mexico-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/flags/mexico-flag-image.png")
 
-panama-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/algebra/flags/panama-flag-image.png")
+panama-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/flags/panama-flag-image.png")
 
-puerto-rico-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/algebra/flags/pr-flag-image.png")
+puerto-rico-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/flags/pr-flag-image.png")
 
-trinidad-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/algebra/flags/trinidad-and-tobago-flag-image.png")
+trinidad-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/flags/trinidad-and-tobago-flag-image.png")
 
-turkey-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/algebra/flags/turkey-flag-image.png")
+turkey-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/flags/turkey-flag-image.png")
 
 ################################################################
 ############### PERMUTATIONS AND COMBINATIONS ##################

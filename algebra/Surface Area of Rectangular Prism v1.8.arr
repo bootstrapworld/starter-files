@@ -1,4 +1,4 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/libraries/algebra.arr")
+use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/libraries/algebra.arr")
 
 ##################################################
 # PART 0: DEFINING THE DIMENSIONS OF OUR PRISM

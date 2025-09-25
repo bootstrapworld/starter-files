@@ -1,4 +1,4 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/libraries/algebra.arr")
+use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/libraries/algebra.arr")
 
 ireland-flag = image-url("https://code.pyret.org/shared-image-contents?sharedImageId=1rW_fyYPZC1XpkfXAowWKCb_hmG1NIlEU")
 

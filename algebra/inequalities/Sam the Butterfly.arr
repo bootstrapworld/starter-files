@@ -1,6 +1,6 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/libraries/algebra.arr")
+use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/libraries/algebra.arr")
 
-IMG = image-url("http://www.wescheme.org/images/teachpacks2012/butterfly.png")
+IMG = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/inequalities/sam.png")
 
 # is-safe-left :: Number -> Boolean
 # Is the character visible on the left side of the screen?

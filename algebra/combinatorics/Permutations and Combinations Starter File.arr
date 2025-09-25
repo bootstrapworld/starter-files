@@ -1,12 +1,12 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/libraries/algebra.arr")
+use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/libraries/algebra.arr")
 
 # Images for "Luigi's Italian Safari"
-ravioli = image-url("https://code.pyret.org/shared-image-contents?sharedImageId=1HFivO465qjHz4vQYkutozvSfwtYDxgaK")
-pizza = image-url("https://code.pyret.org/shared-image-contents?sharedImageId=1ZEPjPrwniOtHqoJbq9QE-wBBrG8k8vhE")
-ziti = image-url("https://code.pyret.org/shared-image-contents?sharedImageId=1pAkHV-aQhygaha-Az8NFs8UMkAYMlw-V")
-chicken = image-url("https://code.pyret.org/shared-image-contents?sharedImageId=1k0LLpwv0QogUYoUTaUiU0HHXHJle6jB6")
-lasagna = image-url("https://code.pyret.org/shared-image-contents?sharedImageId=1j_fP6OORFVSrflbAT532Qy0flgDRaFtH")
-soup = image-url("https://code.pyret.org/shared-image-contents?sharedImageId=1RdkRvKUl_udrdExmad2cnVuwT3DdDPKQ")
+ravioli = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/combinatorics/ravioli.png")
+pizza = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/combinatorics/pizza.png")
+ziti = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/combinatorics/ziti.png")
+chicken = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/combinatorics/chicken.png")
+lasagna = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/combinatorics/lasagna.png")
+soup = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/algebra/combinatorics/soup.png")
 
 # Luigi's 6-item menu
 menu = [list: lasagna, pizza, chicken, ravioli, soup, ziti]
