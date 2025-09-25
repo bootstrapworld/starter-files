@@ -1,4 +1,4 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr")
+use context file("core.arr")
 ################################################################
 # Bootstrap: Algebra
 # Support files, as of Fall 2026
@@ -7,6 +7,8 @@ provide *
 
 include reactors
 import image-structs as IS
+provide from Math: * hiding(sum, min, max), type *, data * end
+provide from L: * hiding(filter, sort, range), type *, data * end
 
 
 ################# UTILITY FUNCTIONS ###########################
@@ -52,8 +54,8 @@ fun guess-arity(f :: Function) -> TaggedFunction:
 end
 
 
-fun min(a,b): Math.min([list: a,b]) end
-fun max(a,b): Math.max([list: a,b]) end
+fun min(a,b): min([list: a,b]) end
+fun max(a,b): max([list: a,b]) end
 
 ################################################################
 ######################### BLEND IMAGES ########################
@@ -1052,7 +1054,7 @@ fun def-to-table(f):
   step = num-random(5) + 1
   xs = L.range-by(start, start + 100, step)
   ys = xs.map(f)
-  [table-from-columns: {"x"; xs}, {"y"; ys}]
+  [T.table-from-columns: {"x"; xs}, {"y"; ys}]
 end
 
 table-to-graph :: (t :: Table) -> Image

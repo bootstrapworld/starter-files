@@ -2,63 +2,38 @@ use context starter2024
 
 provide *
 
-import color as C
-provide from C:
-  color,
-  type *,
-  data *
-end
-
-import lists as L
-provide from L:
-    * hiding(filter, sort, range),
-  type *,
-  data *
-end
-
-import image as I
-provide from I:
-    * hiding(translate),
-  type *,
-  data *
-end
-
-import starter2024 as Starter
-provide from Starter: expt, sqrt, sqr, abs, negate, random end
-import constants as Consts
-provide from Consts: PI, E end
 include charts
 
-
-import either as Eth
-provide from Eth: * end
-
-import error as Err
-provide from Err: * end
-
-import sets as Sets
-provide from Sets: * end
-
+import lists as L
+import image as I
+import starter2024 as Starter
+import constants as Consts
 import math as Math
-provide from Math:
-    * hiding(sum),
-  type *,
-  data *
-end
-
-import tables as T
-provide from T:
-  *,
-  type *,
-  data *
-end
-
 import gdrive-sheets as G
-provide from G:
-    * hiding(load-spreadsheet),
-  type *,
-  data *
+import error as Err
+import either as Eth
+import sets as Sets
+import tables as T
+import color as C
+
+# exported named module IDs
+provide:
+  module Eth,
+  module Err,
+  module Sets,
+  module T,
+  module Math,
+  module L
 end
+
+# exported symbols from select modules
+provide from C: color, type *, data * end
+provide from L: * hiding(filter, sort, range), type *, data * end
+provide from I: * hiding(translate), type *, data * end
+provide from Starter: expt, sqrt, sqr, abs, negate, random end
+provide from Consts: PI, E end
+provide from G: * hiding(load-spreadsheet), type *, data * end
+
 
 # override Pyret's native translate with put-image
 shadow translate = put-image

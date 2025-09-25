@@ -1,4 +1,4 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr")
+use context file("core.arr")
 ################################################################
 # Bootstrap: DataScience 
 # Support files, as of Fall 2026
