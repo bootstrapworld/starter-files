@@ -1,8 +1,6 @@
 use context url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/libraries/data-science.arr")
 
 include reactors
-import constants as Consts
-provide from Consts: PI, E end
 provide * 
 fun deg-to-rad(d):
   num-exact((d / 180) * PI)
