@@ -1,5 +1,5 @@
 use context starter2024
-include file("core.arr")
+url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/algebra.arr")
 
 ################################################################
 # Bootstrap: DataScience
