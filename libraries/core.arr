@@ -44,6 +44,7 @@ end
 # override Pyret's native color constructor with make-color
 shadow make-color = C.color
 
+fun nth-root(n, r): num-expt(n, 1 / r) end
 
 # shadow the built-in function, with one naive twist:
 # if it looks like a sheets URL, try parsing out the fileID

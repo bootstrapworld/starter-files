@@ -97,10 +97,6 @@ fun blend-images(imgA, imgB) block:
 end
 
 ################################################################
-######################### NTH-ROOT #############################
-fun nth-root(n, r): num-expt(n, 1 / r) end
-
-################################################################
 ######################### ROCKET HEIGHT ########################
 
 ROCKET = scale(1/2, image-url("http://www.wescheme.org/images/teachpacks2012/rocket.png"))
