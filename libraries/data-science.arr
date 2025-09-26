@@ -27,6 +27,8 @@ end
 
 import statistics as Stats
 
+var display-chart = lam(c): c.display() end
+
 ################# UTILITY FUNCTIONS ###########################
 
 # override Pyret's native range (list) with range (stats)
@@ -40,9 +42,6 @@ shadow translate = put-image
 
 # re-export render-chart
 shadow render-chart = render-chart
-
-fun display-chart(_chart): _chart.display() end
-fun get-image(_chart): _chart.get-image() end
 
 #################################################################################
 # Table Functions
