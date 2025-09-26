@@ -1,8 +1,8 @@
 use context starter2024
-include url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr")
+#include url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr")
 
 #for local debugging only
-#include file("core.arr")
+include file("core.arr")
 
 ################################################################
 # Bootstrap: DataScience
@@ -155,8 +155,8 @@ fun pie-chart-raw(t, ls, vs, column-name) block:
   labels = get-labels(t, ls)
   series = from-list.pie-chart(labels, ensure-numbers(t.column(vs)))
     .colors(t.column("_color"))
-  _chart = render-chart(series)
-  img = display-chart(_chart)
+  chart = render-chart(series)
+  img = display-chart(chart)
   title = make-title([list:"Distribution of", column-name])
   above(title, add-margin(img))
 end
@@ -166,11 +166,11 @@ fun bar-chart-raw(t, ls, vs, column-name) block:
   labels = get-labels(t, ls)
   series = from-list.bar-chart(labels, ensure-numbers(t.column(vs)))
     .colors(t.column("_color"))
-  _chart = render-chart(series)
+  chart = render-chart(series)
     .x-axis(column-name)
     .y-axis(vs)
     .y-min(0)
-  img = display-chart(_chart)
+  img = display-chart(chart)
   title = make-title([list:"Distribution of", column-name])
   above(title, img)
 end
@@ -201,8 +201,8 @@ fun image-pie-chart(t, col, f) block:
     images,
     get-labels(summary, col),
     ensure-numbers(summary.column("frequency")))
-  _chart = render-chart(series)
-  img = display-chart(_chart)
+  chart = render-chart(series)
+  img = display-chart(chart)
   title = make-title([list:"Distribution of", col])
   above(title, add-margin(img))
 end
@@ -231,8 +231,8 @@ fun image-bar-chart(t, col, f) block:
     images,
     get-labels(summary, col),
     ensure-numbers(summary.column("frequency")))
-  _chart = render-chart(series).y-min(0)
-  img = display-chart(_chart)
+  chart = render-chart(series).y-min(0)
+  img = display-chart(chart)
   title = make-title([list:"Distribution of", col])
   above(title, add-margin(img))
 end
@@ -272,8 +272,8 @@ fun stacked-bar-chart(t, col, subcol) block:
       segments)
     .stacking-type(percent)
     .colors(color-list)
-  _chart = render-chart(series).x-axis(col).y-axis(subcol)
-  img = display-chart(_chart)
+  chart = render-chart(series).x-axis(col).y-axis(subcol)
+  img = display-chart(chart)
   title = make-title([list:"Distribution of", subcol, "by", col])
   above(title, add-margin(img))
 end
@@ -291,8 +291,8 @@ fun stacked-bar-chart-summarized(t, categories, column-list) block:
     zipped_data,
     column-list)
     .colors(color-list)
-  _chart = render-chart(series)
-  display-chart(_chart)
+  chart = render-chart(series)
+  display-chart(chart)
 end
 
 
@@ -308,10 +308,10 @@ fun multi-bar-chart(t, col, subcol) block:
       tab.get-column("data"),
       segments)
     .colors(color-list)
-  _chart = render-chart(series)
+  chart = render-chart(series)
     .x-axis(col + " ⋲ " + subcol)
     .y-axis("frequency")
-  img = display-chart(_chart)
+  img = display-chart(chart)
   title = make-title([list:"Distribution of", subcol, "by", col])
   above(title, add-margin(img))
 end
@@ -329,8 +329,8 @@ fun multi-bar-chart-summarized(t, categories, column-list) block:
     zipped_data,
     column-list)
     .colors(color-list)
-  _chart = render-chart(series)
-  display-chart(_chart)
+  chart = render-chart(series)
+  display-chart(chart)
 end
 
 
@@ -346,8 +346,8 @@ fun simple-dot-plot(t, vals) block:
   else:
     raise(Err.message-exception("Cannot make a dot-plot, because the '" + vals + "' column does not contain quantitative data"))
   end
-  _chart = render-chart(series.point-size(8)).x-axis(vals).y-axis("frequency")
-  img = display-chart(_chart)
+  chart = render-chart(series.point-size(8)).x-axis(vals).y-axis("frequency")
+  img = display-chart(chart)
   title = make-title([list:"Dot Plot of", vals])
   above(title, add-margin(img))
 end
@@ -361,10 +361,10 @@ fun dot-plot(t, labels, vals) block:
   else:
     raise(Err.message-exception("Cannot make a dot-plot, because the '" + vals + "' column does not contain quantitative data"))
   end
-  _chart = render-chart(series)
+  chart = render-chart(series)
     .x-axis(vals)
     .y-axis("frequency")
-  img = display-chart(_chart)
+  img = display-chart(chart)
   title = make-title([list:"Dot Plot of", vals])
   above(title, add-margin(img))
 end
@@ -379,8 +379,8 @@ fun image-dot-plot(t, vals, f :: (Row -> Image)) block:
   else:
     from-list.dot-chart(t.column(vals))
   end
-  _chart = render-chart(series).x-axis(vals).y-axis("frequency")
-  img = display-chart(_chart)
+  chart = render-chart(series).x-axis(vals).y-axis("frequency")
+  img = display-chart(chart)
   title = make-title([list:"Dot Plot of", vals])
   above(title, add-margin(img))
 end
@@ -395,10 +395,10 @@ fun simple-histogram(t, vals, bin-width) block:
   if not(is-number(t.column(vals).get(0))):
     raise(Err.message-exception("Cannot make a histogram, because the '" + vals + "' column does not contain quantitative data"))
   else:
-    _chart = render-chart(from-list.histogram(ensure-numbers(t.column(vals))).bin-width(bin-width))
+    chart = render-chart(from-list.histogram(ensure-numbers(t.column(vals))).bin-width(bin-width))
       .x-axis(vals)
       .y-axis("frequency")
-    img = display-chart(_chart)
+    img = display-chart(chart)
     title = make-title([list:"Distribution of", vals])
     above(title, add-margin(img))
   end
@@ -411,12 +411,12 @@ fun histogram(t, labels, vals, bin-width) block:
   if not(is-number(t.column(vals).get(0))):
     raise(Err.message-exception("Cannot make a histogram, because the '" + vals + "' column does not contain quantitative data"))
   else:
-    _chart = render-chart(from-list.labeled-histogram(
+    chart = render-chart(from-list.labeled-histogram(
         t.column(labels).map(to-repr),
         ensure-numbers(t.column(vals))).bin-width(bin-width))
       .x-axis(vals)
       .y-axis("frequency")
-    img = display-chart(_chart)
+    img = display-chart(chart)
     title = make-title([list:"Distribution of", vals])
     above(title, add-margin(img))
   end
@@ -434,10 +434,10 @@ fun image-histogram(t, vals, bin-width, f) block:
   if not(is-number(t.column(vals).get(0))):
     raise(Err.message-exception("Cannot make a histogram, because the '" + vals + "' column does not contain quantitative data"))
   else:
-    _chart = render-chart(from-list.image-histogram(images, ensure-numbers(t.column(vals))).bin-width(bin-width))
+    chart = render-chart(from-list.image-histogram(images, ensure-numbers(t.column(vals))).bin-width(bin-width))
       .x-axis(vals)
       .y-axis("frequency")
-    img = display-chart(_chart)
+    img = display-chart(chart)
     title = make-title([list:"Distribution of", vals])
     above(title, add-margin(img))
   end
@@ -450,11 +450,11 @@ fun scaled-histogram(t, vals, bin-width, low, high) block:
   if not(is-number(t.column(vals).get(0))):
     raise(Err.message-exception("Cannot make a histogram, because the '" + vals + "' column does not contain quantitative data"))
   else:
-    _chart = render-chart(from-list.histogram(ensure-numbers(t.column(vals))).bin-width(bin-width))
+    chart = render-chart(from-list.histogram(ensure-numbers(t.column(vals))).bin-width(bin-width))
       .x-axis(vals)
       .y-axis("frequency")
       .min(low).max(high)
-    img = display-chart(_chart)
+    img = display-chart(chart)
     title = make-title([list:"Distribution of", vals])
     above(title, add-margin(img))
   end
@@ -475,10 +475,10 @@ fun box-plot-raw(t, vs, low, high, horizontal, showOutliers) block:
     series = from-list.labeled-box-plot([list: vs], [list: l])
       .horizontal(horizontal).show-outliers(showOutliers)
       .color(make-color(0,0,100,1))
-    _chart = render-chart(series)
+    chart = render-chart(series)
       .title(get-5-num-summary(t, vs))
       .min(low).max(high)
-    img = display-chart(_chart)
+    img = display-chart(chart)
     title = make-title([list:"Distribution of", vs])
     above(title, add-margin(img))
   end
@@ -543,10 +543,10 @@ fun line-graph(t, labels, xs, ys) block:
   l2 = ensure-numbers(t.column(ys))
   ls = get-labels(t, labels)
   sorted = t.order-by(xs, true) # sort the table by x-axis
-  _chart = render-chart(from-list.labeled-line-plot(ls, sorted.column(xs), sorted.column(ys)))
+  chart = render-chart(from-list.labeled-line-plot(ls, sorted.column(xs), sorted.column(ys)))
     .x-axis(xs)
     .y-axis(ys)
-  img = display-chart(_chart)
+  img = display-chart(chart)
   title = make-title([list:"", ys, "vs.", xs])
   above(title, add-margin(img))
 end
@@ -560,10 +560,10 @@ fun scatter-plot(t, labels, xs, ys) block:
   if not(is-number(t.column(xs).get(0)) and is-number(t.column(ys).get(0))):
     raise(Err.message-exception("Cannot make a scatter plot, because the 'xs' and 'ys' columns must both contain numeric data"))
   else:
-    _chart = render-chart(from-list.labeled-scatter-plot(ls, ensure-numbers(t.column(xs)), ensure-numbers(t.column(ys))))
+    chart = render-chart(from-list.labeled-scatter-plot(ls, ensure-numbers(t.column(xs)), ensure-numbers(t.column(ys))))
       .x-axis(xs)
       .y-axis(ys)
-    img = display-chart(_chart)
+    img = display-chart(chart)
     title = make-title([list:"", ys, "vs.", xs])
     above(title, add-margin(img))
   end
@@ -575,10 +575,10 @@ fun simple-scatter-plot(t, xs, ys) block:
   if not(is-number(t.column(xs).get(0)) and is-number(t.column(ys).get(0))):
     raise(Err.message-exception("Cannot make a scatter plot, because the 'xs' and 'ys' columns must both contain numeric data"))
   else:
-    _chart = render-chart(from-list.scatter-plot(ensure-numbers(t.column(xs)), ensure-numbers(t.column(ys))))
+    chart = render-chart(from-list.scatter-plot(ensure-numbers(t.column(xs)), ensure-numbers(t.column(ys))))
       .x-axis(xs)
       .y-axis(ys)
-    img = display-chart(_chart)
+    img = display-chart(chart)
     title = make-title([list:"", ys, "vs.", xs])
     above(title, add-margin(img))
   end
@@ -596,10 +596,10 @@ fun image-scatter-plot(t, xs, ys, f) block:
     raise(Err.message-exception("Cannot make an image scatter plot, because the 'xs' and 'ys' columns must both contain numeric data"))
   else:
     images = t.all-rows().map(f)
-    _chart = render-chart(from-list.image-scatter-plot(images, ensure-numbers(t.column(xs)), ensure-numbers(t.column(ys))))
+    chart = render-chart(from-list.image-scatter-plot(images, ensure-numbers(t.column(xs)), ensure-numbers(t.column(ys))))
       .x-axis(xs)
       .y-axis(ys)
-    img = display-chart(_chart)
+    img = display-chart(chart)
   title = make-title([list:"", ys, "vs.", xs])
     above(title, add-margin(img))
   end
@@ -650,11 +650,11 @@ fun lr-plot(t, ls, xs, ys) block:
       .legend("Model")
     s-num = S(t, xs, ys, fn)
     r-sqr-num = Stats.r-squared(t.column(xs), t.column(ys), fn)
-    _chart = render-charts([list: scatter, fn-plot])
+    chart = render-charts([list: scatter, fn-plot])
       .title(make-lr-title(fn, r-sqr-num, s-num))
       .x-axis(xs)
       .y-axis(ys)
-    img = display-chart(_chart)
+    img = display-chart(chart)
     title = make-title([list:"", ys, "vs.", xs])
     above(title, add-margin(img))
   end
@@ -673,11 +673,11 @@ fun simple-lr-plot(t, xs, ys) block:
     fn-plot = from-list.function-plot(fn)
     s-num = S(t, xs, ys, fn)
     r-sqr-num = Stats.r-squared(t.column(xs), t.column(ys), fn)
-    _chart = render-charts([list: scatter, fn-plot])
+    chart = render-charts([list: scatter, fn-plot])
       .title(make-lr-title(fn, r-sqr-num, s-num))
       .x-axis(xs)
       .y-axis(ys)
-    img = display-chart(_chart)
+    img = display-chart(chart)
     title = make-title([list:"", ys, "vs.", xs])
     above(title, add-margin(img))
   end
@@ -700,11 +700,11 @@ fun image-lr-plot(t, xs, ys, f) block:
       .legend("Model")
     s-num = S(t, xs, ys, fn)
     r-sqr-num = Stats.r-squared(t.column(xs), t.column(ys), fn)
-    _chart = render-charts([list: scatter, fn-plot])
+    chart = render-charts([list: scatter, fn-plot])
       .title(make-lr-title(fn, r-sqr-num, s-num))
       .x-axis(xs)
       .y-axis(ys)
-    img = display-chart(_chart)
+    img = display-chart(chart)
     title = make-title([list:"", ys, "vs.", xs])
     above(title, add-margin(img))
   end
@@ -767,11 +767,11 @@ fun fit-model(t, ls, xs, ys, fn) block:
     .style("sticks")
     .legend("Residuals")
   title-str = "S: " + S-str + "   R²: " + r-sqr-str
-  _chart = render-charts([list: fn-plot, scatter, intervals])
+  chart = render-charts([list: fn-plot, scatter, intervals])
     .title(title-str)
     .x-axis(xs)
     .y-axis(ys)
-  img = display-chart(_chart)
+  img = display-chart(chart)
   title = make-title([list:"", ys, "vs.", xs])
   above(title, add-margin(img))
 end
@@ -782,10 +782,10 @@ end
 
 function-plot :: (f :: (Number -> Number)) -> Image
 fun function-plot(f):
-  _chart = render-chart(from-list.function-plot(f))
+  chart = render-chart(from-list.function-plot(f))
     .x-axis("x")
     .y-axis("y")
-  display-chart(_chart)
+  display-chart(chart)
 end
 
 def-to-table :: (start :: Number, stop :: Number, f :: (Number -> Number)) -> Table
@@ -799,14 +799,14 @@ end
 def-to-graph :: (f :: (Number -> Number)) -> Image
 # Same as make-table, but makes a line-plot of the resulting table
 fun def-to-graph(f) block:
-  _chart = render-chart(from-list.function-plot(f))
+  chart = render-chart(from-list.function-plot(f))
     .x-axis("x")
     .y-axis("y")
     .x-min(-10)
     .x-max(10)
     .y-min(-10)
     .y-max(10)
-  display-chart(_chart)
+  display-chart(chart)
 end
 
 table-to-graph :: (t :: Table) -> Image
@@ -818,15 +818,15 @@ fun table-to-graph(t) block:
   else:
     xs = t.column(cols.get(0))
     ys = t.column(cols.get(1))
-    _chart = render-chart(from-list.line-plot(xs, ys))
+    chart = render-chart(from-list.line-plot(xs, ys))
       .x-axis(cols.get(0))
       .y-axis(cols.get(1))
       .x-min(num-round(Math.min(xs)))
       .x-max(num-round(Math.max(xs)))
     if num-round(Math.min(ys)) == num-round(Math.max(ys)):
-      display-chart(_chart)
+      display-chart(chart)
     else:
-      display-chart(_chart
+      display-chart(chart
         .y-min(num-round(Math.min(ys)))
         .y-max(num-round(Math.max(ys))))
     end

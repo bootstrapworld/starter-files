@@ -766,6 +766,14 @@ fun make-title(str-list):
     str-list)
 end
 
+
+# if the column is a boolean, convert to a number and sort
+shadow sort = lam(t :: Table, col :: String, asc :: Boolean):
+  if ((t.all-rows().length() > 0) and is-boolean(t.row-n(0)[col])): t.build-column("tmp", lam(r):to-repr(r[col]) end).order-by("tmp", asc).drop("tmp")
+  else: t.order-by(col, asc)
+  end
+end
+
 fun minimum(t :: Table, col :: String) block:
   check-integrity(t, [list: col])
   if not(is-number(t.column(col).get(0))):
