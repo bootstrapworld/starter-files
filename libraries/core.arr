@@ -20,6 +20,10 @@ import either as Eth
 import error as Err
 import sets as Sets
 import tables as T
+import string-dict as SD
+import lists as L
+import statistics as Stats
+import math as Math
 
 import charts as Ch
 provide from Ch: *, type *, data * end
@@ -35,7 +39,8 @@ provide:
   module Eth,
   module Err,
   module Sets,
-  module T
+  module T,
+  module SD
 end
 
 # override Pyret's native translate with put-image
@@ -46,20 +51,6 @@ shadow make-color = C.color
 
 fun nth-root(n, r): num-expt(n, 1 / r) end
 
-# shadow the built-in function, with one naive twist:
-# if it looks like a sheets URL, try parsing out the fileID
-# for the user. Otherwise, just fall back to the native
-# library function
-fun load-spreadsheet(url :: String) block:
-  if (string-length(url) < 39):
-    G.load-spreadsheet(url)
-  else if (string-substring(url, 0, 39) <> "https://docs.google.com/spreadsheets/d/"):
-    G.load-spreadsheet(url)
-  else:
-    rest = string-substring(url, 39, string-length(url))
-    G.load-spreadsheet(string-split(rest,"/").get(0))
-  end
-end
 
 #################################################
 # Numerical functions
@@ -617,4 +608,568 @@ check:
   cos(PI / 3) is-roughly 0.5
   sin(PI / 6) is-roughly 0.5
 end
+|#
+
+
+#################################################################################
+# Table Functions
+# check that the table isn't empty, has all the necessary columns, and contains no blanks
+
+# check to ensure that every value is actually a number
+is-all-numbers = _.all(is-number)
+fun ensure-numbers(l :: List<Number>%(is-all-numbers)): l end
+
+fun check-integrity(t :: Table, cols :: List<String>) block:
+  t-cols = t.column-names()
+  check-col = lam(c): if t-cols.member(c): nothing
+    else: raise(Err.message-exception("'" + c + "' is not a column in this table. Columns are: " + t-cols.join-str(", ")))
+    end
+  end
+  cols.each(check-col)
+  if (t.all-rows().length() == 0):
+    raise(Err.message-exception("This table contains no data rows (it's empty!)"))
+  else:
+    L.each(lam(c):
+        if is-Option(t.row-n(0)[c]):
+          raise(Err.message-exception("This table contains blank cells in column " + c))
+        else:
+          nothing
+        end
+      end,
+      t.column-names())
+  end
+end
+
+
+# shadow the built-in function, with one naive twist:
+# if it looks like a sheets URL, try parsing out the fileID
+# for the user. Otherwise, just fall back to the native
+# library function
+fun load-spreadsheet(url :: String) block:
+  if (string-length(url) < 39):
+    G.load-spreadsheet(url)
+  else if (string-substring(url, 0, 39) <> "https://docs.google.com/spreadsheets/d/"):
+    G.load-spreadsheet(url)
+  else:
+    rest = string-substring(url, 39, string-length(url))
+    G.load-spreadsheet(string-split(rest,"/").get(0))
+  end
+end
+
+# Strings, Integers and numbers with 2 decimals are displayed exactly
+# more than 2 decimals are displayed as roughnums
+fun get-labels(t, ls) block:
+  ls-col = t.column(ls)
+  if is-number(ls-col.get(0)):
+    ls-col.map(lam(x) block:
+        rounded = num-round(x * 100) / 100
+        if num-is-integer(x): num-to-string-digits(x, 0)
+        else if (x == rounded): num-to-string-digits(x, 2)
+        else: "~" + num-to-string-digits(x, 2)
+        end
+      end)
+  else:
+    ls-col.map(to-repr)
+  end
+end
+
+# Optimally-distinct list of colors taken from
+# https://stackoverflow.com/a/12224359/12026982
+COLORS = [list:
+  make-color(51,102,204, 1),
+  make-color(220,57,18, 1),
+  make-color(255,153,0, 1),
+  make-color(16,150,24, 1),
+  make-color(153,0,153, 1),
+  make-color(0,153,198, 1),
+  make-color(221,68,119, 1),
+  make-color(102,170,0, 1),
+  make-color(184,46,46, 1),
+  make-color(49,99,149, 1),
+  make-color(153,68,153, 1),
+  make-color(34,170,153, 1),
+  make-color(170,170,17, 1),
+  make-color(102,51,204, 1),
+  make-color(230,115,0, 1),
+  make-color(139,7,7, 1),
+  make-color(101,16,103, 1),
+  make-color(50,146,98, 1),
+  make-color(85,116,166, 1),
+  make-color(59,62,172, 1),
+  make-color(183,115,34, 1),
+  make-color(22,214,32, 1),
+  make-color(185,19,131, 1),
+  make-color(244,53,158, 1),
+  make-color(156,89,53, 1),
+  make-color(169,196,19, 1),
+  make-color(42,119,141, 1),
+  make-color(102,141,28, 1),
+  make-color(190,164,19, 1),
+  make-color(12,89,34, 1),
+  make-color(116,52,17, 1)]
+
+# maintain a mutable dict mapping string values to colors, so that any
+# categorical display will have the same colors for the same value across
+# program-opens (closing and re-opening the program will clear the dict).
+var string-colors = [SD.mutable-string-dict:]
+var colorIdx = 0
+
+fun nextColor() block:
+  if (colorIdx < (COLORS.length() - 1)):
+    colorIdx := colorIdx + 1
+  else: colorIdx := 0
+  end
+  COLORS.get(colorIdx)
+end
+
+# Given a table and a column name, extract distinct string values from
+# that col and get the associated colors in the string-colors dict. If
+# no color is assigned, grab a new one from the colors list and assign it
+# Given a table and a column name, extract distinct string values from
+# that col and get the associated colors in the string-colors dict. If
+# no color is assigned, grab a new one from the colors list and assign it
+distinct-colors :: (t :: Table, col :: String) -> Table
+fun distinct-colors(t, col):
+  t.build-column("_color", lam(r) block:
+      key = to-repr(r.get-value(col))
+      when not(string-colors.has-key-now(key)):
+        string-colors.set-now(key, nextColor())
+      end
+      string-colors.get-value-now(key)
+    end)
+end
+
+
+fun add-margin(img) block:
+  margin = 75
+  overlay(
+    center-pinhole(img),
+    rectangle(
+      image-width(img) + margin,
+      image-height(img) + margin,
+      "outline",
+      "transparent"))
+end
+
+fun make-title(str-list):
+  fold_n(
+    lam(i, acc, str):
+      beside(
+        acc,
+        if num-is-integer(i / 2): text(" " + str + " ", 18, "black")
+        else: text-font(str, 16, "blue", "Courier",
+    "swiss", "normal", "normal", false)
+        end)
+    end,
+    0,
+    text("",18,"black"),
+    str-list)
+end
+
+fun minimum(t :: Table, col :: String) block:
+  check-integrity(t, [list: col])
+  if not(is-number(t.column(col).get(0))):
+    raise(Err.message-exception("Cannot compute the minimum, because the '" + col + "' column does not contain quantitative data"))
+  else:
+    Math.min(t.column(col))
+  end
+end
+
+fun maximum(t :: Table, col :: String) block:
+  check-integrity(t, [list: col])
+  if not(is-number(t.column(col).get(0))):
+    raise(Err.message-exception("Cannot compute the maximum, because the '" + col + "' column does not contain quantitative data"))
+  else:
+    Math.max(t.column(col))
+  end
+end
+
+fun iqr(t :: Table, col :: String) block:
+  check-integrity(t, [list: col])
+  l = t.column(col).sort()
+  first-half = l.split-at(num-floor(l.length() / 2)).prefix
+  second-half = l.split-at(num-ceiling(l.length() / 2)).suffix
+  num-to-string-digits(Stats.median(second-half) - Stats.median(first-half),2)
+end
+fun IQR(t, col): iqr(t, col) end
+
+fun get-5-num-summary(t :: Table, col :: String) block:
+  check-integrity(t, [list: col])
+  l = t.column(col)
+  shadow l = l.sort()
+  first-half = l.split-at(num-floor(l.length() / 2)).prefix
+  second-half = l.split-at(num-ceiling(l.length() / 2)).suffix
+  shadow minimum = num-to-string-digits(Math.min(l), 2)
+  Q1 = num-to-string-digits(Stats.median(first-half), 2)
+  Q2 = num-to-string-digits(Stats.median(l), 1)
+  Q3 = num-to-string-digits(Stats.median(second-half), 2)
+  shadow maximum = num-to-string-digits(Math.max(l), 2)
+  R = num-to-string-digits(Math.max(l) - Math.min(l), 2)
+  [list: "Min:", minimum, ",  Q1:", Q1, ",  Median:", Q2, ",  Q3:", Q3, ",  Max:", maximum].join-str("")
+end
+
+
+#################################################################################
+# Live Survey Functions
+fun live-display(gsheetID :: String, sheet-name :: String, columns :: List<String>, visualize)  -> Image block:
+  fun get-table(t):
+    sheet = load-spreadsheet(gsheetID).sheet-by-name(sheet-name, true)
+    builtins.open-table(sheet.load(raw-array-from-list(columns), [raw-array: ]))
+  end
+  r = reactor:
+    init: get-table(nothing),
+    to-draw: visualize,
+    seconds-per-tick: 2,
+    on-tick: get-table
+  end
+  r.interact()
+  visualize(get-table(nothing))
+end
+
+
+# live-survey :: (String, String, List<String> :: (Any -> Image)
+fun live-survey(gsheetID, sheet-name, columns, visualize) block:
+  live-display(gsheetID, sheet-name, columns, visualize)
+end
+
+
+## OUTLIER TOOLS ##########################################
+
+q1 :: (t :: Table, col :: String) -> Number
+fun q1(t, col) block:
+  check-integrity(t, [list: col])
+  values = t.get-column(col).sort()
+  first-half = values.split-at(num-floor(values.length() / 2)).prefix
+  Stats.median(first-half)
+end
+
+
+q3 :: (t :: Table, col :: String) -> Number
+fun q3(t, col) block:
+  check-integrity(t, [list: col])
+  values = t.get-column(col).sort()
+  second-half = values.split-at(num-ceiling(values.length() / 2)).suffix
+  Stats.median(second-half)
+end
+
+compute-outliers :: (t :: Table, col :: String) -> Table
+# consumes a table and a column, calculates both the lower boundary and upper boundary (fences), creates a new column called "is-outler" that is populated with "low", "high" and "no"
+# (Credit to Jennifer Braun, CSPdWeek 2019)
+fun compute-outliers(t, col) block:
+  check-integrity(t, [list: col])
+  lower-boundary = q1(t, col) - (1.5 * (q3(t, col) - q1(t, col)))
+  upper-boundary = q3(t, col) + (1.5 * (q3(t, col) - q1(t, col)))
+  t.build-column("is-outlier",
+    (lam(r):
+        ask:
+          | (r[col] < lower-boundary) then: "low"
+          | (r[col] > upper-boundary) then: "high"
+          | otherwise: "no"
+        end
+      end))
+end
+
+
+outliers :: (t :: Table, col :: String) -> Table
+# consumes a table and a column, and returns a table for which every row is an outlier
+# (for that column)
+fun outliers(t, col):
+  compute-outliers(t, col).filter(lam(r): r["is-outlier"] <> "no" end).drop("is-outlier")
+end
+
+remove-outliers :: (t :: Table, col :: String) -> Table
+# consumes a table and a column, calculates both the lower boundary and upper boundary (fences), and removes any rows that are beyond the fence
+# (Credit to Jennifer Braun, CSPdWeek 2019)
+fun remove-outliers(t, col):
+  compute-outliers(t, col)
+    .filter(lam(r): r["is-outlier"] == "no" end)
+    .drop("is-outlier")
+end
+
+## TABLE MUNGING ########################################
+row-id :: (t :: Table, id :: String) -> Row
+fun row-id(t, id):
+  id-col = t.column-names().get(0)
+  matching-rows = t.filter(lam(r): r[id-col] == id end)
+  if (matching-rows.length() > 1):
+    raise(Err.message-exception("The identifier column should contain unique IDs, but this ID matched more than one row"))
+  else if (matching-rows.length() == 0) :
+    raise(Err.message-exception("No rows have this ID in their identifier column (did you check spelling and capitalization?"))
+  else: matching-rows.row-n(0)
+  end
+end
+
+split-and-reduce :: (
+  t :: Table,
+  col-to-split :: String,
+  col-to-reduce :: String,
+  reducer :: (Table, String -> Any)
+  ) -> Table
+fun split-and-reduce(t, col-to-split, col-to-reduce, reducer) block:
+  split = group(t, col-to-split)
+  cases(Eth.Either) run-task(lam():
+          split.build-column(
+            "result",
+            {(r): reducer(r["subtable"], col-to-reduce)})
+        end):
+    | left(v) => v
+    | right(v) => raise(Err.message-exception("An error occurred when trying to use your reducer. Are you sure it consumes *only* a valid Table and column name?",v))
+  end.drop("subtable")
+end
+
+first-n-rows :: (t :: Table, n :: Number) -> Table
+fun first-n-rows(t, n):
+  T.table-from-rows.make(raw-array-from-list(t.all-rows().take(n)))
+end
+
+last-n-rows :: (t :: Table, n :: Number) -> Table
+fun last-n-rows(t, n):
+  T.table-from-rows.make(raw-array-from-list(t.all-rows().reverse().take(n).reverse()))
+end
+
+
+fun group(tab, col):
+  values = Sets.list-to-list-set(tab.get-column(col)).to-list()
+  for fold(shadow grouped from table: value, subtable end, v from values):
+    grouped.stack(table: value, subtable
+        row: v, tab.filter-by(col, {(val): val == v})
+      end)
+  end
+end
+
+fun count(tab, col):
+  g = group(tab, col).build-column("frequency", {(r): r["subtable"].length()}).drop("subtable")
+  if is-boolean(g.column("value").get(0)): g
+  else: order g: value ascending end
+  end
+    .rename-column("value", col)
+end
+
+#|
+fun count-many(tab, cols):
+  for fold(shadow grouped from table: col, subtable end, c from cols):
+    grouped.stack(table: col, subtable
+        row: c, count(tab, c)
+      end)
+  end
+end
+|#
+
+fun group-and-subgroup(t :: Table, col :: String, subcol :: String) block:
+  subgroups = Sets.list-to-set(t.get-column(subcol))
+  tab = group(t, col)
+    .rename-column("value", "group")
+    .build-column(
+    "data",
+    # take a count of the subgroups, then see which subgroups are missing
+    # for each one, add a row with a count of zero. Then order the rows
+    # and extract the count as a list
+    lam(r) block:
+      segments = count(r["subtable"], subcol)
+      missing = subgroups.difference(Sets.list-to-set(segments.get-column(subcol)))
+      missing.fold(
+        lam(table, subgroup):
+          table.add-row([T.raw-row: {subcol; subgroup}, {"frequency"; 0}])
+        end,
+        segments)
+        .build-column("sortable", lam(shadow r): to-repr(r[subcol]) end)
+        .order-by("sortable", true)
+        .get-column("frequency")
+    end)
+  # sort groups alphabetically
+  sort(tab, "group", true)
+end
+
+
+# stack-tables :: Table, Table -> Table
+fun stack-tables(t1 :: Table, t2 :: Table) -> Table:
+  t1.stack(t2)
+end
+
+
+# pivot-row :: r :: Row -> Table
+fun pivot-row(r) block:
+
+  # get-val :: (col :: String) -> Any
+  fun get-val(col): r[col] end
+
+  columns = r.get-column-names()
+  values = columns.map(get-val)
+  [T.table-from-columns:
+    {"labels"; columns},
+    {"values"; values}
+  ]
+end
+
+fun make-sample-selections(n :: Number, u :: Number) -> {Boolean; SD.StringDict<Boolean>} block:
+  doc: ```
+       Key idea: build a dictionary that's either "positive" (keep these keys)
+       or "negative" (drop these keys). Do this according to if we want most
+       of the keys to stay (use a negative map) or most to go (use a positive
+       map). There isn't a good, fast way to remove from a table by index right
+       now, so this plus filter is best and actually reasonably performant.
+       ```
+  when n > u:
+    raise(Err.message-exception("make-sample-selections: num-samples too large"))
+  end
+  fun help(num-samples-remaining-to-get, dict-so-far):
+    if num-samples-remaining-to-get == 0: dict-so-far
+    else:
+      r = num-random(u)
+      k = num-to-string(r)
+      if dict-so-far.has-key(k):
+        help(num-samples-remaining-to-get, dict-so-far)
+      else:
+        updated = dict-so-far.set(k, true)
+        help(num-samples-remaining-to-get - 1, updated)
+      end
+    end
+  end
+  if n < (u / 2):
+    {true; help(n, [SD.string-dict:])}
+  else:
+    {false; help(u - n, [SD.string-dict:])}
+  end
+end
+
+fun filter-n(tabl, pred):
+  var i = 0
+  tabl.filter(lam(x) block:
+      result = pred(i, x)
+      i := i + 1
+      result
+    end)
+end
+
+fun transpose(t :: Table) block:
+  cols = t.column-names()
+  row-names = cols.drop(1)
+  first-col = cols.get(0)
+  # use the old header row as the first column in the new table
+  var new_t = T.table-from-column(first-col, row-names)
+
+  split = split-at(1, t.all-columns())
+  new-cols = split.prefix.get(0)
+  old-rows = split.suffix
+
+  # for each column in our new table, mine the old rows for their values
+  map_n(lam(n, col) block:
+      new_t := new_t.add-column(col, map_n(lam(m, v): old-rows.get(m).get(n) end, 0, row-names))
+    end,
+    0,
+    new-cols)
+  new_t
+end
+
+fun random-rows(t, n):
+  doc: ```
+       if n <<< t.length(), it would be good to sample the rows with row-n and
+       build up a table from that rather than doing this process, which is linear
+       in the universe size. if n is a proportional to t.length(),
+       then this works pretty well.
+       ```
+  {keep; to-change} = make-sample-selections(n, t.length())
+  filter-n(t, lam(index, _):
+      k = to-string(index)
+      #| could also be written keep == to-change.has-key(k),
+      but I find that difficult to grok |#
+      if keep: to-change.has-key(k)
+      else: not(to-change.has-key(k))
+      end
+    end)
+end
+
+fun make-random-table(num-rows) block:
+  var t = table: a end
+  for each(i from L.range(0, num-rows)):
+    t := t.add-row(t.row(num-random(num-rows)))
+  end
+  t
+end
+
+fun row-to-list(r):
+  r.get-column-names().map(r[_])
+end
+
+
+
+## INFERENCE ##########################################
+
+pop-variance :: (t :: Table, col :: String) -> Number
+fun pop-variance(t, col) block:
+  check-integrity(t, [list: col])
+  _mean = Stats.mean(ensure-numbers(t.column(col)))
+  shadow t = t.build-column("sq-diff", lam(r): num-sqr(r[col] - _mean) end)
+  Math.sum(ensure-numbers(t.column("sq-diff"))) / t.length()
+end
+
+sample-variance :: (t :: Table, col :: String) -> Number
+# sample variance for ungrouped data
+fun sample-variance(t, col) block:
+  check-integrity(t, [list: col])
+  _mean = Stats.mean(ensure-numbers(t.column(col)))
+  shadow t = t.build-column("sq-diff", lam(r): num-sqr(r[col] - _mean) end)
+  Math.sum(ensure-numbers(t.column("sq-diff"))) / (t.length() - 1)
+end
+
+
+#|
+height = table: player, inches
+  row: "RJ Barrett", 78
+  row: "Jusuf Nurkic", 84
+  row: "James Harden", 77
+  row: "Rodney Hood", 80
+  row: "Jae'Sean Tate", 76
+  row: "Nikola Jokic", 83
+  row: "E'Twaun Moore", 76
+  row: "Dario Saric", 82
+  row: "Tim Frazier", 73
+  row: "Brad Wanamaker", 75
+end
+examples:
+  pop-variance(height, "inches") is 12.24
+  sample-variance(height, "inches") is 13.6
+end
+
+
+paired-t :: (t :: Table, col1 :: String, col2 :: String) -> Number
+fun paired-t(t, col1, col2) block:
+  check-integrity(t, [list: col1, col2])
+  shadow t = t.build-column("diff", lam(r): r[col2] - r[col1] end)
+  mean1 = Stats.mean(ensure-numbers(t.column(col1)))
+  mean2 = Stats.mean(ensure-numbers(t.column(col2)))
+  sdiff = stdev(t, "diff")
+  n = t.length()
+  df = n - 1
+  (mean1 - mean2) / (sdiff / num-sqr(n))
+end
+
+eq-variance-t :: (t :: Table, col1 :: String, col2 :: String) -> Number
+fun eq-variance-t(t, col1, col2) block:
+  check-integrity(t, [list: col1, col2])
+  shadow t = t.build-column("diff", lam(r): r[col2] - r[col1] end)
+  mean1 = Stats.mean(ensure-numbers(t.column(col1)))
+  mean2 = Stats.mean(ensure-numbers(t.column(col2)))
+  var1 = sample-variance(t, col1)
+  var2 = sample-variance(t, col2)
+  n1 = t.length()
+  n2 = t.length()
+  (mean1 - mean2) / num-sqrt((var1 / n1) + (var2 / n2))
+end
+
+uneq-variance-t :: (t :: Table, col1 :: String, col2 :: String) -> Number
+fun uneq-variance-t(t, col1, col2) block:
+  check-integrity(t, [list: col1, col2])
+  shadow t = t.build-column("diff", lam(r): r[col2] - r[col1] end)
+  mean1 = Stats.mean(ensure-numbers(t.column(col1)))
+  mean2 = Stats.mean(ensure-numbers(t.column(col2)))
+  var1 = sample-variance(t, col1)
+  var2 = sample-variance(t, col2)
+  n1 = t.length()
+  n2 = t.length()
+  df = n1 + n2 + -2
+  dfs-and-sq-vars = (((n1 - 1) * num-sqr(var1)) + ((n2 - 1) * num-sqr(var2)))
+  (mean1 - mean2) / ((dfs-and-sq-vars / df) * num-sqrt((1 / n1) + (1 / n2)))
+end
+
 |#

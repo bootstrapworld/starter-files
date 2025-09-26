@@ -1,15 +1,16 @@
 use context starter2024
+#include url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr")
+
+#for local debugging only
+include file("core.arr")
+
+################################################################
+# Bootstrap: AI (1)
+# Support files, as of Fall 2026
+
 provide *
 
-import string-dict as SD
-
-import gdrive-sheets as GDS
-
 import data-source as DS
-
-import tables as T
-
-import sets as S
 
 fun list-of-words-to-sd(xx :: List<String>) -> SD.StringDict<Number> block:
   msd = [SD.mutable-string-dict:]
@@ -92,7 +93,7 @@ fun dot-product(sd1 :: SD.StringDict<Number>, sd2 :: SD.StringDict<Number>) -> N
 end
 
 fun get-spreadsheet-string(ss :: Any) -> String:
-  ws = GDS.open-sheet-by-index(ss, 0, false)
+  ws = open-sheet-by-index(ss, 0, false)
   tbl = load-table: text :: String
     source: ws
     sanitize text using DS.string-sanitizer
@@ -196,32 +197,28 @@ end
 # *-similarity-files: These compares files (Google Ids) containing the respective contents.
 # format: headerless spreadsheet with just one cell containing a string
 
-fun simple-equality-files(file1 :: String, file2 :: String) -> Boolean:
-  ss1 = GDS.load-spreadsheet(file1)
-  ss2 = GDS.load-spreadsheet(file2)
+fun file-similarity(file1 :: String, file2 :: String, compare):
+  ss1 = load-spreadsheet(file1)
+  ss2 = load-spreadsheet(file2)
   string1 = get-spreadsheet-string(ss1)
   string2 = get-spreadsheet-string(ss2)
-  simple-equality(string1, string2)
+  compare(string1, string2)
 end
 
-fun bag-equality-files(file1 :: String, file2 :: String) -> Boolean:
-  ss1 = GDS.load-spreadsheet(file1)
-  ss2 = GDS.load-spreadsheet(file2)
-  words1 = get-spreadsheet-words(ss1)
-  words2 = get-spreadsheet-words(ss2)
-  bag-equality-lists(words1, words2)
+fun simple-equality-files(f1, f2) -> Boolean:
+  file-similarity(f1, f2, simple-equality)
 end
 
-fun cosine-similarity-files(file1 :: String, file2 :: String) -> Number:
-  ss1 = GDS.load-spreadsheet(file1)
-  ss2 = GDS.load-spreadsheet(file2)
-  words1 = get-spreadsheet-words(ss1)
-  words2 = get-spreadsheet-words(ss2)
-  cosine-similarity-lists(words1, words2)
+fun bag-equality-files(f1, f2) -> Boolean:
+  file-similarity(f1, f2, bag-equality-lists)
 end
 
-fun angle-difference-files(file1 :: String, file2 :: String) -> Number:
-  cos-sim = cosine-similarity-files(file1, file2)
+fun cosine-similarity-files(f1, f2) -> Number:
+  file-similarity(f1, f2, cosine-similarity-lists)
+end
+
+fun angle-difference-files(f1, f2) -> Number:
+  cos-sim = cosine-similarity-files(f1, f2)
   (num-acos(cos-sim) * 180) / 3.14159265
 end
 

@@ -1,32 +1,36 @@
 use context starter2024
+include url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr")
+
+#for local debugging only
+#include file("core.arr")
+
+################################################################
+# Bootstrap: AI (2)
+# Support files, as of Fall 2026
+
 provide *
-import gdrive-sheets as GS
-include string-dict
-import sets as S
 
-s2ls = S.list-to-tree-set
+word-sheet = load-spreadsheet("1RlwxGM1oZd6VfJDwuVNxGIwznB2yGyjwfuKHdXg6Gz8")
 
-word-sheet = GS.load-spreadsheet("1RlwxGM1oZd6VfJDwuVNxGIwznB2yGyjwfuKHdXg6Gz8")
-
-fun get-words-from-sheet(sheet-name :: String) -> S.Set<String>:
-  s2ls(extract all-words from
+fun get-words-from-sheet(sheet-name :: String) -> Sets.Set<String>:
+  Sets.list-to-tree-set(extract all-words from
       load-table: all-words :: String
         source: word-sheet.sheet-by-name(sheet-name, true)
       end
     end)
 end
 
-WORDS-ALL = get-words-from-sheet("All-Words")
-WORDS = get-words-from-sheet("Words")
+WORDS-ALL  = get-words-from-sheet("All-Words")
+WORDS      = get-words-from-sheet("Words")
 WORDS-1000 = get-words-from-sheet("Words-1000")
 WORDS-100  = get-words-from-sheet("Words-100")
 
-var all-seen-words = [mutable-string-dict: ]
-var words-worklist = [mutable-string-dict: ]
+var all-seen-words = [SD.mutable-string-dict: ]
+var words-worklist = [SD.mutable-string-dict: ]
 
 fun init-vars() block:
-  all-seen-words := [mutable-string-dict: ]
-  words-worklist := [mutable-string-dict: ]
+  all-seen-words := [SD.mutable-string-dict: ]
+  words-worklist := [SD.mutable-string-dict: ]
 end
 
 fun word-mod(cps :: List<Number>, replace :: (Number -> List<Number>))
@@ -51,7 +55,7 @@ fun word-mod(cps :: List<Number>, replace :: (Number -> List<Number>))
     end
   end
   #  word-mod(string-to-code-points("hell"), {(_): empty}) is
-  #  [S.tree-set: "hel", "hll", "ell"]
+  #  [Sets.tree-set: "hel", "hll", "ell"]
 end
 
 all-letters-cps = 
@@ -93,8 +97,8 @@ fun edits2(w :: String) -> Nothing block:
   # now `words-worklist` has been populated with all distance 1 and 2 edits
 end
 
-fun find-worklist-words(dict :: S.Set<String>) -> S.Set<String> block:
-  valid-edits = [mutable-string-dict: ]
+fun find-worklist-words(dict :: Sets.Set<String>) -> Sets.Set<String> block:
+  valid-edits = [SD.mutable-string-dict: ]
   e12l = words-worklist.keys-now().to-list()
   for each(e12w from e12l):
     when dict.member(e12w):
@@ -113,7 +117,7 @@ fun time(thk):
 end
 
 #|
-   fun alt-words(s :: String, dict :: S.Set<String>) block:
+   fun alt-words(s :: String, dict :: Sets.Set<String>) block:
   when string-length(s) > 7:
     raise("The word must be 7 or fewer letters; '" + s + "' has length " + num-to-string(string-length(s)))
   end
@@ -126,7 +130,7 @@ end
 end
 |#
 
-fun alt-words(orig-s :: String, dict :: S.Set<String>) block:s = string-to-lower(orig-s)
+fun alt-words(orig-s :: String, dict :: Sets.Set<String>) block:s = string-to-lower(orig-s)
   when string-length(s) > 7:
     raise("The word must be 7 or fewer letters; '" + s + "' has length " + num-to-string(string-length(s)))
   end
