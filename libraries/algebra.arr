@@ -1,14 +1,27 @@
-use context file("core.arr")
+use context starter2024
+include file("core.arr")
+
 ################################################################
 # Bootstrap: Algebra
 # Support files, as of Fall 2026
 
 provide *
 
-include reactors
-import image-structs as IS
-provide from Math: * hiding(sum, min, max), type *, data * end
-provide from L: * hiding(filter, sort, range), type *, data * end
+import lists as L
+provide from L:
+    * hiding(filter, sort, range),
+  type *,
+  data *
+end
+
+import math as Math
+provide from Math:
+    * hiding(sum),
+  type *,
+  data *
+end
+
+import reactors as R
 
 
 ################# UTILITY FUNCTIONS ###########################
@@ -54,13 +67,16 @@ fun guess-arity(f :: Function) -> TaggedFunction:
 end
 
 
-fun min(a,b): min([list: a,b]) end
-fun max(a,b): max([list: a,b]) end
+################################################################
+#################### CUSTOM TRANSLATE DEFN #####################
+shadow translate = put-image
+fun min(a,b): Math.min([list: a,b]) end
+fun max(a,b): Math.max([list: a,b]) end
 
 ################################################################
 ######################### BLEND IMAGES ########################
 fun blend-pixels(A, B):
-  IS.color(
+  make-color(
     num-round((A.red   + B.red  ) / 2),
     num-round((A.green + B.green) / 2),
     num-round((A.blue  + B.blue ) / 2),
@@ -70,7 +86,7 @@ end
 fun blend-images(imgA, imgB) block:
   width = num-max(image-width(imgA), image-width(imgB))
   height = num-max(image-height(imgA), image-height(imgB))
-  bg = rectangle(width, height, "solid", IS.transparent)
+  bg = rectangle(width, height, "solid", "transparent")
   pixelsA = image-to-color-list(overlay(imgA, bg))
   pixelsB = image-to-color-list(overlay(imgB, bg))
   pixelsAB = map2(
@@ -98,11 +114,11 @@ ROCKET-HEIGHT = 550
 THANKS = text("Thanks to Randall Munroe for the picture of the universe!  https://xkcd.com/482/", 14, "gray")
 
 fun time-text(str):
-  text(str, 14, IS.color(41, 128, 38, 255))
+  text(str, 14, make-color(41, 128, 38, 255))
 end
 
 fun height-text(str):
-  text(str, 14, IS.color(38, 38, 128, 255))
+  text(str, 14, make-color(38, 38, 128, 255))
 end
 
 fun speed-text(str):
@@ -463,7 +479,7 @@ fun trace(is-onscreen, img):
       w
     end
   end
-  interact-trace(reactor:
+  R.interact-trace(reactor:
       init: {x: SAM-WIDTH / 2, y:SAM-HEIGHT / 2, img:img},
       to-draw: draw-sam,
       on-key: update
@@ -521,7 +537,7 @@ STRIP-WIDTH = 400
 STRIP-HEIGHT = 30
 tri = rotate(90, triangle(10, "solid", "black"))
 num-intervals = 10
-c1 = C.color(100, 100, 255, 0.5)
+c1 = make-color(100, 100, 255, 0.5)
 
 strip = rectangle(STRIP-WIDTH + 48, STRIP-HEIGHT, "outline", "transparent")
 inequalities-bg = overlay(rectangle(STRIP-WIDTH, 2, "solid", "black"), strip)
@@ -702,7 +718,7 @@ fun fit-image-to(w, h, an-image):
   end
 end
 
-fun cull(beings :: List<Being>) -> List<Being>:
+fun cull(beings :: L.List<Being>) -> L.List<Being>:
   for filter(b from beings):
     p = b.posn
     (p.x > 0) and (p.x < GAME-WIDTH) and
@@ -720,14 +736,14 @@ data Being:
 end
 
 type world = {
-  dangers :: List<Being>,
-  shots :: List<Being>,
-  targets :: List<Being>,
-  player :: Being,
-  bg :: Image,
-  score :: Number,
-  title :: String,
-  timer :: Number
+  dangers :: L.List<Being>,
+  shots   :: L.List<Being>,
+  targets :: L.List<Being>,
+  player  :: Being,
+  bg      :: Image,
+  score   :: Number,
+  title   :: String,
+  timer   :: Number
 }
 
 fun posn-to-point(p :: Posn) -> Posn:
@@ -1057,6 +1073,19 @@ fun def-to-table(f):
   [T.table-from-columns: {"x"; xs}, {"y"; ys}]
 end
 
+def-to-graph :: (f :: (Number -> Number)) -> Image
+# Same as make-table, but makes a line-plot of the resulting table
+fun def-to-graph(f) block:
+  render-chart(from-list.function-plot(f))
+    .x-axis("x")
+    .y-axis("y")
+    .x-min(-10)
+    .x-max(10)
+    .y-min(-10)
+    .y-max(10)
+    .display()
+end
+
 table-to-graph :: (t :: Table) -> Image
 # Consumes a table, and makes a line-plot from the first 2 columns
 fun table-to-graph(t) block:
@@ -1117,7 +1146,7 @@ fun factorial(n):
   end
 end
 
-permute-wo-replace :: <A>(items :: List<A>, choose :: Number) -> List<List<A>>
+permute-wo-replace :: <A>(items :: L.List<A>, choose :: Number) -> L.List<List<A>>
 fun permute-wo-replace(items, choose):
   if items.length() == 0: [list:]
   else if choose == 0: [list:]  # nothing to choose -> empty list
@@ -1145,7 +1174,7 @@ examples "permute-wo-replace":
     [list: 3, 1, 2], [list: 3, 2, 1]]
 end
 
-permute-w-replace :: <A>(items :: List<A>, choose :: Number) -> List<List<A>>
+permute-w-replace :: <A>(items :: L.List<A>, choose :: Number) -> L.List<List<A>>
 fun permute-w-replace(items, choose):
   if items.length() == 0: [list:]
   else if choose == 0: [list:]
@@ -1181,7 +1210,7 @@ end
    end
 |#
 
-combine-wo-replace :: <A>(items :: List<A>, choose :: Number) -> List<List<A>>
+combine-wo-replace :: <A>(items :: L.List<A>, choose :: Number) -> L.List<List<A>>
 # from https://rosettacode.org/wiki/Combinations#Pyret
 fun combine-wo-replace(items, choose):
   if items.length() < choose:
@@ -1215,7 +1244,7 @@ examples "combine-wo-replace":
   [list: [list:1,2], [list: 1,3], [list:2,3]]
 end
 
-render-list :: (lst :: List) -> Image
+render-list :: (lst :: L.List) -> Image
 fun render-list(lst):
   lst-imgs = lst.map(lam(l):
       elt-imgs = l.map(lam(e):
@@ -1252,7 +1281,7 @@ _img-list = [list: _tri, _cir, _sq, _star, _ellipse]
 ################################################################
 ######################### SURFACE AREA ########################
 
-prism = 
+prism =
   image-url("https://code.pyret.org/shared-image-contents?sharedImageId=1Ckagp7bnDSY4fwRdUC-UIDmZuVQderOG")
 
 ########################################################
@@ -1262,7 +1291,7 @@ padding = 10
 #########################################################
 # Image comparison functions (used for sorting)
 fun img-compare(img1, img2):
-  (image-height(img1) >= image-height(img2)) and 
+  (image-height(img1) >= image-height(img2)) and
   (image-width(img1) > image-width(img2))
 end
 fun img-eq(img1, img2):
@@ -1272,7 +1301,7 @@ end
 #########################################################
 # Image transformation functions
 
-# print-imgs :: (img-lst :: List<Image>) -> Image
+# print-imgs :: (img-lst :: L.List<Image>) -> Image
 # maximize height and add padding to each image, then
 # sort them in order of decreasing heights
 # stick them together until we hit 500px,
@@ -1299,11 +1328,11 @@ fun print-imgs(img-lst) block:
     txt = text([list:wS, "x", hS].join-str(""), 100, "black")
     scaled-txt = if (image-width(img) > image-height(img)):
       scale(0.5, scale(w / image-width(txt), txt))
-    else: 
+    else:
       rotate(90, scale(0.5, scale(w / image-height(txt), txt)))
     end
     translate(
-      scaled-txt, 
+      scaled-txt,
       (w / 2),
       (h / 2),
       img)
@@ -1320,7 +1349,7 @@ fun print-imgs(img-lst) block:
       var lastRow = split.prefix.last()
       if ((image-width(lastRow) + image-width(img)) > 500):
         acc.push(img)
-      else: 
+      else:
         split.suffix.push(beside(lastRow,img))
       end
     end
@@ -1333,7 +1362,7 @@ fun print-imgs(img-lst) block:
     .map(add-dimensions)
     .map(add-padding)
     .foldl(processor, [list:])
-    .foldl(lam(img, acc): below(img, acc) end, 
+    .foldl(lam(img, acc): below(img, acc) end,
     square(padding,"solid","transparent"))
 end
 

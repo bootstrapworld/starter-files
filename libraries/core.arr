@@ -2,45 +2,63 @@ use context starter2024
 
 provide *
 
-include charts
-
-import lists as L
 import image as I
-import starter2024 as Starter
+provide from I:
+    * hiding(translate),
+  type *,
+  data *
+end
+
+import color as C
 import constants as Consts
-import math as Math
-import gdrive-sheets as G
-import error as Err
+include from Consts: PI, E end
+
+import starter2024 as Starter
+include from Starter: expt, sqrt, sqr, abs, negate, random end
+
 import either as Eth
+import error as Err
 import sets as Sets
 import tables as T
-import color as C
 
-# exported named module IDs
+import charts as Ch
+provide from Ch: *, type *, data * end
+
+import gdrive-sheets as G
+provide from G:
+    * hiding(load-spreadsheet),
+  type *,
+  data *
+end
+
 provide:
   module Eth,
   module Err,
   module Sets,
-  module T,
-  module Math,
-  module L
+  module T
 end
 
-# exported symbols from select modules
-provide from C: color, type *, data * end
-provide from L: * hiding(filter, sort, range), type *, data * end
-provide from I: * hiding(translate), type *, data * end
-provide from Starter: expt, sqrt, sqr, abs, negate, random end
-provide from Consts: PI, E end
-provide from G: * hiding(load-spreadsheet), type *, data * end
-
-
 # override Pyret's native translate with put-image
-shadow translate = put-image
-
+# shadow translate = I.put-image
 
 # override Pyret's native color constructor with make-color
 shadow make-color = C.color
+
+
+# shadow the built-in function, with one naive twist:
+# if it looks like a sheets URL, try parsing out the fileID
+# for the user. Otherwise, just fall back to the native
+# library function
+fun load-spreadsheet(url :: String) block:
+  if (string-length(url) < 39):
+    G.load-spreadsheet(url)
+  else if (string-substring(url, 0, 39) <> "https://docs.google.com/spreadsheets/d/"):
+    G.load-spreadsheet(url)
+  else:
+    rest = string-substring(url, 39, string-length(url))
+    G.load-spreadsheet(string-split(rest,"/").get(0))
+  end
+end
 
 #################################################
 # Numerical functions
@@ -567,7 +585,7 @@ end
 
 #################################################################################
 # Trig functions
-
+#|
 TRIG_ROUND_DIGITS = 10
 
 fun rough-round-digits(val, digits):
@@ -598,19 +616,4 @@ check:
   cos(PI / 3) is-roughly 0.5
   sin(PI / 6) is-roughly 0.5
 end
-
-###########################################################################
-# GRAPHING AND TABLE FUNCTIONS
-
-def-to-graph :: (f :: (Number -> Number)) -> Image
-# Same as make-table, but makes a line-plot of the resulting table
-fun def-to-graph(f) block:
-  render-chart(from-list.function-plot(f))
-    .x-axis("x")
-    .y-axis("y")
-    .x-min(-10)
-    .x-max(10)
-    .y-min(-10)
-    .y-max(10)
-    .display()
-end
+|#

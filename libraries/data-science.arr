@@ -1,14 +1,31 @@
-use context file("core.arr")
+use context starter2024
+include file("core.arr")
+
 ################################################################
-# Bootstrap: DataScience 
+# Bootstrap: DataScience
 # Support files, as of Fall 2026
 
 provide *
 
+import lists as L
+provide from L:
+    * hiding(filter, sort, range),
+  type *,
+  data *
+end
+
+
+import math as Math
+provide from Math:
+    * hiding(sum),
+  type *,
+  data *
+end
+
 import statistics as Stats
 import string-dict as SD
 
-
+################# UTILITY FUNCTIONS ###########################
 
 # override Pyret's native range (list) with range (stats)
 shadow range = lam(t :: Table, col :: String) block:
@@ -16,12 +33,16 @@ shadow range = lam(t :: Table, col :: String) block:
   num-to-string-digits(Math.max(l) - Math.min(l), 2)
 end
 
+# override Pyret's native translate with put-image
+shadow translate = put-image
+
 # check to ensure that every value is actually a number
 is-all-numbers = _.all(is-number)
 fun ensure-numbers(l :: List<Number>%(is-all-numbers)): l end
 
 # re-export render-chart
 shadow render-chart = render-chart
+
 
 #################################################################################
 # Live Survey Functions
@@ -73,20 +94,6 @@ fun check-integrity(t :: Table, cols :: List<String>) block:
   end
 end
 
-# shadow the built-in function, with one naive twist:
-# if it looks like a sheets URL, try parsing out the fileID
-# for the user. Otherwise, just fall back to the native
-# library function
-fun load-spreadsheet(url :: String) block:
-  if (string-length(url) < 39):
-    G.load-spreadsheet(url)
-  else if (string-substring(url, 0, 39) <> "https://docs.google.com/spreadsheets/d/"):
-    G.load-spreadsheet(url)
-  else:
-    rest = string-substring(url, 39, string-length(url))
-    G.load-spreadsheet(string-split(rest,"/").get(0))
-  end
-end
 
 # Strings, Integers and numbers with 2 decimals are displayed exactly
 # more than 2 decimals are displayed as roughnums
@@ -108,37 +115,37 @@ end
 # Optimally-distinct list of colors taken from
 # https://stackoverflow.com/a/12224359/12026982
 COLORS = [list:
-  C.color(51,102,204, 1),
-  C.color(220,57,18, 1),
-  C.color(255,153,0, 1),
-  C.color(16,150,24, 1),
-  C.color(153,0,153, 1),
-  C.color(0,153,198, 1),
-  C.color(221,68,119, 1),
-  C.color(102,170,0, 1),
-  C.color(184,46,46, 1),
-  C.color(49,99,149, 1),
-  C.color(153,68,153, 1),
-  C.color(34,170,153, 1),
-  C.color(170,170,17, 1),
-  C.color(102,51,204, 1),
-  C.color(230,115,0, 1),
-  C.color(139,7,7, 1),
-  C.color(101,16,103, 1),
-  C.color(50,146,98, 1),
-  C.color(85,116,166, 1),
-  C.color(59,62,172, 1),
-  C.color(183,115,34, 1),
-  C.color(22,214,32, 1),
-  C.color(185,19,131, 1),
-  C.color(244,53,158, 1),
-  C.color(156,89,53, 1),
-  C.color(169,196,19, 1),
-  C.color(42,119,141, 1),
-  C.color(102,141,28, 1),
-  C.color(190,164,19, 1),
-  C.color(12,89,34, 1),
-  C.color(116,52,17, 1)]
+  make-color(51,102,204, 1),
+  make-color(220,57,18, 1),
+  make-color(255,153,0, 1),
+  make-color(16,150,24, 1),
+  make-color(153,0,153, 1),
+  make-color(0,153,198, 1),
+  make-color(221,68,119, 1),
+  make-color(102,170,0, 1),
+  make-color(184,46,46, 1),
+  make-color(49,99,149, 1),
+  make-color(153,68,153, 1),
+  make-color(34,170,153, 1),
+  make-color(170,170,17, 1),
+  make-color(102,51,204, 1),
+  make-color(230,115,0, 1),
+  make-color(139,7,7, 1),
+  make-color(101,16,103, 1),
+  make-color(50,146,98, 1),
+  make-color(85,116,166, 1),
+  make-color(59,62,172, 1),
+  make-color(183,115,34, 1),
+  make-color(22,214,32, 1),
+  make-color(185,19,131, 1),
+  make-color(244,53,158, 1),
+  make-color(156,89,53, 1),
+  make-color(169,196,19, 1),
+  make-color(42,119,141, 1),
+  make-color(102,141,28, 1),
+  make-color(190,164,19, 1),
+  make-color(12,89,34, 1),
+  make-color(116,52,17, 1)]
 
 # maintain a mutable dict mapping string values to colors, so that any
 # categorical display will have the same colors for the same value across
@@ -959,9 +966,9 @@ fun fit-model(t, ls, xs, ys, fn) block:
     t.column(ys),
     residuals(t, xs, ys, fn))
     .point-size(1)
-    .pointer-color(C.green)
+    .pointer-color("green")
     .lineWidth(10)
-    .color(C.black)
+    .color("black")
     .style("sticks")
     .legend("Residuals")
   title-str = "S: " + S-str + "   R²: " + r-sqr-str
@@ -1331,6 +1338,18 @@ fun def-to-table(start, stop, f):
   [T.table-from-columns: {"x"; xs}, {"y"; ys}]
 end
 
+def-to-graph :: (f :: (Number -> Number)) -> Image
+# Same as make-table, but makes a line-plot of the resulting table
+fun def-to-graph(f) block:
+  render-chart(from-list.function-plot(f))
+    .x-axis("x")
+    .y-axis("y")
+    .x-min(-10)
+    .x-max(10)
+    .y-min(-10)
+    .y-max(10)
+    .display()
+end
 
 table-to-graph :: (t :: Table) -> Image
 # Consumes a table, and makes a line-plot from the first 2 columns
@@ -1338,7 +1357,7 @@ fun table-to-graph(t) block:
   check-integrity(t, [list: "x", "y"])
   cols = t.column-names()
   if (cols.length() < 2): raise(Err.message-exception("The table must have at least two columns"))
-  else: 
+  else:
     xs = t.column(cols.get(0))
     ys = t.column(cols.get(1))
     chart = render-chart(from-list.line-plot(xs, ys))
@@ -1358,7 +1377,7 @@ fun table-to-graph(t) block:
 end
 
 
-# Given a size, produce a normal distribution of that size 
+# Given a size, produce a normal distribution of that size
 # between 0-1 using  Box Muller transform described at
 # https://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform
 random-normal-distribution :: (size :: Number) -> List<Number>
@@ -1377,9 +1396,9 @@ end
 
 word-frequency :: String -> Table
 fun word-frequency(txt) block:
-  
-  fun isAsciiLetter(cp :: Number): 
-    ((cp > 64) and (cp < 91)) or ((cp > 96) and (cp < 123)) 
+
+  fun isAsciiLetter(cp :: Number):
+    ((cp > 64) and (cp < 91)) or ((cp > 96) and (cp < 123))
   end
 
   fun lettersOnly(word :: String):
@@ -1388,15 +1407,15 @@ fun word-frequency(txt) block:
         .map(string-to-code-point)
         .filter(isAsciiLetter))
   end
-  
+
   # Capitalize and split the the string into words, strip each
-  # word of any non-ascii-letter characters, filter out any 
+  # word of any non-ascii-letter characters, filter out any
   # words that are now just the empty string, and sort
   ascii-words = string-split-all(string-to-upper(txt), " ")
     .map(lettersOnly)
     .filter(lam(str): str <> "" end)
   .sort()
-  
+
   # Walk through the (sorted) words, creating a tuple containing a
   # unique-word list and a list of counts
   unique-counts = L.foldl(
@@ -1422,7 +1441,7 @@ end
 #####################################################################
 # used by shapes starter file
 draw-shape :: Row -> Image
-fun draw-shape(r): 
+fun draw-shape(r):
   if r["name"] == "ellipse": ellipse(50, 100, "solid", r["color"])
   else if r["name"] == "circle": circle(50, "solid", r["color"])
   else: regular-polygon(30, r["corners"], "solid", r["color"])
@@ -1442,7 +1461,7 @@ shelter-sheet = load-spreadsheet(
 "https://docs.google.com/spreadsheets/d/1VeR2_bhpLvnRUZslmCAcSRKfZWs_5RNVujtZgEl6umA/")
 
 # load the 'animals' sheet as a table
-animals-table = 
+animals-table =
   load-table: name, species, sex, age, fixed, legs, pounds, weeks
   source: shelter-sheet.sheet-by-name("pets", true)
 end
@@ -1458,6 +1477,6 @@ box-plot(animals-table, "weeks")
 
 #split-and-reduce(animals-table, "species", "pounds", sum)
 #group-and-subgroup(animals-table, "species", "sex")
-#group(animals-table, "sex")   
+#group(animals-table, "sex")
 
 |#
