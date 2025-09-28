@@ -2480,7 +2480,7 @@ _img-list = [list: _tri, _cir, _sq, _star, _ellipse]
 ################################################################
 ######################### SURFACE AREA ########################
 
-prism = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/prism.png")
+prism = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/images/prism.png")
 
 #########################################################
 # Image transformation functions
