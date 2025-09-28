@@ -4,7 +4,7 @@ provide *
 
 # export every symbol from starter2024 except for those we override
 import starter2024 as Starter
-include from Starter:
+provide from Starter:
   * hiding(translate, filter, range, sort, sin, cos, tan)
 end
 
