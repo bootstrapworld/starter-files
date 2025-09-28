@@ -2,7 +2,7 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 
 target-logo = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/target.png")
 
-microsoft-logo = image-url(""https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/microsoft.png")
+microsoft-logo = image-url(https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/microsoft.png")
 
 
 ##################################################
