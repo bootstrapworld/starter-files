@@ -2238,7 +2238,7 @@ fun draw-inequality(points, f, msg-img) block:
 
   # given an inequality fn and a reverse-projection fn, test every pixel
   # on a 600px range and mark "true" pixels as transparent blue
-  fun draw-shade(f, rProject, c):
+  fun draw-shade(rProject, c):
     range-by(0, STRIP-WIDTH, 2).foldl(lam(p, img):
         shadow color = if f(rProject(p)): c else: "transparent" end
         beside(img, rectangle(2, 15, "solid", color))
@@ -2260,7 +2260,7 @@ fun draw-inequality(points, f, msg-img) block:
   # make a strip containing all the points
   points-strip = label-builder(project, points, "bottom", "black")
   # starting with the blank axis, add the shade...
-  axis-strip = translate(draw-shade(f, rProject, c1),
+  axis-strip = translate(draw-shade(rProject, c1),
     (STRIP-WIDTH + 50) / 2, STRIP-HEIGHT / 2, axis)
   # add the interval dots
   black-dots-strip = dot-builder(lam(p): circle(2, "solid", "black") end, project, intervals, axis-strip)
