@@ -1,5 +1,5 @@
-use context file("../../libraries/core.arr")
-include file("../../libraries/game-library.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr", "../../libraries/core.arr")
+include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/game-library.arr", "../../libraries/game-library.arr")
 
 # DO NOT MODIFY LINE 5
 # its modifies the chart functions to generates image without popups

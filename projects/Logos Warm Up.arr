@@ -1,4 +1,4 @@
-use context file("../libraries/core.arr")
+use context url-file(https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr", "../libraries/core.arr")
 
 target-logo = image-url("https://code.pyret.org/shared-image-contents?sharedImageId=1D8RZqw3rLlMCOVRYJSONwsIWXkxkQuhD")
 

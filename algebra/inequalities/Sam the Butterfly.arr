@@ -1,5 +1,5 @@
-use context file("../../libraries/core.arr")
-include file("../../libraries/sam-library.arr")
+use context url-file(https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr", "../../libraries/core.arr")
+include url-file(https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/sam-library.arr", "../../libraries/sam-library.arr")
 
 IMG = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra/inequalities/sam.png")
 

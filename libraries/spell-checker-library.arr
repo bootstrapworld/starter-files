@@ -1,4 +1,4 @@
-use context file("core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr", "core.arr")
 
 ################################################################
 # Bootstrap Spell Checker Library, as of Fall 2026

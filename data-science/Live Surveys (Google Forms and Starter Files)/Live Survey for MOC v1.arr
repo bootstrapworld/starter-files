@@ -1,4 +1,4 @@
-use context file("../../libraries/core.arr")
+use context url-file(https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr", "../../libraries/core.arr")
 
 # DO NOT MODIFY LINE 5
 # its modifies the chart functions to generates image without popups

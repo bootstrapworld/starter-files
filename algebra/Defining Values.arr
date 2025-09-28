@@ -1,4 +1,4 @@
-use context file("../libraries/core.arr")
+use context url-file(https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr", "../libraries/core.arr")
 
 # Don't forget to click "Run", or Pyret won't read these definitions!
 

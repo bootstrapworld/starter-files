@@ -1,5 +1,5 @@
-use context file("../libraries/core.arr")
-include file("../libraries/unit-clock-library.arr")
+use context url-file(https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr", "../libraries/core.arr")
+include url-file(https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/unit-clock-library.arr", "../libraries/unit-clock-library.arr")
 
 # the start-clock function will draw a unit clock, and plot the 
 # length of A and B over time.

@@ -1,4 +1,4 @@
-use context file("../libraries/core.arr")
+use context url-file(https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr", "../libraries/core.arr")
  
 # FUNCTION REFRESHER 1:
 # Use `maroon-square` to create a variety of differently sized maroon squares in the Interactions Area.

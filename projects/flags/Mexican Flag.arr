@@ -1,4 +1,4 @@
-use context file("../../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr", "../../libraries/core.arr")
 
 ##################################################
 mexico-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/projects/flags/mexico-flag-image.png")
