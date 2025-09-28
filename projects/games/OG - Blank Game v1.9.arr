@@ -6,10 +6,10 @@ TITLE = "My Game"
 TITLE-COLOR = "white"
 
 # Graphics - danger, target, projectile and player images
-BACKGROUND = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/game/Night%20Forest.jpg")
+BACKGROUND = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/games/Night%20Forest.jpg")
 DANGER = triangle(30, "solid", "red")
 TARGET = circle(20, "solid", "green")
-PLAYER = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/game/Robot.png")
+PLAYER = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/games/Robot.png")
 
 # here's a screenshot of the game, with the PLAYER at (320, 240),
 # the TARGET at (400 500) and the DANGER at (150, 200)
