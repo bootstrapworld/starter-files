@@ -1,8 +1,8 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects", "../libraries/core.arr")
 
-target-logo = image-url("https://code.pyret.org/shared-image-contents?sharedImageId=1D8RZqw3rLlMCOVRYJSONwsIWXkxkQuhD")
+target-logo = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/target.png")
 
-microsoft-logo = image-url("https://code.pyret.org/shared-image-contents?sharedImageId=151UtsCiY-iQGwL8Z3730__DoUZTxfTv0")
+microsoft-logo = image-url(""https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/microsoft.png")
 
 
 ##################################################

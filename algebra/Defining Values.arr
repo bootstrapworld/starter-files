@@ -17,7 +17,7 @@ gold-star = star(80, "solid", "gold")
 my-name = text("Maya", 100, "purple")
 
 swamp =
-image-url("https://code.pyret.org/shared-image-contents?sharedImageId=1LDMoTBd7ySqXaJdKdeNyHRi-hfZGcJai")
+image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra/swamp.png")
 
 c = 5 * pi
 
