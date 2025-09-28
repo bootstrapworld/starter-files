@@ -1,7 +1,7 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/", "../../libraries/core.arr")
 
 ##################################################
-trinidad-flag-image = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/projects/flags/trinidad-and-tobago-flag-image.png")
+trinidad-flag-image = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/trinidad-and-tobago-flag-image.png")
 
 ##################################################
 # Do Now: Click run and type "trinidad-flag-image" into the interactions window to see a version of the flag of Trinidad created using a white background.

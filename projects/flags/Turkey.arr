@@ -1,7 +1,7 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/", "../../libraries/core.arr")
 
 ##################################################
-turkey-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/projects/flags/turkey-flag-image.png")
+turkey-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/turkey-flag-image.png")
 
 ##################################################
 # Do Now: Click run and type "turkey-flag" into the interactions window to see a version of the flag of Turkey

@@ -1,7 +1,7 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/", "../../libraries/core.arr")
 
 ##################################################
-lebanon-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/projects/flags/lebanon-flag-image.png")
+lebanon-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/lebanon-flag-image.png")
 
 ##################################################
 # Do Now: Click run and type "lebanon-flag" into the interactions window to see an image of the flag you are trying to create.

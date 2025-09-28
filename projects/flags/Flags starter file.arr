@@ -1,6 +1,6 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/", "../../libraries/core.arr")
 ####################################################
-japan-flag =  image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/projects/flags/japan-flag-image.png")
+japan-flag =  image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/japan-flag-image.png")
 
 ####################################################
 # DO NOW: Click run and type "japan-flag" into the interactions window to see what the flag of Japan should look like.

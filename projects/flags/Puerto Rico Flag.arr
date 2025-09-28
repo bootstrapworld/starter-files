@@ -1,7 +1,7 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/", "../../libraries/core.arr")
 
 ##################################################
-puerto-rico-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/projects/flags/pr-flag-image.png")
+puerto-rico-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/pr-flag-image.png")
 
 ##################################################
 # DO NOW: Click Run and type "puerto-rico-flag" into the interactions window to see an image of the flag of Puerto Rico. 
