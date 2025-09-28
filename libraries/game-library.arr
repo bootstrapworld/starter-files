@@ -56,7 +56,7 @@ fun fit-image-to(w, h, an-image):
 end
 
 fun cull(beings :: L.List<Being>) -> L.List<Being>:
-  for filter(b from beings):
+  for L.filter(b from beings):
     p = b.posn
     (p.x > 0) and (p.x < GAME-WIDTH) and
     (p.y > 0) and (p.y < GAME-HEIGHT)
