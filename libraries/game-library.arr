@@ -25,7 +25,7 @@ fun spacing(): 100 + random(200) end
 _target-increment_ = 20
 _danger-increment_ = -50
 LOSS-SCORE = 0
-GAMEOVER_IMG = image-url("http://www.wescheme.org/images/teachpacks2012/gameover.png")
+GAMEOVER_IMG = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/gameover.png")
 
 var _score_    = 0
 var _player-x_ = 0
