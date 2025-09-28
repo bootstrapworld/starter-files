@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/", "../../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags", "../../libraries/core.arr")
 
 # The Code in this starter file is complete and ready for you to learn from!
 

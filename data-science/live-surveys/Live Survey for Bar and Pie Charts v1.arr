@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/data-science/live-surveys/", "../../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/data-science/live-surveys", "../../libraries/core.arr")
 
 # DO NOT MODIFY LINE 5
 # its modifies the chart functions to generates image without popups

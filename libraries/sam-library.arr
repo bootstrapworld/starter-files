@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/", "core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries", "core.arr")
 
 ################################################################
 # Sam the Butterfly support file, as of Fall 2026

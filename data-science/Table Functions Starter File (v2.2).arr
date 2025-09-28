@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/data-science/", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/data-science", "../libraries/core.arr")
 
 # A TABLE OF SHAPES
 # triangle, square, rectangle, circle and ellipse

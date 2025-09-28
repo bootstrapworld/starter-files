@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/core/", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/core", "../libraries/core.arr")
 
 # red-shape :: String -> Image
 # consumes a shape name, and produces a red version of that shape

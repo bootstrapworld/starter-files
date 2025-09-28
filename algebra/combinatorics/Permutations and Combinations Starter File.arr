@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra/combinatorics/", "../../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra/combinatorics", "../../libraries/core.arr")
 
 # Images for "Luigi's Italian Safari"
 ravioli = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra/combinatorics/ravioli.png")

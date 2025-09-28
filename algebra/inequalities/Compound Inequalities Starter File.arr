@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra/inequalities/", "../../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra/inequalities", "../../libraries/core.arr")
 
 # We are going to be exploring compound inequalities today. 
 # Read the example code below carefully!

@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/core/", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/core", "../libraries/core.arr")
 
 # NOTE: This file makes use of emojis. Even though emojis look like images, they are actually characters in a string! They can be accessed from your keyboard, just like any other character...
 

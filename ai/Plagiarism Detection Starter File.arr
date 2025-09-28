@@ -1,6 +1,6 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/ai/", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/ai", "../libraries/core.arr")
 
-include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/ai/", "../libraries/plagiarism-library.arr")
+include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/ai", "../libraries/plagiarism-library.arr")
 
 wiki-article = "The elephant has been a contributor to Thai society and its icon for many centuries. The elephant has had a considerable impact on Thai culture. The Thai elephant is the official national animal of Thailand. The elephant found in Thailand is the Indian elephant, a subspecies of the Asian elephant."
 
