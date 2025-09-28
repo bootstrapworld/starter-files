@@ -1,7 +1,15 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/libraries/data-science.arr")
+use context file("core.arr")
 
-include reactors
-provide * 
+################################################################
+# Bootstrap Unit Clock Library, as of Fall 2026
+
+provide *
+
+# export every symbol from starter2024 except for those we override
+import starter2024 as Starter
+include from Starter:
+  * hiding(translate, filter, range, sort, sin, cos, tan)
+end
 fun deg-to-rad(d):
   num-exact((d / 180) * PI)
 end
@@ -35,37 +43,6 @@ fun make-clock-number-sign(label):
 end
 fun clock-hop(n):
   n + angle-incr
-end
-
-#################################################################################
-# Trig functions
-
-shadow TRIG_ROUND_DIGITS = 10
-
-shadow rough-round-digits = lam(val, digits):
-  num-to-roughnum(num-round(val * expt(10, digits)) / expt(10, digits))
-end
-
-
-shadow sin = lam(n):
-  rough-round-digits(num-sin(n), TRIG_ROUND_DIGITS)
-end
-
-shadow cos = lam(n):
-  rough-round-digits(num-cos(n), TRIG_ROUND_DIGITS)
-end
-
-shadow tan = lam(n):
-  rough-round-digits(num-tan(n), TRIG_ROUND_DIGITS)
-end
-
-check:
-  sin(PI) is-roughly 0
-  sin(2 * PI) is-roughly 0
-  sin(PI / 2) is-roughly 1
-  sin((3 * PI) / 2) is-roughly -1
-  cos(PI / 3) is-roughly 0.5
-  sin(PI / 6) is-roughly 0.5
 end
 
 fun draw-coord-curve-onto(theta-range, coord-gen-fn, curve-color, img):
@@ -227,7 +204,7 @@ fun start-clock(spt, slices, label-count) block:
     to-draw: draw-clock-and-contents,
     stop-when: stop-clock
   end
-  interact(r)
+  R.interact(r)
   nothing
 end
 

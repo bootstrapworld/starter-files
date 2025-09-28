@@ -1,4 +1,4 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/algebra.arr")
+use context file("../../libraries/core.arr")
 
 panama-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/projects/flags/panama-flag-image.png")
 

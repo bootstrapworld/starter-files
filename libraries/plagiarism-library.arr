@@ -1,21 +1,22 @@
-use context starter2024
-include url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr")
-
-#for local debugging only
-#include file("core.arr")
+use context file("core.arr")
 
 ################################################################
-# Bootstrap: AI (1)
-# Support files, as of Fall 2026
+# Bootstrap Plagiarism Library, as of Fall 2026
 
 provide *
+
+# export every symbol from starter2024 except for those we override
+import starter2024 as Starter
+include from Starter:
+  * hiding(translate, filter, range, sort, sin, cos, tan)
+end
 
 import data-source as DS
 
 fun list-of-words-to-sd(xx :: List<String>) -> SD.StringDict<Number> block:
   msd = [SD.mutable-string-dict:]
   for each(x from xx):
-    old-value = cases(Option) (msd.get-now(x)):
+    old-value = cases(Eth.Option) (msd.get-now(x)):
         | none => 0
         | some(v) => v
         end

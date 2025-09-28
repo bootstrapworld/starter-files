@@ -1,7 +1,7 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/libraries/data-science.arr")
+use context file("../../libraries/core.arr")
 
 # DO NOT MODIFY LINE 5
-# its modifies the chart fucntions to generates image without popups
+# its modifies the chart functions to generates image without popups
 display-chart := lam(c): c.get-image() end
 
 # Students: If your teacher shared a copy of this file with you, just click "Run"

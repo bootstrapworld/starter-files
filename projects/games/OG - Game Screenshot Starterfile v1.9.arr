@@ -1,5 +1,9 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/algebra.arr")
+use context file("../../libraries/core.arr")
+include file("../../libraries/game-library.arr")
 
+# DO NOT MODIFY LINE 5
+# its modifies the chart functions to generates image without popups
+display-chart := lam(c): c.get-image() end
 # A. Game title: Write the title of your game here
 TITLE = "My Game"
 TITLE-COLOR = "white"

@@ -1,4 +1,5 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/algebra.arr")
+use context file("../libraries/core.arr")
+include file("../libraries/rocket-height-library.arr")
 
 # WARNING - THERE'S SOME SLOPPY CODE IN THIS FILE! 
 # GOOD NEWS - YOU WILL FIX IT!

@@ -1,4 +1,4 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/libraries/algebra.arr")
+use context file("../libraries/core.arr")
 
 target-logo = image-url("https://code.pyret.org/shared-image-contents?sharedImageId=1D8RZqw3rLlMCOVRYJSONwsIWXkxkQuhD")
 

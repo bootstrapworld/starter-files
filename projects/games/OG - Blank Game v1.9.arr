@@ -1,4 +1,5 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/algebra.arr")
+use context file("../../libraries/core.arr")
+include file("../../libraries/game-library.arr")
 
 # 0. Game title: Write the title of your game here
 TITLE = "My Game"

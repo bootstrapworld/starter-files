@@ -1,4 +1,4 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/libraries/algebra.arr")
+use context file("../libraries/core.arr")
  
 # FUNCTION REFRESHER 1:
 # Use `maroon-square` to create a variety of differently sized maroon squares in the Interactions Area.

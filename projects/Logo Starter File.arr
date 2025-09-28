@@ -1,4 +1,4 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/libraries/algebra.arr")
+use context file("../libraries/core.arr")
 
 # Below are three logos created by students. Click "Run," and then test the logos out one at a time by typing each logo's name into the Interactions area and hitting enter.
 

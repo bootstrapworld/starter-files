@@ -1,4 +1,4 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/libraries/algebra.arr")
+use context file("../libraries/core.arr")
 
 # red-shape :: String -> Image
 # consumes a shape name, and produces a red version of that shape

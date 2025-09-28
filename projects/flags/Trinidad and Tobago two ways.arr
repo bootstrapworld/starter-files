@@ -1,10 +1,10 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/algebra.arr")
+use context file("../../libraries/core.arr")
 
 ##################################################
-trinidad-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/projects/flags/trinidad-and-tobago-flag-image.png")
+trinidad-flag-image = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/projects/flags/trinidad-and-tobago-flag-image.png")
 
 ##################################################
-# Do Now: Click run and type "trinidad-flag" into the interactions window to see a version of the flag of Trinidad created using a white background. 
+# Do Now: Click run and type "trinidad-flag-image" into the interactions window to see a version of the flag of Trinidad created using a white background.
 
 #################################################
 

@@ -1,14 +1,18 @@
-use context starter2024
-include url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr")
-
-#for local debugging only
-#include file("core.arr")
+use context file("core.arr")
 
 ################################################################
-# Bootstrap: AI (2)
-# Support files, as of Fall 2026
+# Bootstrap Spell Checker Library, as of Fall 2026
 
 provide *
+
+# export every symbol from starter2024 except for those we override
+import starter2024 as Starter
+include from Starter:
+  * hiding(translate, filter, range, sort, sin, cos, tan)
+end
+
+import lists as L
+provide from L: * hiding(filter, range, sort), type *, data * end
 
 word-sheet = load-spreadsheet("1RlwxGM1oZd6VfJDwuVNxGIwznB2yGyjwfuKHdXg6Gz8")
 

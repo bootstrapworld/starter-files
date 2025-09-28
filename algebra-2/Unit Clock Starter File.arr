@@ -1,4 +1,5 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/git-libraries/shared/langs/en-us/pyret-files/libraries/unit-clock-library.arr")
+use context file("../libraries/core.arr")
+include file("../libraries/unit-clock-library.arr")
 
 # the start-clock function will draw a unit clock, and plot the 
 # length of A and B over time.
