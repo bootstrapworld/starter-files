@@ -5,8 +5,7 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 
 provide *
 
-import lists as L
-include from L:
+provide from L:
     * hiding(filter, sort, range),
   type *,
   data *
@@ -19,13 +18,11 @@ provide from Math:
   data *
 end
 
-import reactors as R
-
 ################################################################
 ######################### ROCKET HEIGHT ########################
 
-ROCKET = scale(1/2, image-url("http://www.wescheme.org/images/teachpacks2012/rocket.png"))
-ROCKET-BG = image-url("http://www.BootstrapWorld.org/clipart/height.png")
+ROCKET = scale(1/2, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/rocket.png"))
+ROCKET-BG = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/universe.png")
 UNIVERSE-HEIGHT = 4.35e+26
 LOG-UNIVERSE-HEIGHT = 61.33738
 UNIVERSE-ZERO-PX = 150
