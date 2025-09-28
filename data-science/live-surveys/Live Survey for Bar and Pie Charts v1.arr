@@ -1,4 +1,4 @@
-use context url-file(https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr", "../../libraries/core.arr")
+use context url-file(https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/data-science/live-surveys/", "../../libraries/core.arr")
 
 # DO NOT MODIFY LINE 5
 # its modifies the chart functions to generates image without popups
@@ -14,46 +14,39 @@ display-chart := lam(c): c.get-image() end
 
 # 1) Make a copy of this Google form 
 
-FORM = "https://docs.google.com/forms/d/1nK-5dRb8HKc8fRcSp5wLD3IwKR9TUdGT8zCv0PNgXYc/copy"
+FORM = "https://docs.google.com/forms/d/1X2Fwu4MwQRj2VZU8-7oYhQ50XgFplDXkjSEsh-84Zx4/copy"
 
 # 2) Click on the `Responses` Tab in the Google form and then `Link to Sheets`.
 # 3) Click `Share` and make sure the settings allow "anyone with link" to view. 
 # 4) Copy the URL of the resultant Google Sheet. 
 # 5) Replace the URL below with the link you just copied. 
 
-URL = "https://docs.google.com/spreadsheets/d/1xv3JEoF1S3QHMxhVRVVd0x5E5mEB_8W7i5lsk3t0oDc"
+URL = "https://docs.google.com/spreadsheets/d/1XWCvvoIGJ2kzDXIPGZDjn3c_vM0xjcL9HA0zw4TYX4s"
 SHEET-NAME = "Form Responses 1"
-COLUMNS = [list: "timestamp", "commute-time"]
+COLUMNS = [list: "timestamp", "color"]
 
 # 6) Wait for at least one submission (It could be yours.)
-# Pyret will give you an error if you try to do computations using a sheet with no Rows! 
+# Pyret will give you an error if you try to make a chart from a sheet with no Rows! 
 
-# 7) Click "Run". You should see a window pop up displaying the mean, median and mode(s) for your class' commute times.
+# 7) Click "Run". You should see a window pop up with a bar chart (L) and a pie chart (R).
 # It will update automatically as students continue to enter new data.
 
 # 8) If you would like students to be able to view this file on their computers, now is the time to publish and share the link.
 
-
-
-############################################################
-# DO NOT CHANGE ANYTHING BELOW THIS LINE 
-
-
-# Feel free to read the commments below if you're curious how the program works.
-
+# DO NOT NEED CHANGE ANYTHING BELOW THIS LINE 
+# We've commented what's happening so that you can check it out if you're curious.
 
 # This function defines how we want the data to be visualized
 # visualize :: Table -> Image
-# Consumes the table, and produces a visualization of the data.
+# Consumes the table and produces a bar chart of the data beside a pie chart of the data
 
-fun visualize(t):  
-  above(
-    above(
-      text("Mean commute time: " + num-to-string-digits(mean(t, "commute-time"), 2), 40, "blue"),
-      text("Median commute time: " + num-to-string-digits(median(t, "commute-time"), 2), 40, "blue")),
-    text("Mode(s) commute time: " + modes(t, "commute-time").join-str(",") , 40, "blue"))
+fun visualize(t): 
+    beside(
+      scale(0.75, bar-chart(t, "color")),
+      scale(0.75, pie-chart(t, "color"))
+      )
 end
-    
+
 # The function expression below links your class' data 
 # to the visualize function you defined above and continues to update it in real time
 

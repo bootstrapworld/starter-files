@@ -1,4 +1,4 @@
-use context url-file(https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr", "../../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra/collaboration/", "../../libraries/core.arr")
 
 a = text("Waiting for you to add your function definitions!", 20, "green")
 

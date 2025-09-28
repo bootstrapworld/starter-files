@@ -1,4 +1,4 @@
-use context url-file(https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr", "../libraries/core.arr")
+use context url-file(https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/", "../libraries/core.arr")
 
 # Below are three logos created by students. Click "Run," and then test the logos out one at a time by typing each logo's name into the Interactions area and hitting enter.
 

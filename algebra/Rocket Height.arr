@@ -1,5 +1,5 @@
-use context url-file(https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr", "../libraries/core.arr")
-include url-file(https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr", "../libraries/rocket-height-library.arr", "../libraries/rocket-height-library.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra/", "../libraries/core.arr")
+include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra/", "../libraries/rocket-height-library.arr", "../libraries/rocket-height-library.arr")
 
 # WARNING - THERE'S SOME SLOPPY CODE IN THIS FILE! 
 # GOOD NEWS - YOU WILL FIX IT!

@@ -1,4 +1,6 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/spell-checker-library.arr")
+use context url-file(https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/ai/", "../libraries/core.arr")
+
+include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/ai/", "../libraries/spell-checker-library.arr")
 
 # In this starter file, you will use the function `alt-words`, which consumes a string and a dictionary, and produces a multi-line string.
 
