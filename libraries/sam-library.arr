@@ -5,8 +5,6 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 
 provide *
 
-import lists as L
-
 # export every symbol from starter2024 except for those we override
 import starter2024 as Starter
 provide from Starter: * hiding(translate, filter, range, sort) end
