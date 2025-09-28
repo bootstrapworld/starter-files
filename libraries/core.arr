@@ -2238,7 +2238,7 @@ fun draw-inequality(points, f, msg-img) block:
 
   # given an inequality fn and a reverse-projection fn, test every pixel
   # on a 600px range and mark "true" pixels as transparent blue
-  fun draw-shade(rProject, c):
+  fun draw-shade(f, rProject, c):
     range-by(0, STRIP-WIDTH, 2).foldl(lam(p, img):
         shadow color = if f(rProject(p)): c else: "transparent" end
         beside(img, rectangle(2, 15, "solid", color))
