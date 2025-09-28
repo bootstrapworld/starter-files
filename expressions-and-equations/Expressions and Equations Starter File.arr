@@ -1,4 +1,4 @@
-use context url-file(https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/expressions-and-equations/", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/expressions-and-equations/", "../libraries/core.arr")
 
 red-star     = star(20, "solid", "red")
 aqua-star    = star(50, "solid", "aqua")

@@ -1,4 +1,4 @@
-use context url-file(https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/ai/", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/ai/", "../libraries/core.arr")
 
 include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/ai/", "../libraries/plagiarism-library.arr")
 

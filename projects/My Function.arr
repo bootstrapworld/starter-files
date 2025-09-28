@@ -1,4 +1,4 @@
-use context url-file(https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/", "../libraries/core.arr")
 
 # PREDEFINED IMAGE VALUES
 # We've defined `pt` and `yr` to get you started.
