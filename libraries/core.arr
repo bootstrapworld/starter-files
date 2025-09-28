@@ -2480,9 +2480,7 @@ _img-list = [list: _tri, _cir, _sq, _star, _ellipse]
 ################################################################
 ######################### SURFACE AREA ########################
 
-prism =
-  image-url("https://code.pyret.org/shared-image-contents?sharedImageId=1Ckagp7bnDSY4fwRdUC-UIDmZuVQderOG")
-
+prism = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/prism.png")
 
 #########################################################
 # Image transformation functions
