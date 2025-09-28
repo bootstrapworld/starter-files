@@ -7,11 +7,10 @@ provide *
 
 # export every symbol from starter2024 except for those we override
 import starter2024 as Starter
-include from Starter:
+provide from Starter:
   * hiding(translate, filter, range, sort, sin, cos, tan)
 end
 
-import lists as L
 provide from L: * hiding(filter, range, sort), type *, data * end
 
 word-sheet = load-spreadsheet("1RlwxGM1oZd6VfJDwuVNxGIwznB2yGyjwfuKHdXg6Gz8")
@@ -51,10 +50,10 @@ fun word-mod(cps :: List<Number>, replace :: (Number -> List<Number>))
   end
   mod-words = map(string-from-code-points, mods)
   for each(w from mod-words):
-    cases (Option) all-seen-words.get-now(w):
+    cases (Eth.Option) all-seen-words.get-now(w):
       | none => 
         words-worklist.set-now(w, true)
-      | some(count) =>
+      | some(shadow count) =>
         all-seen-words.set-now(w, 1 + count)
     end
   end
@@ -90,11 +89,11 @@ fun edits2(w :: String) -> Nothing block:
   e1l = words-worklist.keys-now().to-list()
   
   for each(e1w from e1l):
-    cases (Option) all-seen-words.get-now(e1w) block:
+    cases (Eth.Option) all-seen-words.get-now(e1w) block:
       | none =>
         all-seen-words.set-now(e1w, 0)
         edits1(e1w)
-      | some(count) =>
+      | some(shadow count) =>
         all-seen-words.set-now(e1w, 1 + count)
     end
   end
