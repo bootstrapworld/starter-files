@@ -9,6 +9,6 @@ yellow-rect  = rectangle(120, 60, "solid", "yellow")
 bootstrap    = text("BootStrap", 50, "green")
 blue-ellipse = ellipse(60, 30, "solid", "blue")
 
-dog = image-url("https://code.pyret.org/shared-image-contents?sharedImageId=1GOZlaacrEhDzts8VUG7-zAoj7NR6fd2h")
+dog = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/expressions-and-equations/puppy.png")
 
 hello = text("hello", 40, "red") 
