@@ -1622,22 +1622,22 @@ fun table-to-graph(t) block:
   xs = t.column(cols.get(0))
   ys = t.column(cols.get(1))
 
-  xMin = if (num-round(min(xs)) == num-round(max(xs))):
-    num-round(min(xs)) - 5
-  else: num-round(min(xs))
+  xMin = if (num-round(Math.min(xs)) == num-round(Math.max(xs))):
+    num-round(Math.min(xs)) - 5
+  else: num-round(Math.min(xs))
   end
-  xMax = if (num-round(min(xs)) == num-round(max(xs))):
-    num-round(min(xs)) + 5
-  else: num-round(max(xs))
+  xMax = if (num-round(Math.min(xs)) == num-round(Math.max(xs))):
+    num-round(Math.min(xs)) + 5
+  else: num-round(Math.max(xs))
   end
 
-  yMin = if (num-round(min(ys)) == num-round(max(ys))):
-    num-round(min(ys)) - 5
-  else: num-round(min(ys))
+  yMin = if (num-round(Math.min(ys)) == num-round(Math.max(ys))):
+    num-round(Math.min(ys)) - 5
+  else: num-round(Math.min(ys))
   end
-  yMax = if (num-round(min(ys)) == num-round(max(ys))):
-    num-round(min(ys)) + 5
-  else: num-round(max(ys))
+  yMax = if (num-round(Math.min(ys)) == num-round(Math.max(ys))):
+    num-round(Math.min(ys)) + 5
+  else: num-round(Math.max(ys))
   end
 
   render-chart(from-list.line-plot(xs, ys))

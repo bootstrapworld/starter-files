@@ -1,4 +1,4 @@
-use context file("core.arr")
+use context file("../../libraries/core.arr")
 
 a = text("Waiting for you to add your function definitions!", 20, "green")
 

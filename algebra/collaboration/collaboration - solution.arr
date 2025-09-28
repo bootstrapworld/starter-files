@@ -1,4 +1,4 @@
-use context file("core.arr")
+use context file("../../libraries/core.arr")
 
 # Word Problem 1: 
 # Define a function g that takes in an image, h, and returns a scaled down version of that image that is 37.5% of the original size.
