@@ -1,0 +1,58 @@
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects", "../libraries/core.arr")
+
+PINWHEEL-IMG = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive/images/pinwheel.png")
+
+# A Pinwheel is an angle of rotation
+data Pinwheel:
+  | pw(angle :: Number)
+end
+
+# A PinwheelState is 4 Pinwheels
+data PinwheelState:
+  | pinwheels(
+      p1 :: Pinwheel,
+      p2 :: Pinwheel,
+      p3 :: Pinwheel,
+      p4 :: Pinwheel)
+end
+
+STARTING-PINWHEELS = pinwheels(pw(60), pw(3), pw(25), pw(70))
+
+# update-pinwheel :: Pinwheel -> Pinwheel
+fun update-pinwheel(p):
+  pw(p.angle + 6)
+end
+
+# next-state-tick :: PinwheelState -> PinwheelState
+fun next-state-tick(ps):
+  pinwheels(
+    update-pinwheel(ps.p1),
+    update-pinwheel(ps.p2),
+    update-pinwheel(ps.p3),
+    update-pinwheel(ps.p4))
+end
+
+# draw-pinwheel :: Pinwheel -> Image
+fun draw-pinwheel(p):
+  rotate(p.angle, PINWHEEL-IMG)
+end
+
+# draw-state :: PinwheelState -> Image
+fun draw-state(ps):
+  put-image(draw-pinwheel(ps.p1),
+    400, 100,
+    put-image(draw-pinwheel(ps.p2),
+      320, 240,
+      put-image(draw-pinwheel(ps.p3),
+        100, 400,
+        put-image(draw-pinwheel(ps.p4),
+          500, 350,
+          empty-scene(640, 480)))))
+end
+
+# Setting up the animation
+pinwheel-react = reactor:
+  init: STARTING-PINWHEELS,
+  on-tick: next-state-tick,
+  to-draw: draw-state
+end
