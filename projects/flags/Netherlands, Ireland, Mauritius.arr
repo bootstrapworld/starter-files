@@ -1,7 +1,7 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags", "../../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/flags", "../../libraries/core.arr")
 
 ##################################################
-netherlands-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/netherlands-flag-image.png")
+netherlands-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/flags/netherlands-flag-image.png")
 
 ##################################################
 # DO NOW: Click Run and type "netherlands-flag" into the interactions window to see an image of the flag and look at the code below to answer questions with your class.
@@ -26,7 +26,7 @@ netherlands =
       background-nl))
   
 ##################################################
-ireland-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/ireland-flag-image.png")
+ireland-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/flags/ireland-flag-image.png")
 
 # Getting ready to write Code for the Flag of Ireland...
 
@@ -45,7 +45,7 @@ ireland-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/start
 # 3) Define a variable "ireland" to build the image of the Irish flag, identifying what coordinates will correctly locate the center of each piece.
 
 ##################################################
-mauritius-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/mauritius-flag-image.png")
+mauritius-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/flags/mauritius-flag-image.png")
 
 # Getting ready to write Code for the flag of Mauritius
 

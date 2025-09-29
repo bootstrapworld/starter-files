@@ -1,6 +1,6 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags", "../../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/flags", "../../libraries/core.arr")
 
-panama-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/panama-flag-image.png")
+panama-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/flags/panama-flag-image.png")
 
 ##################################################
 # Do Now: Click run and type "panama-flag into the interactions window to see an image of the flag you are trying to create.

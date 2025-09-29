@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra/collaboration", "../../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/algebra/collaboration", "../../libraries/core.arr")
 
 # Word Problem 1: 
 # Define a function g that takes in an image, h, and returns a scaled down version of that image that is 37.5% of the original size.

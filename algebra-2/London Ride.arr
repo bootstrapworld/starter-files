@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra-2", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/algebra-2", "../libraries/core.arr")
 
 #########################################################
 # Load your spreadsheet and define your table

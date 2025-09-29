@@ -1,6 +1,6 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags", "../../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/flags", "../../libraries/core.arr")
 ####################################################
-japan-flag =  image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/japan-flag-image.png")
+japan-flag =  image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/flags/japan-flag-image.png")
 
 ####################################################
 # DO NOW: Click run and type "japan-flag" into the interactions window to see what the flag of Japan should look like.
@@ -24,6 +24,6 @@ japan = translate(dot, 50, 40, background)
 ###################################################
 # EXTENSION: Flag of Somalia
 
-somalia-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/somalia-flag-image.png")
+somalia-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/flags/somalia-flag-image.png")
 
 # Type "somalia-flag" into the interactions window to see what the flag of Somalia should look like. Then, using "japan" as a model, write code to generate an image "somalia" to match "somalia-flag"

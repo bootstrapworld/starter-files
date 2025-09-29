@@ -1,8 +1,8 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects", "../libraries/core.arr")
 
-target-logo = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/target.png")
+target-logo = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/target.png")
 
-microsoft-logo = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/microsoft.png")
+microsoft-logo = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/microsoft.png")
 
 
 ##################################################

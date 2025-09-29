@@ -1,7 +1,7 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags", "../../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/flags", "../../libraries/core.arr")
 
 ##################################################
-mexico-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/mexico-flag-image.png")
+mexico-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/flags/mexico-flag-image.png")
 
 ##################################################
 # Do Now: Click run and type "mexico-flag into the interactions window to see an image of the flag you are trying to create.
@@ -18,7 +18,7 @@ background = rectangle(300, 200, "outline", "black")
 red-stripe = rectangle(300, 80, "solid", "red")
 green-stripe = rectangle(300/3, 50, "solid", "dark green")
 crest = scale(0.5, 
-  image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/mexico-crest-image.png")
+  image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/flags/mexico-crest-image.png")
 )
 
 mexico = 

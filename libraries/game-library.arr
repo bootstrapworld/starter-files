@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries", "core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "core.arr")
 
 ################################################################
 # Bootstrap Game Library, as of Fall 2026
@@ -25,7 +25,7 @@ fun spacing(): 100 + random(200) end
 _target-increment_ = 20
 _danger-increment_ = -50
 LOSS-SCORE = 0
-GAMEOVER_IMG = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/images/gameover.png")
+GAMEOVER_IMG = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries/images/gameover.png")
 
 var _score_    = 0
 var _player-x_ = 0

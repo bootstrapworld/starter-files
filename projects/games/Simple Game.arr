@@ -1,15 +1,15 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/core.arr", "../../libraries/core.arr")
-include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/game-library.arr", "../../libraries/game-library.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries/core.arr", "../../libraries/core.arr")
+include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries/game-library.arr", "../../libraries/game-library.arr")
 
 # 0. Game title: Write the title of your game here
 TITLE = "Alfred Alfer's Awesome Adventure"
 TITLE-COLOR = "white"
 
 # Graphics - danger, target, background and player images
-BACKGROUND = scale(0.9, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/games/space_background.png"))
-DANGER = scale(0.5, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/games/popsicle.png"))
-TARGET = scale(0.6, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/games/dog_treat.png"))
-PLAYER = scale(0.75, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/games/Alfer.png"))
+BACKGROUND = scale(0.9, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/games/space_background.png"))
+DANGER = scale(0.5, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/games/popsicle.png"))
+TARGET = scale(0.6, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/games/dog_treat.png"))
+PLAYER = scale(0.75, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/games/Alfer.png"))
 
 # here's a screenshot of the game, with the PLAYER at (320, 240),
 # the TARGET at (400 500) and the DANGER at (150, 200)

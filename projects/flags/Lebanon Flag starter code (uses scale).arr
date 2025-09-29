@@ -1,7 +1,7 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags", "../../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/flags", "../../libraries/core.arr")
 
 ##################################################
-lebanon-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/lebanon-flag-image.png")
+lebanon-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/flags/lebanon-flag-image.png")
 
 ##################################################
 # Do Now: Click run and type "lebanon-flag" into the interactions window to see an image of the flag you are trying to create.
@@ -12,7 +12,7 @@ lebanon-flag = image-url("https://raw.githubusercontent.com/bootstrapworld/start
 # 1) Define the shapes needed to make the flag, beginning with a background that is 450 x 300.
 
 # Note: One of the shapes for this flag is a cedar tree, which is an image that we will need to import (see code below). 
-cedar = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/flags/cedar-tree-image.png")
+cedar = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/flags/cedar-tree-image.png")
 
 # Define the other shapes...
 

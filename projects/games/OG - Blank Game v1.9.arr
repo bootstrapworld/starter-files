@@ -1,15 +1,15 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/games", "../../libraries/core.arr")
-include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/games", "../../libraries/game-library.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/games", "../../libraries/core.arr")
+include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/games", "../../libraries/game-library.arr")
 
 # 0. Game title: Write the title of your game here
 TITLE = "My Game"
 TITLE-COLOR = "white"
 
 # Graphics - danger, target, projectile and player images
-BACKGROUND = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/games/Night%20Forest.jpg")
+BACKGROUND = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/games/Night%20Forest.jpg")
 DANGER = triangle(30, "solid", "red")
 TARGET = circle(20, "solid", "green")
-PLAYER = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/games/Robot.png")
+PLAYER = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/games/Robot.png")
 
 # here's a screenshot of the game, with the PLAYER at (320, 240),
 # the TARGET at (400 500) and the DANGER at (150, 200)

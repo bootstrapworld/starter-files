@@ -1,7 +1,7 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra/inequalities", "../../libraries/core.arr")
-include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra/inequalities", "../../libraries/sam-library.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/algebra/inequalities", "../../libraries/core.arr")
+include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/algebra/inequalities", "../../libraries/sam-library.arr")
 
-IMG = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra/inequalities/sam.png")
+IMG = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/algebra/inequalities/sam.png")
 
 # is-safe-left :: Number -> Boolean
 # Is the character visible on the left side of the screen?

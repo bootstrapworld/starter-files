@@ -1,5 +1,5 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/games", "../../libraries/core.arr")
-include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/games", "../../libraries/game-library.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/games", "../../libraries/core.arr")
+include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/games", "../../libraries/game-library.arr")
 
 # DO NOT MODIFY LINE 5
 # its modifies the chart functions to generates image without popups
@@ -9,10 +9,10 @@ TITLE = "Alfred Alfer's Awesome Adventure"
 TITLE-COLOR = "white"
 
 # Graphics - danger, target, background and player images
-BACKGROUND = scale(0.9, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/games/space_background.png"))
-DANGER = scale(0.5, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/games/popsicle.png"))
-TARGET = scale(0.6, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/games/dog_treat.png"))
-PLAYER = scale(0.75, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/projects/games/Alfer.png"))
+BACKGROUND = scale(0.9, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/games/space_background.png"))
+DANGER = scale(0.5, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/games/popsicle.png"))
+TARGET = scale(0.6, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/games/dog_treat.png"))
+PLAYER = scale(0.75, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/games/Alfer.png"))
 
 # here's a screenshot of the game, with the PLAYER at (320, 240),
 # the TARGET at (400 500) and the DANGER at (150, 200)

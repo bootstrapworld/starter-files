@@ -1,6 +1,6 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/algebra", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/algebra", "../libraries/core.arr")
 
-prism = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/images/prism.png")
+prism = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries/images/prism.png")
 
 ##################################################
 # PART 0: DEFINING THE DIMENSIONS OF OUR PRISM
