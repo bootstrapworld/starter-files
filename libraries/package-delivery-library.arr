@@ -1,4 +1,13 @@
-provide *
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "core.arr")
+
+provide { start: start } end
+
+# The DeliveryState is two numbers: an x-coordinate and a y-coordinate
+data DeliveryState:
+  | delivery(
+      x :: Number,
+      y :: Number)
+end
 
 START = delivery(130, 420)
 
@@ -46,14 +55,13 @@ fun hits-road(d): (d.y < 100) and (d.x < 300) end
 fun done-falling(d): (lands-safely(d) or hits-house(d) or hits-road(d)) end
 
 
-
-
-r = reactor:
-  init: START,
-  on-tick: make-update(next-position),
-  to-draw: draw-state,
-  stop-when: done-falling
+fun animation(next-position):
+  r = reactor:
+    init: START,
+    on-tick: make-update(next-position),
+    to-draw: draw-state,
+    stop-when: done-falling
+  end
+  r.interact()
 end
-
-# Start the animation
-r.interact()
+  

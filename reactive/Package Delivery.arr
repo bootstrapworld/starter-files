@@ -1,6 +1,6 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects", "../libraries/core.arr")
 
-include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive", "../libraries/package-delivery-library.arr")
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive", "../libraries/package-delivery-library.arr") as Start
 
 # The DeliveryState is two numbers: an x-coordinate and a y-coordinate
 data DeliveryState:
@@ -23,3 +23,7 @@ fun next-position(x, y):
   delivery(x, y - 5)
 end
 
+
+
+# Start the animation
+Start.animation(next-position)
