@@ -5,7 +5,7 @@ provide *
 # export every symbol from starter2024 except for those we override
 import starter2024 as Starter
 provide from Starter:
-  * hiding(translate, filter, range, sort, sin, cos, tan)
+    * hiding(translate, filter, range, sort, sin, cos, tan)
 end
 
 include charts
@@ -121,8 +121,8 @@ end
 
 fun string-to-number-i(s):
   cases(Option) string-to-number(s):
-  | some(n) => n
-  | none => -1e100
+    | some(n) => n
+    | none => -1e100
   end
 end
 
@@ -141,31 +141,31 @@ fun make-sci(underlying-num, underlying-num-str, max-chars) block:
   decimal-point-position = string-index-of(underlying-num-str, '.')
   int-str = if decimal-point-position > -1:
     string-substring(underlying-num-str, 0, decimal-point-position)
-    else: underlying-num-str
-    end
+  else: underlying-num-str
+  end
   dec-str = if decimal-point-position > -1:
     string-substring(underlying-num-str, decimal-point-position + 1, underlying-num-str-len)
-    else: ''
-    end
+  else: ''
+  end
   # spy: int-str, dec-str end
   dec-str-len = string-length(dec-str)
   int-part = if (girth > 0) and (girth < max-chars): int-str + '.'
-    else if girth >= 0:
+  else if girth >= 0:
     string-substring(int-str, 0, 1) + '.'
-    else: string-substring(dec-str, neg-girth - 1, neg-girth) + '.'
-    end
+  else: string-substring(dec-str, neg-girth - 1, neg-girth) + '.'
+  end
   dec-part = if (girth > 0) and (girth < max-chars): dec-str
-    else if girth >= 0:
+  else if girth >= 0:
     string-substring(int-str, 1, string-length(int-str)) +
-                dec-str
-    else if neg-girth == dec-str-len: '0'
-    else: string-substring(dec-str, neg-girth, dec-str-len)
-    end
+    dec-str
+  else if neg-girth == dec-str-len: '0'
+  else: string-substring(dec-str, neg-girth, dec-str-len)
+  end
   expt-part = if (girth > 0) and (girth < max-chars): ''
-              else if girth == 0: ''
-              else if girth > 0: 'e' + num-to-string(girth)
-              else: 'e-' + num-to-string(neg-girth)
-              end
+  else if girth == 0: ''
+  else if girth > 0: 'e' + num-to-string(girth)
+  else: 'e-' + num-to-string(neg-girth)
+  end
   # spy: int-part, dec-part, expt-part end
 
   output = int-part + dec-part + expt-part
@@ -187,20 +187,20 @@ fun make-unsci(underlying-num-str):
     underlying-num-str-len = string-length(underlying-num-str)
     mantissa-str = string-substring(underlying-num-str, 0, e-position)
     exponent = string-to-number-i(string-substring(
-    underlying-num-str, e-position + 1, underlying-num-str-len))
+        underlying-num-str, e-position + 1, underlying-num-str-len))
     mantissa-len = string-length(mantissa-str)
     mantissa-decimal-point-position = string-index-of(mantissa-str, '.')
     mantissa-int-str =
-    if mantissa-decimal-point-position > -1:
-      string-substring(mantissa-str, 0, mantissa-decimal-point-position)
-    else: mantissa-str
-    end
+      if mantissa-decimal-point-position > -1:
+        string-substring(mantissa-str, 0, mantissa-decimal-point-position)
+      else: mantissa-str
+      end
     mantissa-frac-str =
-    if mantissa-decimal-point-position > -1:
-      string-substring(mantissa-str,
-      mantissa-decimal-point-position + 1, mantissa-len)
-    else: ''
-    end
+      if mantissa-decimal-point-position > -1:
+        string-substring(mantissa-str,
+          mantissa-decimal-point-position + 1, mantissa-len)
+      else: ''
+      end
     if exponent == 0:
       underlying-num-str
     else if exponent > 0:
@@ -227,7 +227,7 @@ fun make-unsci(underlying-num-str):
         string-substring(mantissa-int-str, 0, mantissa-int-len - exponent) +
         "." +
         string-substring(mantissa-int-str, mantissa-int-len - exponent,
-        mantissa-int-len)
+          mantissa-int-len)
       end
     end
   end
@@ -324,7 +324,7 @@ fun shrink-dec(num-str, max-chars):
     if int-part-len <= max-chars block:
       # spy: fixme: 302 end
       frac-part-mod = shrink-dec-part(frac-part,
-      max-chars - (int-part-len + expt-part-len + 1))
+        max-chars - (int-part-len + expt-part-len + 1))
       # spy: frac-part-mod end
       if frac-part-mod == 'cantfit':
         'cantfit'
@@ -332,12 +332,12 @@ fun shrink-dec(num-str, max-chars):
         # when incoming frac-part is .9999x where x >= 5,
         # it overflows past the decimal point, i.e.,
         # should be rounded to 1
-         num-to-string(int-part-num + 1) + expt-part
+        num-to-string(int-part-num + 1) + expt-part
       else if frac-part-mod == '':
         # no need to add decimal point in this case
-         int-part + expt-part
+        int-part + expt-part
       else:
-         int-part + '.' + frac-part-mod + expt-part
+        int-part + '.' + frac-part-mod + expt-part
       end
     else:
       'cantfit'
@@ -378,7 +378,7 @@ fun num-to-sci(n, max-chars) block:
     else:
       girth = num-floor(log-base(10, num-abs(underlying-num)))
       sci-num-str = make-sci(underlying-num, underlying-num-str,
-      max-chars-mod)
+        max-chars-mod)
       # spy: fixme: 2, girth, underlying-num-str, sci-num-str, max-chars-mod end
       # spy: sci-num-str end
       if sci-num-str == 'cantfit':
@@ -514,24 +514,6 @@ fun easy-num-repr(n, max-chars) block:
   end
 end
 
-# fun t():
-#   # easy-num-repr(0.0001234, 6)
-#   # [list: easy-num-repr(2343.234, 6), "2343.2"]
-#   # [list: easy-num-repr(0.000000001234, 6) , 0.000000001234, 6, "1.2e-9"]
-#   # [list: easy-num-repr(0.0001234, 6) , "0.0001"]
-#   num-to-sci(20368014.7, 9) # "20368015"
-#   # num-to-sci(100000, 2)
-#   # easy-num-repr(~0.082805, 9)
-#   # [list: shrink-dec("0.9999999", 5), shrink-dec-part("99999999", 3)]
-#   # num-to-sci(0.099999, 5)
-#   # easy-num-repr(0.099999,5)
-#   # [list: easy-num-repr(0.0001234, 6), "0.0001"]
-#   # [list: num-to-sci(20368014.7, 9), "20368014"]
-#   # [list: num-to-sci(0.00001234567, 7), "1.2e-5"]
-# easy-num-repr(~-125137.67385839373,8)
-# end
-
-# num-to-sci(203.680147,9) should evaluate to ~203.6801 instead of ~2.0368e2
 
 #################################################################################
 # Trig functions
@@ -704,7 +686,7 @@ fun make-title(str-list):
         acc,
         if num-is-integer(i / 2): text(" " + str + " ", 18, "black")
         else: text-font(str, 16, "blue", "Courier",
-    "swiss", "normal", "normal", false)
+            "swiss", "normal", "normal", false)
         end)
     end,
     0,
@@ -984,9 +966,9 @@ fun stacked-bar-chart(t, col, subcol) block:
   color-list = segments.map(lam(_): nextColor() end)
   tab = group-and-subgroup(t, col, subcol)
   series = from-list.stacked-bar-chart(
-      tab.get-column("group").map(to-repr),
-      tab.get-column("data"),
-      segments)
+    tab.get-column("group").map(to-repr),
+    tab.get-column("data"),
+    segments)
     .stacking-type(percent)
     .colors(color-list)
   chart = render-chart(series).x-axis(col).y-axis(subcol)
@@ -1021,9 +1003,9 @@ fun multi-bar-chart(t, col, subcol) block:
   color-list = segments.map(lam(_): nextColor() end)
   tab = group-and-subgroup(t, col, subcol)
   series = from-list.grouped-bar-chart(
-      tab.get-column("group").map(to-repr),
-      tab.get-column("data"),
-      segments)
+    tab.get-column("group").map(to-repr),
+    tab.get-column("data"),
+    segments)
     .colors(color-list)
   chart = render-chart(series)
     .x-axis(col + " ⋲ " + subcol)
@@ -1317,7 +1299,7 @@ fun image-scatter-plot(t, xs, ys, f) block:
       .x-axis(xs)
       .y-axis(ys)
     img = display-chart(chart)
-  title = make-title([list:"", ys, "vs.", xs])
+    title = make-title([list:"", ys, "vs.", xs])
     above(title, add-margin(img))
   end
 end
@@ -1331,12 +1313,12 @@ multiple-regression :: (
 fun multiple-regression(t, explanations, response):
   # convert the table to a list of rows, then each row to a list of values
   if explanations.length() > t.length():
-      raise(Err.message-exception("This data set contains too few data samples and too many independent variables to produce a unique regression.  If all the independent variables are needed, you'll need to collect more data samples; otherwise, try removing ones that aren't relevant"))
-      else:
-      explanation-lists = t.all-rows().map(
-        lam(r): explanations.map(lam(exp): r[exp] end) end)
-      response-list = t.column(response)
-      Stats.multiple-regression(explanation-lists, response-list)
+    raise(Err.message-exception("This data set contains too few data samples and too many independent variables to produce a unique regression.  If all the independent variables are needed, you'll need to collect more data samples; otherwise, try removing ones that aren't relevant"))
+  else:
+    explanation-lists = t.all-rows().map(
+      lam(r): explanations.map(lam(exp): r[exp] end) end)
+    response-list = t.column(response)
+    Stats.multiple-regression(explanation-lists, response-list)
   end
   #"The Statistics module does not currently provide a multiple-regression function"
 end
@@ -1601,7 +1583,7 @@ fun word-frequency(txt) block:
   ascii-words = string-split-all(string-to-upper(txt), " ")
     .map(lettersOnly)
     .filter(lam(str): str <> "" end)
-  .sort()
+    .sort()
 
   # Walk through the (sorted) words, creating a tuple containing a
   # unique-word list and a list of counts
@@ -1773,13 +1755,13 @@ fun count(tab, col):
 end
 
 #|
-fun count-many(tab, cols):
+   fun count-many(tab, cols):
   for fold(shadow grouped from table: col, subtable end, c from cols):
     grouped.stack(table: col, subtable
         row: c, count(tab, c)
       end)
   end
-end
+   end
 |#
 
 fun group-and-subgroup(t :: Table, col :: String, subcol :: String) block:
@@ -1943,61 +1925,47 @@ fun sample-variance(t, col) block:
 end
 
 
-#|
-  height = table: player, inches
-    row: "RJ Barrett", 78
-    row: "Jusuf Nurkic", 84
-    row: "James Harden", 77
-    row: "Rodney Hood", 80
-    row: "Jae'Sean Tate", 76
-    row: "Nikola Jokic", 83
-    row: "E'Twaun Moore", 76
-    row: "Dario Saric", 82
-    row: "Tim Frazier", 73
-    row: "Brad Wanamaker", 75
-  end
 
+paired-t :: (t :: Table, col1 :: String, col2 :: String) -> Number
+fun paired-t(t, col1, col2) block:
+  check-integrity(t, [list: col1, col2])
+  shadow t = t.build-column("diff", lam(r): r[col2] - r[col1] end)
+  mean1 = Stats.mean(ensure-numbers(t.column(col1)))
+  mean2 = Stats.mean(ensure-numbers(t.column(col2)))
+  sdiff = stdev(t, "diff")
+  n = t.length()
+  df = n - 1
+  (mean1 - mean2) / (sdiff / num-sqr(n))
+end
 
-  paired-t :: (t :: Table, col1 :: String, col2 :: String) -> Number
-  fun paired-t(t, col1, col2) block:
-    check-integrity(t, [list: col1, col2])
-    shadow t = t.build-column("diff", lam(r): r[col2] - r[col1] end)
-    mean1 = Stats.mean(ensure-numbers(t.column(col1)))
-    mean2 = Stats.mean(ensure-numbers(t.column(col2)))
-    sdiff = stdev(t, "diff")
-    n = t.length()
-    df = n - 1
-    (mean1 - mean2) / (sdiff / num-sqr(n))
-  end
+eq-variance-t :: (t :: Table, col1 :: String, col2 :: String) -> Number
+fun eq-variance-t(t, col1, col2) block:
+  check-integrity(t, [list: col1, col2])
+  shadow t = t.build-column("diff", lam(r): r[col2] - r[col1] end)
+  mean1 = Stats.mean(ensure-numbers(t.column(col1)))
+  mean2 = Stats.mean(ensure-numbers(t.column(col2)))
+  var1 = sample-variance(t, col1)
+  var2 = sample-variance(t, col2)
+  n1 = t.length()
+  n2 = t.length()
+  (mean1 - mean2) / num-sqrt((var1 / n1) + (var2 / n2))
+end
 
-  eq-variance-t :: (t :: Table, col1 :: String, col2 :: String) -> Number
-  fun eq-variance-t(t, col1, col2) block:
-    check-integrity(t, [list: col1, col2])
-    shadow t = t.build-column("diff", lam(r): r[col2] - r[col1] end)
-    mean1 = Stats.mean(ensure-numbers(t.column(col1)))
-    mean2 = Stats.mean(ensure-numbers(t.column(col2)))
-    var1 = sample-variance(t, col1)
-    var2 = sample-variance(t, col2)
-    n1 = t.length()
-    n2 = t.length()
-    (mean1 - mean2) / num-sqrt((var1 / n1) + (var2 / n2))
-  end
+uneq-variance-t :: (t :: Table, col1 :: String, col2 :: String) -> Number
+fun uneq-variance-t(t, col1, col2) block:
+  check-integrity(t, [list: col1, col2])
+  shadow t = t.build-column("diff", lam(r): r[col2] - r[col1] end)
+  mean1 = Stats.mean(ensure-numbers(t.column(col1)))
+  mean2 = Stats.mean(ensure-numbers(t.column(col2)))
+  var1 = sample-variance(t, col1)
+  var2 = sample-variance(t, col2)
+  n1 = t.length()
+  n2 = t.length()
+  df = n1 + n2 + -2
+  dfs-and-sq-vars = (((n1 - 1) * num-sqr(var1)) + ((n2 - 1) * num-sqr(var2)))
+  (mean1 - mean2) / ((dfs-and-sq-vars / df) * num-sqrt((1 / n1) + (1 / n2)))
+end
 
-  uneq-variance-t :: (t :: Table, col1 :: String, col2 :: String) -> Number
-  fun uneq-variance-t(t, col1, col2) block:
-    check-integrity(t, [list: col1, col2])
-    shadow t = t.build-column("diff", lam(r): r[col2] - r[col1] end)
-    mean1 = Stats.mean(ensure-numbers(t.column(col1)))
-    mean2 = Stats.mean(ensure-numbers(t.column(col2)))
-    var1 = sample-variance(t, col1)
-    var2 = sample-variance(t, col2)
-    n1 = t.length()
-    n2 = t.length()
-    df = n1 + n2 + -2
-    dfs-and-sq-vars = (((n1 - 1) * num-sqr(var1)) + ((n2 - 1) * num-sqr(var2)))
-    (mean1 - mean2) / ((dfs-and-sq-vars / df) * num-sqrt((1 / n1) + (1 / n2)))
-  end
-|#
 
 
 

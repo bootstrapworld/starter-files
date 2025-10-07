@@ -1,17 +1,33 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr")
+import csv as csv
 
-  examples:
-    pop-variance(height, "inches") is 12.24
-    sample-variance(height, "inches") is 13.6
-  end
+height = table: player, inches
+  row: "RJ Barrett", 78
+  row: "Jusuf Nurkic", 84
+  row: "James Harden", 77
+  row: "Rodney Hood", 80
+  row: "Jae'Sean Tate", 76
+  row: "Nikola Jokic", 83
+  row: "E'Twaun Moore", 76
+  row: "Dario Saric", 82
+  row: "Tim Frazier", 73
+  row: "Brad Wanamaker", 75
+end
+
+
+examples "variance":
+  pop-variance(height, "inches") is 12.24
+  sample-variance(height, "inches") is 13.6
+end
+
+_tri = triangle(20, "solid", "red")
+_cir = circle(10, "solid", "yellow")
+_sq = square(20, "solid", "blue")
+_star = star(10, "solid", "pink")
+_ellipse = ellipse(10, 20, "solid", "green")
+_img-list = [list: _tri, _cir, _sq, _star, _ellipse]
 
 examples "permute-wo-replace":
-  _tri = triangle(20, "solid", "red")
-  _cir = circle(10, "solid", "yellow")
-  _sq = square(20, "solid", "blue")
-  _star = star(10, "solid", "pink")
-  _ellipse = ellipse(10, 20, "solid", "green")
-  _img-list = [list: _tri, _cir, _sq, _star, _ellipse]
   permute-wo-replace([list: 1], 1) is [list: [list:1]]
   permute-wo-replace([list: 1, 2], 2) is [list: [list:1,2], [list:2,1]]
   permute-wo-replace([list: 1, 2, 3], 2) is [list:
@@ -25,12 +41,6 @@ examples "permute-wo-replace":
 end
 
 examples "permute-w-replace":
-  _tri = triangle(20, "solid", "red")
-  _cir = circle(10, "solid", "yellow")
-  _sq = square(20, "solid", "blue")
-  _star = star(10, "solid", "pink")
-  _ellipse = ellipse(10, 20, "solid", "green")
-  _img-list = [list: _tri, _cir, _sq, _star, _ellipse]
   permute-w-replace([list: 1], 1) is [list: [list:1]]
   permute-w-replace([list: 1, 2], 2) is [list: [list:1,1], [list:1,2], [list:2,1], [list:2,2]]
   permute-w-replace([list: 1, 2, 3], 2) is [list:
@@ -47,15 +57,9 @@ examples "permute-w-replace":
     [list: 3, 1, 1], [list: 3, 1, 2], [list: 3, 1, 3],
     [list: 3, 2, 1], [list: 3, 2, 2], [list: 3, 2, 3],
     [list: 3, 3, 1], [list: 3, 3, 2], [list: 3, 3, 3]]
-   end
+end
 
 examples "combine-wo-replace":
-  _tri = triangle(20, "solid", "red")
-  _cir = circle(10, "solid", "yellow")
-  _sq = square(20, "solid", "blue")
-  _star = star(10, "solid", "pink")
-  _ellipse = ellipse(10, 20, "solid", "green")
-  _img-list = [list: _tri, _cir, _sq, _star, _ellipse]
   combine-wo-replace([list:], 0) is [list: [list:]]
   combine-wo-replace([list:1], 1) is [list: [list: 1]]
   combine-wo-replace([list:1, 2], 1) is [list: [list:1], [list: 2]]
@@ -136,58 +140,72 @@ examples "rough-round-digits":
 end
 
 
+# fun t():
+#   # easy-num-repr(0.0001234, 6)
+#   # [list: easy-num-repr(2343.234, 6), "2343.2"]
+#   # [list: easy-num-repr(0.000000001234, 6) , 0.000000001234, 6, "1.2e-9"]
+#   # [list: easy-num-repr(0.0001234, 6) , "0.0001"]
+#   num-to-sci(20368014.7, 9) # "20368015"
+#   # num-to-sci(100000, 2)
+#   # easy-num-repr(~0.082805, 9)
+#   # [list: shrink-dec("0.9999999", 5), shrink-dec-part("99999999", 3)]
+#   # num-to-sci(0.099999, 5)
+#   # easy-num-repr(0.099999,5)
+#   # [list: easy-num-repr(0.0001234, 6), "0.0001"]
+#   # [list: num-to-sci(20368014.7, 9), "20368014"]
+#   # [list: num-to-sci(0.00001234567, 7), "1.2e-5"]
+# easy-num-repr(~-125137.67385839373,8)
+# end
+
+# num-to-sci(203.680147,9) should evaluate to ~203.6801 instead of ~2.0368e2
+
+
 # Consts for testing print-imgs
-#|
-   img1 = rectangle(340,180,"outline","black")
-   img2 = rectangle(180, 50,"outline","black")
-   img3 = rectangle(50,340,"outline","black")
-   img4 = rectangle(270,75,"outline","black")
-   img5 = rectangle(510,75,"outline","black")
-   img6 = rectangle(270,510,"outline","black")
-   #img7 = circle(50,"outline","black")
-   #img8 = triangle(100,"outline","black")
+img1 = rectangle(340,180,"outline","black")
+img2 = rectangle(180, 50,"outline","black")
+img3 = rectangle(50,340,"outline","black")
+img4 = rectangle(270,75,"outline","black")
+img5 = rectangle(510,75,"outline","black")
+img6 = rectangle(270,510,"outline","black")
+#img7 = circle(50,"outline","black")
+#img8 = triangle(100,"outline","black")
 
-   test-lst = [list: img1, img2, img3, img4, img5, img6,]
-   print-imgs(test-lst)
-|#
-
+test-lst = [list: img1, img2, img3, img4, img5, img6,]
+print-imgs(test-lst)
 
 # Consts for testing union and intersection
-#|
-   small-lst = [list: -4, -3, -2, -1, 1, 2, 3, 4]
-   big-lst = [list: -400, -300, -200, 100, 200, 300, 400, 1000]
-   fun is-positive(x): x > 0 end
-   fun gt5(x): x > 5 end
-   fun lt1(x): x < 1 end
-   fun lt15(x): x < 15 end
+small-lst = [list: -4, -3, -2, -1, 1, 2, 3, 4]
+big-lst = [list: -400, -300, -200, 100, 200, 300, 400, 1000]
+fun is-positive(x): x > 0 end
+fun gt5(x): x > 5 end
+fun lt1(x): x < 1 end
+fun lt15(x): x < 15 end
 
 
-   "A simple inequality, with feedback for num-passing"
-   inequality(is-positive, big-lst)
-   "A union with overlap"
-   or-union(gt5, lt15, range-by(3, 24 + 1, 3))
-   "A union with NO overlap"
-   or-union(lt1, gt5, range-by(-21, 24 + 1, 6))
-   "An intersection with overlap"
-   and-intersection(gt5, lt15, range-by(3, 24 + 1, 3))
-   "An intersection with NO overlap"
-   and-intersection(lt1, gt5, range-by(-21, 24 + 1, 6))
-|#
+"A simple inequality, with feedback for num-passing"
+inequality(is-positive, big-lst)
+"A union with overlap"
+or-union(gt5, lt15, range-by(3, 24 + 1, 3))
+"A union with NO overlap"
+or-union(lt1, gt5, range-by(-21, 24 + 1, 6))
+"An intersection with overlap"
+and-intersection(gt5, lt15, range-by(3, 24 + 1, 3))
+"An intersection with NO overlap"
+and-intersection(lt1, gt5, range-by(-21, 24 + 1, 6))
 
 
 
 #####################################################################
 ## Chart testing
 
-#|
-# Load your spreadsheet and define your table
-shelter-sheet = load-spreadsheet(
-"https://docs.google.com/spreadsheets/d/1VeR2_bhpLvnRUZslmCAcSRKfZWs_5RNVujtZgEl6umA/")
+csv-url = "https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/master/lib/pyret-support/Animals-Dataset-1.5.1.csv"
 
-# load the 'animals' sheet as a table
 animals-table =
   load-table: name, species, sex, age, fixed, legs, pounds, weeks
-  source: shelter-sheet.sheet-by-name("pets", true)
+    source: csv.csv-table-url(csv-url, {
+    header-row: true,
+    infer-content: true
+  })
 end
 
 pie-chart(animals-table, "species")
@@ -199,11 +217,10 @@ scatter-plot(animals-table, "name", "weeks", "pounds")
 histogram(animals-table, "name", "pounds", 7)
 box-plot(animals-table, "weeks")
 
-#split-and-reduce(animals-table, "species", "pounds", sum)
-#group-and-subgroup(animals-table, "species", "sex")
-#group(animals-table, "sex")
+split-and-reduce(animals-table, "species", "pounds", sum)
+group-and-subgroup(animals-table, "species", "sex")
+group(animals-table, "sex")
 
-|#
 
 ########################################################################
 ## Trig functions
