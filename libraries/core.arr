@@ -890,7 +890,7 @@ fun color-pie-chart(t, col, f) block:
   image-pie-chart(t, col, lam(r): square(10, "solid", f(r)) end)
 end
 
-
+#|
 image-pie-chart :: (t :: Table, col :: String, f :: (Row -> Image)) -> Image
 fun image-pie-chart(t, col, f) block:
   check-integrity(t, [list: col])
@@ -905,7 +905,7 @@ fun image-pie-chart(t, col, f) block:
   title = make-title([list:"Distribution of", col])
   above(title, add-margin(img))
 end
-
+|#
 bar-chart :: (t :: Table, col :: String) -> Image
 fun bar-chart(t, col) block:
   check-integrity(t, [list: col])

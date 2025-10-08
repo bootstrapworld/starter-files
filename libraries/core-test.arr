@@ -210,7 +210,8 @@ end
 
 pie-chart(animals-table, "species")
 bar-chart(animals-table, "species")
-image-pie-chart(animals-table, "species", lam(x): circle(10,"solid","red") end)
+# we no longer support image-pie-chart
+#image-pie-chart(animals-table, "species", lam(x): circle(10,"solid","red") end)
 image-bar-chart(animals-table, "species", lam(x): circle(10,"solid","red") end)
 dot-plot(animals-table, "name", "pounds")
 scatter-plot(animals-table, "name", "weeks", "pounds")
