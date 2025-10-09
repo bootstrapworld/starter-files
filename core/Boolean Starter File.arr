@@ -1,5 +1,8 @@
-use context shared-gdrive("Bootstrap-Algebra-v1.6", "1hVXc5Fu82vxgeYlJY5MULtPVwuZ3q89A")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr")
 
+include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/boolean-library.arr")
+
+##################################################################
 # Investigate the following functions and figure out what they do.
 
 # is-odd
