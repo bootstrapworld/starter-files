@@ -885,9 +885,21 @@ fun pie-chart(t, col) block:
   pie-chart-raw(color-table, col, "frequency", col)
 end
 
+
 color-pie-chart :: (t :: Table, col :: String, f :: (Row -> String)) -> Image
 fun color-pie-chart(t, col, f) block:
-  image-pie-chart(t, col, lam(r): square(10, "solid", f(r)) end)
+  check-integrity(t, [list: col])
+  summary = count(t, col)
+  color-strs = make-images-from-grouped-rows(summary, col, f)
+  colors = color-strs.map(color-named)
+  series = from-list.pie-chart(
+    get-labels(summary, col),
+    ensure-numbers(summary.column("frequency")))
+    .colors(colors)
+  chart = render-chart(series)
+  img = display-chart(chart)
+  title = make-title([list:"Distribution of", col])
+  above(title, add-margin(img))
 end
 
 #|
@@ -917,7 +929,8 @@ end
 
 color-bar-chart :: (t :: Table, col :: String, f :: (Row -> String)) -> Image
 fun color-bar-chart(t, col, f) block:
-  image-bar-chart(t, col, lam(r): square(10, "solid", f(r)) end)
+  fun image-from-row(r): square(10, "solid", f(r)) end
+  image-bar-chart(t, col, image-from-row)
 end
 
 
@@ -1069,6 +1082,11 @@ fun dot-plot(t, labels, vals) block:
 end
 
 
+fun color-dot-plot(t, vals, f :: (Row -> Image)) block:
+  fun image-from-row(r): square(10, "solid", f(r)) end
+  image-bar-chart(t, vals, image-from-row)
+end
+
 fun image-dot-plot(t, vals, f :: (Row -> Image)) block:
   check-integrity(t, [list: vals])
   images = t.all-rows().map(f)
@@ -1123,7 +1141,8 @@ end
 
 color-histogram :: (t :: Table, vals :: String, bin-width :: Number, f :: (Row -> String)) -> Image
 fun color-histogram(t, vals, bin-width, f) block:
-  image-histogram(t, vals, bin-width, lam(r): square(10, "solid", f(r)) end)
+  fun image-from-row(r): square(10, "solid", f(r)) end
+  image-histogram(t, vals, bin-width, image-from-row)
 end
 
 image-histogram :: (t :: Table, vals :: String, bin-width :: Number, f :: (Row -> Image)) -> Image
@@ -1285,7 +1304,8 @@ end
 
 color-scatter-plot :: (t :: Table, xs :: String, ys :: String, f :: (Row -> Image)) -> Image
 fun color-scatter-plot(t, xs, ys, f) block:
-  image-scatter-plot(t, xs, ys, lam(r): circle(5, "solid", f(r)) end)
+  fun image-from-row(r): circle(5, "solid", f(r)) end
+  image-scatter-plot(t, xs, ys, image-from-row)
 end
 
 image-scatter-plot :: (t :: Table, xs :: String, ys :: String, f :: (Row -> Image)) -> Image

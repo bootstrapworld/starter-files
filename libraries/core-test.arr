@@ -208,14 +208,30 @@ animals-table =
   })
 end
 
+
+# animal-img :: (r :: Row) -> Image
+fun animal-color(r):
+  if      (r["species"] == "dog"):       "red"
+  else if (r["species"] == "cat"):       "blue"
+  else if (r["species"] == "rabbit"):    "green"
+  else if (r["species"] == "tarantula"): "yellow"
+  else if (r["species"] == "lizard"):    "pink"
+  else if (r["species"] == "snail"):     "black"
+  end
+end
+
 pie-chart(animals-table, "species")
 bar-chart(animals-table, "species")
 # we no longer support image-pie-chart
-#image-pie-chart(animals-table, "species", lam(x): circle(10,"solid","red") end)
+color-pie-chart(animals-table, "species", animal-color)
+color-bar-chart(animals-table, "species", animal-color)
 image-bar-chart(animals-table, "species", lam(x): circle(10,"solid","red") end)
+#color-dot-plot(animals-table, "pounds", animal-color)
 dot-plot(animals-table, "name", "pounds")
 scatter-plot(animals-table, "name", "weeks", "pounds")
+color-scatter-plot(animals-table, "weeks", "pounds", animal-color)
 histogram(animals-table, "name", "pounds", 7)
+color-histogram(animals-table, "pounds", 7, animal-color)
 box-plot(animals-table, "weeks")
 
 split-and-reduce(animals-table, "species", "pounds", sum)
