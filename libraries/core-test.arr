@@ -233,6 +233,7 @@ color-scatter-plot(animals-table, "weeks", "pounds", animal-color)
 histogram(animals-table, "name", "pounds", 7)
 color-histogram(animals-table, "pounds", 7, animal-color)
 box-plot(animals-table, "weeks")
+image-scatter-plot(animals-table, "pounds", "weeks", lam(r): circle(r["age"],"solid","red") end)
 
 split-and-reduce(animals-table, "species", "pounds", sum)
 group-and-subgroup(animals-table, "species", "sex")
