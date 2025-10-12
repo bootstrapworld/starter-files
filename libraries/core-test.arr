@@ -198,11 +198,13 @@ and-intersection(lt1, gt5, range-by(-21, 24 + 1, 6))
 #####################################################################
 ## Chart testing
 
-csv-url = "https://raw.githubusercontent.com/bootstrapworld/curriculum/refs/heads/master/lib/pyret-support/Animals-Dataset-1.5.1.csv"
+animals-url = "https://docs.google.com/spreadsheets/d/1VeR2_bhpLvnRUZslmCAcSRKfZWs_5RNVujtZgEl6umA/export?format=csv"
 
+
+###################### Load the data ##########################
 animals-table =
   load-table: name, species, sex, age, fixed, legs, pounds, weeks
-    source: csv.csv-table-url(csv-url, {
+  source: csv.csv-table-url(animals-url, {
     header-row: true,
     infer-content: true
   })
@@ -238,7 +240,7 @@ image-scatter-plot(animals-table, "pounds", "weeks", lam(r): circle(r["age"],"so
 split-and-reduce(animals-table, "species", "pounds", sum)
 group-and-subgroup(animals-table, "species", "sex")
 group(animals-table, "sex")
-
+fit-model(animals-table, "name", "pounds", "weeks", lam(x): x + 1 end)
 
 ########################################################################
 ## Trig functions

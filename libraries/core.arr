@@ -1495,9 +1495,9 @@ fun fit-model(t, ls, xs, ys, fn) block:
     t.column(ys),
     residuals(t, xs, ys, fn))
     .point-size(1)
-    .pointer-color("green")
+    .pointer-color(C.green)
     .lineWidth(10)
-    .color("black")
+    .color(C.black)
     .style("sticks")
     .legend("Residuals")
   title-str = "S: " + S-str + "   R²: " + r-sqr-str
