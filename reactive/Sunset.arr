@@ -11,7 +11,7 @@ end
 sketchA = sunset(10, 300)
 
 #########################################
-# draw-state : SunsetState -> Image
+# draw-state : SunsetState -> SunsetState
 #
 
 #########################################
