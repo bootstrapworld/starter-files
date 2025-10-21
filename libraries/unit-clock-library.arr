@@ -31,6 +31,8 @@ var cos-color   = 'blue'
 var user-fn-color  = 'transparent'
 var axis-color  = 'grey'
 var clock-color = 'black'
+var _clock-wise = true
+var _clock-start = true
 var draw-moving-line-p = true
 var labels      = [list:]
 var _num-labels = 4
@@ -124,13 +126,18 @@ fun draw-clock-and-contents(n):
       overlay-xy(y-axis-labels, 25, 0, draw-graph(n))])
 end
 
-fun draw-clock(n):
+fun draw-clock(n) block:
   # spy: n end
   # compute (x,y) coords of point around the circle
   # since it's a clock, "0" is technically 12 o'clock
   # instead of 3. Adjust by subtracting PI/2.
-  adj-n = n - angle-adj
-  x-coord = cos-fn(adj-n) * radius
+  adj-n = (n - (PI / 2)) + (num-modulo(_clock-start, 12) * (PI / 6))
+  var x-coord = 0
+  if _clock-wise:
+    x-coord := cos-fn(adj-n) * radius
+  else:
+    x-coord := 0 - (cos-fn(adj-n) * radius)
+  end
   y-coord = sin-fn(adj-n) * radius
   containing-rect = square(2 * radius, "solid", "white")
   u-circle = circle(radius, 'outline', clock-color)
@@ -182,7 +189,7 @@ fun stop-clock(n):
   # false # forever
 end
 
-fun start-clock(spt, slices, label-count) block:    
+fun start-clock(spt, slices, label-count, __clock-wise, __clock-start) block:
   if is-link(slices) block: 
     labels     := slices
     _num-labels := slices.length()
@@ -197,6 +204,8 @@ fun start-clock(spt, slices, label-count) block:
     labels     := link(slices, range-by(1,slices,1)).map(num-to-string)
     _num-labels := label-count # how many evenly-spaced labels should we show?
   end
+  _clock-wise := __clock-wise
+  _clock-start := __clock-start
   r = reactor:
     init: 0,
     seconds-per-tick: spt,
@@ -211,5 +220,5 @@ end
 fun start-clock-fn(spt, slices, label-count, f) block:
   user-fn := f
   user-fn-color := 'orange'
-  start-clock(spt, slices, label-count)
+  start-clock(spt, slices, label-count, true, 12)
 end

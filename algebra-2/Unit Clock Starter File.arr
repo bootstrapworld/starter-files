@@ -13,9 +13,15 @@ num-slices = 12  # a clock has 12 hours
 # the number of evenly-spaced labels around the clock
 num-labels = 4   # labels at 12, 3, 6, and 9 o'clock
 
+# direction of clock, true if clockwise
+clock-wise = true
+
+# start of clock, in hours o'clock
+clock-start = 12
+
 # a sample function, which is just the horizontal line f(x) = 0.5
 fun f(x): 0.5 end
 
 # start the clock animation!
-start-clock(seconds-per-frame, num-slices, num-labels)
+start-clock(seconds-per-frame, num-slices, num-labels, clock-wise, clock-start)
 
