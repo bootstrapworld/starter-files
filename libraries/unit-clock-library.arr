@@ -34,9 +34,9 @@ var clock-color = 'black'
 var _clock-wise = true
 var _clock-start = true
 var draw-moving-line-p = true
-var labels      = [list:]
+var labels       = empty
+var graph-labels = empty
 var _num-labels = 4
-var angle-adj   = PI / 2
 fun make-number-sign(label):
   text(label, 12, 'black')
 end
@@ -54,7 +54,7 @@ fun draw-coord-curve-onto(theta-range, coord-gen-fn, curve-color, img):
        ```
   # compute the (x,y) coords, flipping the y-value to account for Pyret's y-axis
   proj-range = for map(theta from theta-range):
-    {x-scaler(theta); -1 * coord-gen-fn(theta) * radius}
+    {x-scaler(theta); -1 * coord-gen-fn(spring-forward-radian(theta)) * radius}
   end
   cases(List) proj-range:
     | empty => raise("No points given!")
@@ -72,7 +72,7 @@ fun draw-coord-curve-onto(theta-range, coord-gen-fn, curve-color, img):
   end
 end
 fun make-notched-x-axis-line() block:
-  n = labels.length()
+  n = graph-labels.length()
   x-axis-len = 7.5 * radius
   n-degrees-scaled = x-scaler((2 * PI) / n)
   var x-axis-line = place-pinhole(0,0, line(x-axis-len, 0, axis-color))
@@ -83,13 +83,13 @@ fun make-notched-x-axis-line() block:
   # relative to the axis-pinhole by subtracting the "angle length" relative
   # to the center of the circle and add it to x-axis-line
   
-  label-indices = range-by(0, labels.length(), 1)
-  label-incr    = -1 * deg-to-rad(360 / labels.length())
-  label-skips   = labels.length() / _num-labels
+  label-indices = range-by(0, graph-labels.length(), 1)
+  label-incr    = -1 * deg-to-rad(360 / graph-labels.length())
+  label-skips   = graph-labels.length() / _num-labels
   
   for map(notch-num from notch-range) block:
     notch-num-mod-len = num-modulo(notch-num, n)
-    label-num = labels.get(notch-num-mod-len)
+    label-num = graph-labels.get(notch-num-mod-len)
     notch-angle = notch-num * n-degrees-scaled
     x-axis-line := overlay-align(
       'pinhole', 'pinhole',
@@ -98,7 +98,7 @@ fun make-notched-x-axis-line() block:
     var label = false
     # if the notch-num-mod-len falls on one of the label nums, draw the label
     when num-modulo(notch-num-mod-len, n / _num-labels) == 0 block:
-      label := make-number-sign(label-num)
+      label := make-number-sign(num-to-string(label-num))
       label := place-pinhole((-1 * notch-angle) + notch-radius, notch-radius - 10, label)
       x-axis-line := overlay-align('pinhole', 'pinhole', label, x-axis-line)
     end
@@ -148,7 +148,7 @@ fun draw-clock(n) block:
   placed-labels = for map(index from label-indices) block:
     clock-x = sin(index * label-incr) * (radius - 12)
     clock-y = cos(index * label-incr) * (radius - 12)
-    label-img = make-clock-number-sign(labels.get(index))
+    label-img = make-clock-number-sign(num-to-string(labels.get(index)))
     place-pinhole(
       clock-x + (image-width(label-img) / 2), 
       clock-y + ((image-height(label-img) / 2) - 2), 
@@ -171,7 +171,6 @@ fun draw-graph(n):
   containing-rect = place-pinhole(0, radius, rectangle(7.5 * radius, 2 * radius, "outline", "white"))
   # create the x- and y-axis, then add them together
   y-axis-line = place-pinhole(0, radius, line(0, 2 * radius, axis-color))
-  x-axis-numbers = [list: 12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
   x-axis-line = make-notched-x-axis-line()
   axes-lines = overlay(x-axis-line, y-axis-line)
   theta-range = range-by(0, n + angle-incr, angle-incr)
@@ -189,7 +188,23 @@ fun stop-clock(n):
   # false # forever
 end
 
+fun spring-forward-clock(m):
+  m-modified = num-modulo(m + _clock-start, 12)
+  if m-modified == 0: 12
+  else: m-modified
+  end
+end
+
+fun spring-forward-radian(m):
+  m-modified = m + (_clock-start * (PI / 6))
+  if m-modified >= (2 * PI): m-modified - (2 * PI)
+  else: m-modified
+  end
+end
+
 fun start-clock(spt, slices, label-count, __clock-wise, __clock-start) block:
+  _clock-wise := __clock-wise
+  _clock-start := __clock-start
   if is-link(slices) block: 
     labels     := slices
     _num-labels := slices.length()
@@ -204,8 +219,7 @@ fun start-clock(spt, slices, label-count, __clock-wise, __clock-start) block:
     labels     := link(slices, range-by(1,slices,1)).map(num-to-string)
     _num-labels := label-count # how many evenly-spaced labels should we show?
   end
-  _clock-wise := __clock-wise
-  _clock-start := __clock-start
+  graph-labels := labels.map(spring-forward-clock)
   r = reactor:
     init: 0,
     seconds-per-tick: spt,
