@@ -216,7 +216,7 @@ fun start-clock(spt, slices, label-count, __clock-wise, __clock-start) block:
         " does not divide evenly by " + 
         num-to-string(label-count))
     end
-    labels     := link(slices, range-by(1,slices,1)).map(num-to-string)
+    labels     := link(slices, range-by(1,slices,1))
     _num-labels := label-count # how many evenly-spaced labels should we show?
   end
   graph-labels := labels.map(spring-forward-clock)
