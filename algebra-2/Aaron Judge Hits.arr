@@ -12,7 +12,7 @@ judge-table = load-table:
   other-team,    # abbreviated name of other team (e.g. NYY, TOR, etc)
   pitch-type,    # type of pitch (e.g. - fastball, cutter, etc)
   pitch-speed,   # speed of the pitch
-  bat-angle,     # angle of Aaron's bat
+  hit-angle,     # angle of the ball off  of Aaron's bat
   hit-distance,  # how many feet the hit traveled
   hit-speed,     # speed of the ball, off the bat
   bb-type        # ball type (e.g. - line drive, ground ball, etc)
@@ -39,7 +39,7 @@ sliders-table = filter(judge-table, is-slider)
 
 ######################################################### 
 # DEFINE SOME MODELS by filling in "..."
-# Predicting HIT-DISTANCE from BAT-ANGLE: 
+# Predicting HIT-DISTANCE from HIT-ANGLE: 
 
 # Best model you can fit visually for the curve ball data
 fun curve(x):     (... * sqr(x - ...))  + ... end
