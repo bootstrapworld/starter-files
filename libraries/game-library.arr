@@ -278,21 +278,35 @@ fun animate-proc(title, title-color, background,
   _distance_    := distance
   _DISTANCES-COLOR_ := distances-color
 
+  # RESET HEURISTIC:
+  # Set the being at (0,0), then see where it is N iterations later
+  # Depending on which dimension changes most, reset the being
+  # using a spacing() amount of randomness
   fun reset(b :: Being, f :: (Being -> Being)) -> Being:
-    next-posn = f(being(posn(1, 1), empty-image, false)).posn
-    next-x = next-posn.x - 1
-    next-y = next-posn.y - 1
-    random-posn = if num-abs(next-y) > num-abs(next-x):
-      if next-y < 0:
-        posn(num-random(GAME-WIDTH), spacing() + GAME-HEIGHT)
-      else:
-        posn(num-random(GAME-WIDTH), spacing() * -1)
-      end
-    else:
-      if next-x < 0:
+    start-being = being(posn(0, 0), empty-image, false)
+    first-posn = start-being.posn
+    NUM-ITERATIONS = 20
+    
+    later-posn = L.range(0,  NUM-ITERATIONS)
+      .foldr(lam(x, shadow b): f(b) end, start-being)
+      .posn
+    
+    deltaX = later-posn.x - first-posn.x
+    deltaY = later-posn.y - first-posn.y
+    
+    # if it's moving side-to-side...
+    random-posn = if abs(deltaX) > abs(deltaY):
+      if deltaX < 0:
         posn(spacing() + GAME-WIDTH, num-random(GAME-HEIGHT))
       else:
         posn(spacing() * -1, num-random(GAME-HEIGHT))
+      end
+    # if it's moving up and down
+    else:
+      if deltaY < 0:
+        posn(num-random(GAME-WIDTH), spacing() + GAME-WIDTH)
+      else:
+        posn(num-random(GAME-WIDTH), spacing() * -1)
       end
     end
     being(random-posn, b.costume, false)
