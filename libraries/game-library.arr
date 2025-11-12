@@ -283,30 +283,28 @@ fun animate-proc(title, title-color, background,
   # Depending on which dimension changes most, reset the being
   # using a spacing() amount of randomness
   fun reset(b :: Being, f :: (Being -> Being)) -> Being:
-    start-being = being(posn(0, 0), empty-image, false)
-    first-posn = start-being.posn
-    NUM-ITERATIONS = 20
+    N = 20 # how many moves to look ahead?
     
-    later-posn = L.range(0,  NUM-ITERATIONS)
-      .foldr(lam(x, shadow b): f(b) end, start-being)
-      .posn
+    start-being = being(posn(0, 0), empty-image, false)
+    later-being = L.range(0,  N).foldr({(_, shadow b): f(b)}, start-being)
+
+    first-posn  = start-being.posn
+    later-posn  = later-being.posn
     
     deltaX = later-posn.x - first-posn.x
     deltaY = later-posn.y - first-posn.y
     
-    # if it's moving side-to-side...
+    randomY = num-random(GAME-HEIGHT)
+    randomX  = num-random(GAME-WIDTH)
+    # it's moving horizontally! put X off the appropriate edge, and use a random Y
     random-posn = if abs(deltaX) > abs(deltaY):
-      if deltaX < 0:
-        posn(spacing() + GAME-WIDTH, num-random(GAME-HEIGHT))
-      else:
-        posn(spacing() * -1, num-random(GAME-HEIGHT))
+      if deltaX < 0: posn(spacing() + GAME-WIDTH, randomY)
+      else: posn(spacing() * -1, randomY)
       end
-    # if it's moving up and down
+      # it's moving vertically! put Y off the appropriate edge, and use a random X
     else:
-      if deltaY < 0:
-        posn(num-random(GAME-WIDTH), spacing() + GAME-WIDTH)
-      else:
-        posn(num-random(GAME-WIDTH), spacing() * -1)
+      if deltaY < 0: posn(randomX, spacing() + GAME-HEIGHT)
+      else: posn(randomX, spacing() * -1)
       end
     end
     being(random-posn, b.costume, false)
