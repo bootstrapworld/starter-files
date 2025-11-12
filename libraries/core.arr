@@ -537,6 +537,10 @@ shadow tan = lam(n):
   rough-round-digits(num-tan(n), TRIG_ROUND_DIGITS)
 end
 
+# degree-consuming variants of sin, cos, and tan
+fun sin-deg(n): sin(n * (PI / 180)) end
+fun cos-deg(n): cos(n * (PI / 180)) end
+fun tan-deg(n): tan(n * (PI / 180)) end
 
 
 #################################################################################
