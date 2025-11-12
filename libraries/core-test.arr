@@ -210,6 +210,7 @@ animals-table =
   })
 end
 
+display-chart := lam(c): c.get-image() end
 
 # animal-img :: (r :: Row) -> Image
 fun animal-color(r):
@@ -241,6 +242,18 @@ split-and-reduce(animals-table, "species", "pounds", sum)
 group-and-subgroup(animals-table, "species", "sex")
 group(animals-table, "sex")
 fit-model(animals-table, "name", "pounds", "weeks", lam(x): x + 1 end)
+
+examples "making regression functions":
+  lr-fun(animals-table, "age", "name") raises "One or more of the columns (age or name) does not contain numeric data."
+  mr-fun(animals-table, [list: "age","pounds"], "name") raises "One or more of the columns (age, pounds or name) does not contain numeric data."
+  mr-fun(animals-table, [list: "age","species"], "weeks") raises "One or more of the columns (age, species or weeks) does not contain numeric data."
+end
+
+
+examples "S in Num->Num and Row->Num form":
+  S(animals-table, "age", "weeks", lam(x):  (0.78925 * x) + 2.309 end) is-roughly ~5.539741245494801
+  mr-S(animals-table, [list:"age"], "weeks", lam(r):  (0.78925 * r["age"]) + 2.309 end) is-roughly ~5.539741245494801
+end
 
 ########################################################################
 ## Trig functions

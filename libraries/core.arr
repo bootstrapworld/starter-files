@@ -1339,26 +1339,6 @@ fun image-scatter-plot(t, xs, ys, f) block:
   end
 end
 
-
-multiple-regression :: (
-  t :: Table,
-  explanations :: List<String>,
-  response :: String) ->
-(List<Number> -> Number)
-fun multiple-regression(t, explanations, response):
-  # convert the table to a list of rows, then each row to a list of values
-  if explanations.length() > t.length():
-    raise(Err.message-exception("This data set contains too few data samples and too many independent variables to produce a unique regression.  If all the independent variables are needed, you'll need to collect more data samples; otherwise, try removing ones that aren't relevant"))
-  else:
-    explanation-lists = t.all-rows().map(
-      lam(r): explanations.map(lam(exp): r[exp] end) end)
-    response-list = t.column(response)
-    Stats.multiple-regression(explanation-lists, response-list)
-  end
-  #"The Statistics module does not currently provide a multiple-regression function"
-end
-
-
 fun make-lr-title(fn, r-sqr-num, s-num) :
   r-num = (if  (fn(1) - fn(0)) < 0: -1 else: 1 end) * num-sqrt(r-sqr-num)
   alpha  = fn(2) - fn(1)
@@ -1444,30 +1424,91 @@ fun image-lr-plot(t, xs, ys, f) block:
   end
 end
 
-residuals :: (t :: Table, xs :: String, ys :: String, fn :: (Number -> Number)) -> List<Number>
-fun residuals(t, xs, ys, fn) block:
-  check-integrity(t, [list: xs, ys])
-  if not(is-number(t.column(xs).get(0)) and is-number(t.column(ys).get(0))):
-    raise(Err.message-exception("Cannot calculate residuals, because the 'xs' and 'ys' columns must both contain numeric data"))
+
+mr-fun :: (t :: Table, params :: List<String>, response :: String) -> (Row -> Number)
+fun mr-fun(t, params, response) block:
+  all-cols = link(response, params)
+  check-integrity(t, all-cols)
+  # check to make sure the cols exist
+  if all-cols.any(lam(col): not(t.column-names().member(col)) end):
+    raise(Err.message-exception("One or more of the columns (" + params.join-str(", ") + " or " + response + ") was not found in the table. The valid columns are: " + t.column-names().join-str(", ")))
+    # check to make sure the cols are all numeric
+  else if all-cols.any(lam(col): not(is-number(t.column(col).get(0))) end):
+    raise(Err.message-exception("One or more of the columns (" + params.join-str(", ") + " or " + response + ") does not contain numeric data."))
+    # check to make sure we have enough data
+  else if params.length() > (t.length() + 1):
+    raise(Err.message-exception("Cannot perform regression on these parameters on this table, because a model with " + params.length() + " parameters requires a table with at least " + (params.length() + 1) + " rows"))
   else:
-    map2(
-      lam(y, prediction): y - prediction end,
-      t.column(ys),
-      map(fn, t.column(xs)))
+    # generate the raw function, which expects a list of values
+    fn = Stats.multiple-regression-fun(t, params, response)
+    # return a wrapped function, which consumes a row of the 
+    # table, extracts the values in explanation-order, and 
+    # passes them to the raw function
+    lam(r :: Row) block: 
+      fun row-missing-col(n): is-none(r.get(n)) end
+      when params.any(row-missing-col):
+        raise(Err.message-exception("One or more of the columns needed by this model (" + params.join-str(", ") + " and " + response + ") was not found in the table. Are you sure you are fitting the right model to the right data?"))
+      end
+      fn(params.map(lam(col): r[col] end)) 
+    end
   end
 end
 
-S :: (t :: Table, xs :: String, ys :: String, fn :: (Number -> Number)) -> Number
-fun S(t, xs, ys, fn) block:
-  check-integrity(t, [list: xs, ys])
-  datapoints = t.column(xs).length()
-  if (datapoints <= 2):
-    raise(Err.message-exception("Cannot calculate S for this model and function, because a model with two parameters requires a table with at least 3 rows"))
-  else:
-    residuals-sqr = residuals(t,xs,ys,fn).map(num-sqr)
-    degrees-of-freedom = datapoints - 2
-    num-sqrt(Math.sum(residuals-sqr) / degrees-of-freedom)
+
+lr-fun :: (t :: Table, param :: String, response :: String) ->  (Row -> Number)
+# just a special-case wrapper for multiple-regression-fun, which produces
+# a wrapped function that constructs a dummy row containing only the col that we need
+fun lr-fun(t, param, response):
+  row-to-predictor = mr-fun(t, [list: param], response)
+  fun f(x): row-to-predictor([T.raw-row: {param; x}]) end
+  f
+end
+
+mr-residuals :: (t :: Table, explanations :: List<String>, response :: String, model :: (Row -> Number)) -> List<Number>
+fun mr-residuals(t, explanations, response, model) block:
+  all-cols = link(response, explanations)
+  valid-columns = t.column-names()
+  fun missing-column(c): not(valid-columns.member(c)) end
+  when all-cols.any(missing-column):
+    raise(Err.message-exception("One or more of the columns needed by this model (" + explanations.join-str(", ") + " and " + response + ") was not found in the table. Are you sure you are fitting the right model to the right data?"))
   end
+  predictions = map(model, t.all-rows())
+  ys = t.column(response)
+  map2(lam(y, y-hat): y - y-hat end, ys, predictions)
+end
+
+residuals :: (t :: Table, explanation :: String, response :: String, model :: (Number -> Number)) -> List<Number>
+fun residuals(t, explanation, response, model):
+  fun f(r): model(r[explanation]) end
+  mr-residuals(t, [list: explanation], response, f)
+end
+
+mr-S :: (t :: Table, explanations :: List<String>, response :: String, model :: (Row -> Number)) -> Number
+fun mr-S(t, explanations, response, model) block:
+
+  # error-checking
+  all-cols = link(response, explanations)
+  valid-columns = t.column-names()
+  fun missing-column(c): not(valid-columns.member(c)) end
+  when all-cols.any(missing-column):
+    raise(Err.message-exception("One or more of the columns needed by this model (" + explanations.join-str(", ") + " and " + response + ") was not found in the table. Are you sure you are fitting the right model to the right data?"))
+  end
+  when t.length() < all-cols.length():
+    raise(Err.message-exception("Cannot calculate S for this model and function, because a model with " + explanations.length() + " parameters requires a table with at least " + all-cols.length() + " rows"))
+  end
+  check-integrity(t, all-cols)
+  
+  # compute the S-value
+  params = explanations.length()
+  rows = t.length()
+  residuals-sqr = mr-residuals(t, explanations, response, model).map(sqr)
+  degrees-of-freedom = rows - params
+  num-sqrt(Math.sum(residuals-sqr) / degrees-of-freedom)
+end
+
+S :: (t :: Table, explanation :: String, response :: String, model :: (Number -> Number)) -> Number
+fun S(t, explanation, response, model) block:
+  mr-S(t, [list: explanation], response, lam(r :: Row): model(r[explanation]) end)
 end
 
 fit-model :: (t :: Table, ls :: String, xs :: String, ys :: String, fn :: (Number -> Number)) -> Image
@@ -1493,7 +1534,7 @@ fun fit-model(t, ls, xs, ys, fn) block:
   intervals = from-list.interval-chart(
     t.column(xs),
     t.column(ys),
-    residuals(t, xs, ys, fn))
+    mr-residuals(t, [list: xs], ys, lam(r :: Row): fn(r[xs]) end))
     .point-size(1)
     .pointer-color(C.green)
     .lineWidth(10)
