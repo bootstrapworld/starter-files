@@ -11,7 +11,7 @@ hit-table = load-table:
   other-team,    # abbreviated name of other team (e.g. NYY, TOR, etc)
   pitch-type,    # type of pitch (e.g. - fastball, cutter, etc)
   pitch-speed,   # speed of the pitch
-  bat-angle,     # angle of Miguel's bat
+  hit-angle,     # angle of Miguel's bat
   hit-distance,  # how many feet the hit traveled
   hit-speed,     # speed of the ball, off the bat
   bb-type        # ball type (e.g. - line drive, ground ball, etc)
