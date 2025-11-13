@@ -34,7 +34,7 @@ sliders-table = filter(hit-table, is-slider)
 
 ######################################################### 
 # DEFINE SOME MODELS by filling in "..."
-# Predicting HIT-DISTANCE from BAT-ANGLE: 
+# Predicting HIT-DISTANCE from HIT-ANGLE: 
 
 # Best model you can fit visually for the curve ball data
 fun curve(x):     (... * sqr(x - ...))  + ... end
