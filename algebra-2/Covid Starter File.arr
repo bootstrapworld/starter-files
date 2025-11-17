@@ -2,37 +2,38 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 
 #########################################################
 # Load your spreadsheet
-covid-sheet = load-spreadsheet("https://docs.google.com/spreadsheets/d/1T73KS2IUU1kkG1SY4Ac7EU9Lj-ev1U9vzM_txSYcUhE/")
+covid-sheet = load-spreadsheet("https://docs.google.com/spreadsheets/d/1GFWesAyYshYXDDSTxoHYmFrPVDTQd12rEVR-ZGn11hg/")
 
 # Define your table
 covid-table = load-table: # NOTES ON COLUMNS:
-  state,   # the state reporting the data
-  day,     # the number of days after June 9th, 2020
-  positive # the number of cumulative, positive COVID cases reported by a given day for that state
-  source: covid-sheet.sheet-by-name("New England", true) 
+  state,             # the state reporting the data
+  days-since-jan1,   # number of days since 1/1/2020
+  positive,          # TOTAL number of positive covid cases
+  deaths             # TOTAL number of deaths due to covid
+  source: covid-sheet.sheet-by-name("365", true) 
 end
 
-# NOTE: New England is a region in the northeastern United States, comprising six states: Maine(ME), New Hampshire(NH), Vermont(VT), Massachusetts(MA), Rhode Island(RI), and Connecticut(CT).
 
 ######################################################### 
 # Define some rows
 
-CT1 = row-n(covid-table, 0)
-MA1 = row-n(covid-table, 1)
-ME1 = row-n(covid-table, 2)
+CA15 = row-n(covid-table, 0)
+CA22 = row-n(covid-table, 1)
+MI15 = row-n(covid-table, 102)
 
 
 ######################################################### 
 # Define some helper functions
 
-# is-MA :: Row -> Boolean
-# consumes a Row, and checks if state == "MA"
-fun is-MA(r): r["state"] == "MA" end
+# is-MI :: Row -> Boolean
+# consumes a Row, and checks if state == "MI"
+fun is-MI(r): r["state"] == "MI" end
 
 ######################################################### 
-# Define some grouped and/or random samples
+# Filter the covid-table by is-MI, and 
+# save the result as MI-table
 
-MA-table = filter(covid-table, is-MA)
+MI-table = filter(covid-table, is-MI)
 
 ######################################################### 
 # Define some models
@@ -46,6 +47,7 @@ fun linear(x):  (... * x) + ... end
 # after completing the 'Quadratic Models' workbook page,
 # change the function below to be your first model
 fun quadratic1(x):  (... * sqr(x - ...)) + ... end
+	
 
 # quadratic2 : Number -> Number
 # after completing the 'Quadratic Models' workbook page,
@@ -61,3 +63,4 @@ fun quadratic3(x):  (... * sqr(x - ...)) + ... end
 # after completing the 'Exponential Models' workbook page,
 # change the function below to be your first model
 fun exponential(x):  (... * expt(..., (~1 * x))) + ... end
+
