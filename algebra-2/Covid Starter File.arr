@@ -6,10 +6,10 @@ covid-sheet = load-spreadsheet("https://docs.google.com/spreadsheets/d/1GFWesAyY
 
 # Define your table
 covid-table = load-table: # NOTES ON COLUMNS:
-  state,             # the state reporting the data
-  days-since-jan1,   # number of days since 1/1/2020
-  positive,          # TOTAL number of positive covid cases
-  deaths             # TOTAL number of deaths due to covid
+  state,       # the state reporting the data
+  days,        # number of days since 1/1/2020
+  positive,    # TOTAL number of positive covid cases
+  deaths       # TOTAL number of deaths due to covid
   source: covid-sheet.sheet-by-name("CA, MN, MI, WI, IL, and OH in 2020", true) 
 end
 
