@@ -2052,7 +2052,7 @@ fun make-noisy-scatter-chart(fn, min, max, noise-level) block:
   fn_ys = xs.map(fn)
   noise = random-normal-distribution(xs.length() + 1)
   ys = map2(lam(x, y): x + ((noise-level * (y - 0.5))) end, fn_ys, noise)
-  chart = render-chart(from-list.scatter-plot(xs, ys))
+  render-chart(from-list.scatter-plot(xs, ys))
 end
 
 ################# UTILITY FUNCTIONS ###########################
