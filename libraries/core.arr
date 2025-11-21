@@ -2047,13 +2047,12 @@ fun uneq-variance-t(t, col1, col2) block:
 end
 
 
-fun make-noisy-scatter(fn, min, max, noise-level) block:
+fun make-noisy-scatter-chart(fn, min, max, noise-level) block:
   xs = L.range-by(min, max, Math.max([list: (max - min) / 500]))
   fn_ys = xs.map(fn)
   noise = random-normal-distribution(xs.length() + 1)
   ys = map2(lam(x, y): x + ((noise-level * (y - 0.5))) end, fn_ys, noise)
   chart = render-chart(from-list.scatter-plot(xs, ys))
-  display-chart(chart)
 end
 
 ################# UTILITY FUNCTIONS ###########################
