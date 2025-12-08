@@ -544,6 +544,22 @@ fun tan-deg(n): tan(n * (PI / 180)) end
 
 
 #################################################################################
+# image-url
+# shadow the native one with a wrapper than can identify and rewrite google share URLs
+shadow image-url = lam(str) block:
+  google-check = string-split-all(str, "https://drive.google.com/file/d/")
+  if (google-check.length() > 1) block:
+    download-prefix = "https://drive.google.com/uc?export=download&id="
+    split-slashes = string-split-all(google-check.get(1), "/")
+    I.image-url(download-prefix + split-slashes.get(0))
+  else:
+    I.image-url(str)
+  end
+end
+
+
+
+#################################################################################
 # Table Functions
 # check that the table isn't empty, has all the necessary columns, and contains no blanks
 
