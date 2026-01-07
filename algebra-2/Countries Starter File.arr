@@ -29,7 +29,8 @@ albania     = row-n(countries-table, 1)
 # change the function below to be your best linear model
 fun linear(x):  (0.00021 * x) + 68.0126 end
 
-#EXPERIMENT WITH THE SLIDERS IN YOUR DESMOS FILE TO FIND THE BEST MODELS
+# EXPERIMENT WITH THE SLIDERS IN YOUR DESMOS FILE TO FIND THE BEST MODELS
+# Then define some more Models by filling in "..."
 
 # quadratic : Number -> Number
 # change the function below to be your best quadratic model
@@ -39,18 +40,15 @@ fun quadratic(x):  (... * sqr(x - ...)) + ... end
 # change the function below to be your best exponential model
 fun exponential(x):  (... * expt(... , (~1 * x))) + ... end
 
-#########################################################
-# Define some more Models by filling in "..."
-
 # logarithmic : Number -> Number
 # change the function below to be your logarithmic model
 fun logarithmic(x):  (... * log(x)) + ... end
 
-# logarithmic : Number -> Number
+# logarithmic2 : Number -> Number
 # change the function below to be your best logarithmic model after "Scaling the Axis"
 fun logarithmic2(x): (... * log(x)) + ... end
 
-# logarithmic : Number -> Number
+# logarithmic3 : Number -> Number
 # change the function below after "Transforming the Data"
 fun logarithmic3(x): (... * log(x)) + ... end
 
