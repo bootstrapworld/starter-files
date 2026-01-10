@@ -22,7 +22,7 @@ player-image = scale(0.4, image-url("https://raw.githubusercontent.com/bootstrap
 cloud-image  = scale(0.5, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries/images/clouds.png"))
 ruby-image   = scale(0.4, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries/images/ruby.png"))
 dog-image    = scale(0.5, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries/images/dog.png"))
-bg-image = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries/images/bg.png")
+bg-image = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries/images/bg.jpg")
 
 # some sample worlds (at the start of the game, and at some random playing time)
 START = world(0, 0, PLAYER1, ENEMY, RUBY, CLOUD)
