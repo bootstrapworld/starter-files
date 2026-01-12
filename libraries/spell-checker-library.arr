@@ -38,7 +38,7 @@ end
 
 fun word-mod(cps :: List<Number>, replace :: (Number -> List<Number>))
   -> Nothing:
-  mods = for map(i from range(0, cps.length())):
+  mods = for map(i from L.range(0, cps.length())):
     result = split-at(i, cps)
     {this-char; suf} =
       if is-empty(result.suffix):
@@ -50,7 +50,7 @@ fun word-mod(cps :: List<Number>, replace :: (Number -> List<Number>))
   end
   mod-words = map(string-from-code-points, mods)
   for each(w from mod-words):
-    cases (Eth.Option) all-seen-words.get-now(w):
+    cases (Starter.Option) all-seen-words.get-now(w):
       | none => 
         words-worklist.set-now(w, true)
       | some(shadow count) =>
@@ -89,7 +89,7 @@ fun edits2(w :: String) -> Nothing block:
   e1l = words-worklist.keys-now().to-list()
   
   for each(e1w from e1l):
-    cases (Eth.Option) all-seen-words.get-now(e1w) block:
+    cases (Starter.Option) all-seen-words.get-now(e1w) block:
       | none =>
         all-seen-words.set-now(e1w, 0)
         edits1(e1w)
