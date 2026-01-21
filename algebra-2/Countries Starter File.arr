@@ -27,7 +27,7 @@ albania     = row-n(countries-table, 1)
 
 # linear : Number -> Number
 # change the function below to be your best linear model
-fun linear(x):  (0.00021 * x) + 68.0126 end
+fun linear(x):  (... * x) + ... end
 
 # EXPERIMENT WITH THE SLIDERS IN YOUR DESMOS FILE TO FIND THE BEST MODELS
 # Then define some more Models by filling in "..."
