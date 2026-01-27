@@ -23,6 +23,7 @@ var angle-incr = deg-to-rad(deg-incr)
 var max-num-revolutions = 2
 var cos-fn = lam(ang): num-cos(ang) end
 var sin-fn = lam(ang): num-sin(ang) end
+var neg-sin-fn = lam(ang): 0 - num-sin(ang) end
 var user-fn= lam(ang): 0 end
 var x-scaler = rad-to-deg
 var notch-radius = 2
@@ -177,7 +178,7 @@ fun draw-graph(n):
   draw-coord-curve-onto(
     theta-range, user-fn, user-fn-color,
     draw-coord-curve-onto(
-      theta-range, sin-fn, sin-color,
+      theta-range, if _clock-wise: sin-fn else: neg-sin-fn end, sin-color,
       draw-coord-curve-onto(
         theta-range, cos-fn, cos-color,
         overlay(axes-lines, containing-rect))))
@@ -216,7 +217,8 @@ fun start-clock(spt, slices, label-count, __clock-wise, __clock-start) block:
         " does not divide evenly by " + 
         num-to-string(label-count))
     end
-    labels     := link(slices, range-by(1,slices,1))
+    labels     := link(slices, if _clock-wise: range-by(1, slices, 1)
+                               else: range-by(-1, 0 - slices, -1) end)
     _num-labels := label-count # how many evenly-spaced labels should we show?
   end
   graph-labels := labels.map(spring-forward-clock)
