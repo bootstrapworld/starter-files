@@ -2062,6 +2062,13 @@ fun uneq-variance-t(t, col1, col2) block:
   (mean1 - mean2) / ((dfs-and-sq-vars / df) * num-sqrt((1 / n1) + (1 / n2)))
 end
 
+fun make-noisy-table(fn, min, max, noise-level) block:
+  xs = L.range-by(min, max, Math.max([list: (max - min) / 500]))
+  fn_ys = xs.map(fn)
+  noise = random-normal-distribution(xs.length() + 1)
+  ys = map2(lam(x, y): x + ((noise-level * (y - 0.5))) end, fn_ys, noise)
+  [T.table-from-columns: {"x"; xs}, {"y"; ys}]
+end
 
 fun make-noisy-scatter-chart(fn, min, max, noise-level) block:
   xs = L.range-by(min, max, Math.max([list: (max - min) / 500]))
