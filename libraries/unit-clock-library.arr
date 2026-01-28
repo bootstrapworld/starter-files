@@ -147,8 +147,8 @@ fun draw-clock(n) block:
   label-indices = range-by(0, labels.length(), label-skips)
   label-incr    = -1 * deg-to-rad(360 / labels.length())
   placed-labels = for map(index from label-indices) block:
-    clock-x = sin(index * label-incr) * (radius - 12)
-    clock-y = cos(index * label-incr) * (radius - 12)
+    clock-x = (if _clock-wise: sin-fn else: neg-sin-fn end)(index * label-incr) * (radius - 12)
+    clock-y = cos-fn(index * label-incr) * (radius - 12)
     label-img = make-clock-number-sign(num-to-string(labels.get(index)))
     place-pinhole(
       clock-x + (image-width(label-img) / 2), 
@@ -218,7 +218,7 @@ fun start-clock(spt, slices, label-count, __clock-wise, __clock-start) block:
         num-to-string(label-count))
     end
     labels     := link(slices, if _clock-wise: range-by(1, slices, 1)
-                               else: range-by(-1, 0 - slices, -1) end)
+                               else: range-by(slices - 1, 0, -1) end)
     _num-labels := label-count # how many evenly-spaced labels should we show?
   end
   graph-labels := labels.map(spring-forward-clock)
