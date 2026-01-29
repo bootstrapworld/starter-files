@@ -14,7 +14,7 @@ num-slices = 12  # a clock has 12 hours
 num-labels = 4   # labels at 12, 3, 6, and 9 o'clock
 
 # direction of clock, true if clockwise
-is-cw = false
+is-cw = true
 
 # start of clock, in hours o'clock
 clock-start = 12
