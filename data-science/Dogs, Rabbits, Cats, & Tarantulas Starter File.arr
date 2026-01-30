@@ -24,4 +24,4 @@ tarantula-table = filter(more-animals, is-tarantula)
 rabbit-table = filter(more-animals, is-rabbit)
 
 # build dot-plots using this contract:
-# dot-plot(Table, String, String) -> Image
+# dot-plot :: Table, String, String -> Image
