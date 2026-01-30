@@ -10,3 +10,6 @@ hair-table = load-table: hair-color, number-of-students
 end
 
 ########################################################
+
+# pie-chart-summarized :: Table, String, String -> Image
+# bar-chart-summarized :: Table, String, String -> Image
