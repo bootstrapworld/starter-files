@@ -5,8 +5,8 @@ provide *
 include tables
 include charts
 
-import lists as L
-provide from L: 
+import lists as Lst
+provide from Lst: 
   *,
   type *, 
   data *
