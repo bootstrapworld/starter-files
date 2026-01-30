@@ -18,7 +18,6 @@ blue-triangle = row-n(shapes-table, 0)
 red-circle    = row-n(shapes-table, 1)
 
 
-
 # is-red :: Row -> Boolean
 # consumes a Row, and checks if the color is "red"
 examples:
@@ -34,7 +33,6 @@ examples:
   is-polygon(red-circle)    is false
 end
 fun is-polygon(r): r["polygon"] end
-
 
 # is-triangle :: Row -> Boolean
 # consumes a Row, and checks if the shape name contains "triangle"
