@@ -8,21 +8,23 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 fun B(x): x > 5 end
 fun C(x): x <= 15 end
 
-# NEXT WE'LL GRAPH EACH OF THEM ON A NUMBER LINE AS SEPARATE INEQUALITIES AND TEST 8 VALUES IN EACH
-inequality(B, [list: -5, -2.1, 0, 5, 10.2, 12, 15, 20])
-inequality(C, [list: -5, -2.1, 0, 15, 17, 18, 19, 20])
+# WE'VE DEFINED "points" TO BE A LIST OF 8 VALUES TO PLOT AND TEST 
+points = [list: -5, -2.1, 0, 5, 10.2, 25/2, 15, 20]
+
+# NEXT WE'LL GRAPH EACH FUNCTION ON A NUMBER LINE AS SEPARATE INEQUALITIES AND TEST THE 8 VALUES IN EACH
+inequality(B, points)
+inequality(C, points)
 
 # Numbers that are part of the solution will appear as green dots
-# Numbers are *not* part of the solution will appear as red dots
+# Numbers that are *not* part of the solution will appear as red dots
 # All other numbers will be shaded if they are part of the solution
 
 # AND THEN WE'LL CONSIDER THE INEQUALITIES TOGETHER
 
-# TEST THEIR INTERSECTION (Which inputs make both of the expressions true?)
+# TEST THEIR INTERSECTION (Which inputs make BOTH of the expressions TRUE?)
 # and-intersection:: Function, Function, List -> Image
-and-intersection( B, C, [list: -5, -2.1, 0, 5, 10, 39/5, 15, 20] )
+and-intersection( B, C, points )
 
-# TEST THEIR UNION (Which inputs make at least one of the expressions true?)
+# TEST THEIR UNION (Which inputs make AT LEAST ONE of the expressions TRUE?)
 # or-union:: Function, Function, List -> Image
-or-union( B, C, [list: -5, -2.1, 0, 5, 10, 12, 15, 20] )
-
+or-union( B, C, points )
