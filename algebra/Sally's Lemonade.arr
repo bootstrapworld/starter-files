@@ -1,7 +1,7 @@
 ########################################################
-## 1) Sally sells lemonade for $1.75/glass. Write a 
-## that describes how much revenue she gets for selling
-## a given number of glasses
+## 1) Sally sells lemonade for $1.75/glass. 
+## Write a function that describes how much revenue she 
+## gets for selling a given number of glasses
 
 
 
