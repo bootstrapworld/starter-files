@@ -12,7 +12,7 @@ end
 
 fun red-shape(shape):  
   if      (shape == "circle")    : circle(20, "solid", "red")
-  else if (shape == "square")    : square(20, "solid", "red")
+  else if (shape == "triangle")  : triangle(20, "solid", "red")
   else if (shape == "star")      : star(20, "solid", "red")
   else if (shape == "rectangle") : rectangle(20, 40, "solid", "red")
   else: text("Unknown shape name", 20, "red")
