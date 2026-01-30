@@ -1,14 +1,22 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "core.arr")
+import csv as csv
 
-# load the file
-_shelter-sheet = load-spreadsheet("19m1bUCQo3fCzmSEmWMjTfnmsNIMqiByLytHE0JYtnQM")
+provide *
 
-# load the 'animals' sheet as a table
-_animals-table = load-table: name, species, gender, age, fixed, legs, pounds, weeks
-  source: _shelter-sheet.sheet-by-name("pets", true)
+animals-url = "https://docs.google.com/spreadsheets/d/1VeR2_bhpLvnRUZslmCAcSRKfZWs_5RNVujtZgEl6umA/export?format=csv"
+
+
+###################### Load the data ##########################
+_animals-table =
+  load-table: name, species, sex, age, fixed, legs, pounds, weeks
+  source: csv.csv-table-url(animals-url, {
+    header-row: true,
+    infer-content: true
+  })
 end
 
-_verify = table: name, species, gender, age, fixed, legs, pounds, weeks end
+
+_verify = table: name, species, sex, age, fixed, legs, pounds, weeks end
 
 is-fixed :: (animal :: Row) -> Boolean
 # consume an animal and look up whether it's been fixed
@@ -19,7 +27,7 @@ end
 is-male :: (animal :: Row) -> Boolean
 # consumes an animal and computes whether it is male
 fun is-male(animal):
-  animal["gender"] == "male"
+  animal["sex"] == "male"
 end
 
 is-cat :: (animal :: Row) -> Boolean

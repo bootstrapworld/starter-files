@@ -5,7 +5,7 @@ include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files
 
 # import our spreadsheet and table
 shelter-sheet = load-spreadsheet("19m1bUCQo3fCzmSEmWMjTfnmsNIMqiByLytHE0JYtnQM")
-animals-table = load-table: name, species, gender, age, fixed, legs, pounds, weeks
+animals-table = load-table: name, species, sex, age, fixed, legs, pounds, weeks
   source: shelter-sheet.sheet-by-name("pets", true)
 end
 
