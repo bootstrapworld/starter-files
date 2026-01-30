@@ -1,4 +1,4 @@
-use context url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries/linearity-library.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries/linearity-library.arr", "../../libraries/linearity-library.arr")
 
 
 ###################################################################
