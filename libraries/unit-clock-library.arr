@@ -10,12 +10,15 @@ import starter2024 as Starter
 include from Starter:
   * hiding(translate, filter, range, sort, sin, cos, tan)
 end
+
 fun deg-to-rad(d):
   num-exact((d / 180) * PI)
 end
+
 fun rad-to-deg(r):
   num-exact((r / PI) * 180)
 end
+
 # following vars are user-changeable (in interaction pane)
 var radius = 100
 deg-incr = 5
@@ -31,32 +34,70 @@ var sin-color   = 'green'
 var cos-color   = 'blue'
 var user-fn-color  = 'transparent'
 var axis-color  = 'grey'
+var x-axis-len-in-radii = 7.5
+var x-axis-num-quadrants = 9
+var x-axis-len = x-axis-len-in-radii * radius
 var clock-color = 'black'
+var _clock-circumference = 0
+var _clock-interval = 1
 var _clock-wise = true
 var _clock-start = true
 var draw-moving-line-p = true
-var labels       = empty
-var graph-labels = empty
-var _num-labels = 4
+
 fun make-number-sign(label):
   text(label, 12, 'black')
 end
-fun make-clock-number-sign(label):
-  text(label, 20, clock-color)
+
+fun make-clock-number-sign(n):
+  # n = num of quadrants
+  text(notch-num-to-label(n), 20, clock-color)
 end
+
 fun clock-hop(n):
   n + angle-incr
 end
 
-fun draw-coord-curve-onto(theta-range, coord-gen-fn, curve-color, img):
-  doc: ```
-       Draws the curve onto the given image, assuming the pinhole of the image is at (0, h/2)
-       where h is the height of the image.
-       ```
-  # compute the (x,y) coords, flipping the y-value to account for Pyret's y-axis
-  proj-range = for map(theta from theta-range):
-    {x-scaler(theta); -1 * coord-gen-fn(spring-forward-radian(theta)) * radius}
+fun rad-to-abscissa(r):
+  ((r / (PI / 2)) / x-axis-num-quadrants) * x-axis-len
+end
+
+fun notch-num-to-label(n2) block:
+  # n2 is the number of quadrants clockwise from the top;
+  # find the label corresponding to it
+  n = num-modulo(n2, 4)
+  # for a clck circumference specified as 2π, use π-based labels rather than actual numbers
+  if num-exact(_clock-circumference) == num-exact(2 * PI) block:
+    if n == 0: "0"
+    else if n == 1: "π/2"
+    else if n == 2: "π"
+    else: "3π/2"
+    end
+  else if num-is-integer(_clock-circumference) and (num-modulo(_clock-circumference, 4) == 0):
+    # for 4-divisible cirumference (e.g., a real clock), use integral labels
+    var n3 = (n / 4) * _clock-circumference
+    n3 := num-modulo(n3, _clock-circumference)
+    if n3 == 0:
+      num-to-string(_clock-circumference)
+    else:
+      num-to-string(n3)
+    end
+  else:
+    # for non-4-divisible circumference, use 2 decimal places
+    var n3 = (n / 4) * _clock-circumference
+    num-to-string-digits(n3, 2)
   end
+end
+
+fun draw-coord-curve-onto(theta-range, coord-gen-fn, curve-color, img):
+  # Draws the curve onto the given image, assuming the pinhole of the image is at (0, h/2)
+  # where h is the height of the image.
+  # compute the (x,y) coords for the ends of the minilines making up the graph:
+  # abscissa has to account for rectangle swelling leftward by 1 notch-radius;
+  # flip the y-value to account for orientation of Pyret's y-axis
+  proj-range = for map(theta from theta-range):
+    {rad-to-abscissa(theta) + notch-radius; -1 * coord-gen-fn(theta) * radius}
+  end
+  # use proj-range to draw the mini-lines making up the graph
   cases(List) proj-range:
     | empty => raise("No points given!")
     | link(first, rest) =>
@@ -72,67 +113,82 @@ fun draw-coord-curve-onto(theta-range, coord-gen-fn, curve-color, img):
       end
   end
 end
+
 fun make-notched-x-axis-line() block:
-  n = graph-labels.length()
-  x-axis-len = 7.5 * radius
-  n-degrees-scaled = x-scaler((2 * PI) / n)
   var x-axis-line = place-pinhole(0,0, line(x-axis-len, 0, axis-color))
-  num-notches = num-floor(x-axis-len / n-degrees-scaled)
-  notch-range = range-by(0, num-notches, 1)
-  notch = circle(notch-radius, 'solid', 'black')
+  fuzz = 1
+  var notch-range = 0
+  if _clock-wise:
+    notch-range := range-by(0, x-axis-num-quadrants + fuzz, 1)
+  else:
+    notch-range := range-by(0, 0 - x-axis-num-quadrants - fuzz, -1)
+  end
+
+  notch = circle(notch-radius, 'outline', 'black')
+
   # for each angle (represented as length on the x-axis), place the notch's pinhole
   # relative to the axis-pinhole by subtracting the "angle length" relative
   # to the center of the circle and add it to x-axis-line
-  
-  label-indices = range-by(0, graph-labels.length(), 1)
-  label-incr    = -1 * deg-to-rad(360 / graph-labels.length())
-  label-skips   = graph-labels.length() / _num-labels
-  
+
   for map(notch-num from notch-range) block:
-    notch-num-mod-len = num-modulo(notch-num, n)
-    label-num = graph-labels.get(notch-num-mod-len)
-    notch-angle = notch-num * n-degrees-scaled
+    var notch-x = (notch-num / x-axis-num-quadrants) * x-axis-len
+    if _clock-wise:
+      notch-x := notch-x
+    else:
+      # notch-x is always positive
+      notch-x := 0 - notch-x
+    end
     x-axis-line := overlay-align(
       'pinhole', 'pinhole',
-      place-pinhole((-1 * notch-angle) + notch-radius, notch-radius, notch), 
+      # have to notch notch notch-x rightward, so its
+      # pH moves notch-x leftward. But remember to
+      # account for notch's dimensions, as new pH is calculated
+      # from the top-left of its bounding-box, not its radius!
+      place-pinhole((-1 * notch-x) + notch-radius, notch-radius, notch),
       x-axis-line)
-    var label = false
-    # if the notch-num-mod-len falls on one of the label nums, draw the label
-    when num-modulo(notch-num-mod-len, n / _num-labels) == 0 block:
-      label := make-number-sign(num-to-string(label-num))
-      label := place-pinhole((-1 * notch-angle) + notch-radius, notch-radius - 10, label)
-      x-axis-line := overlay-align('pinhole', 'pinhole', label, x-axis-line)
-    end
+    var label = make-number-sign(notch-num-to-label(notch-num))
+    label := place-pinhole((-1 * notch-x) + notch-radius, notch-radius - 10, label)
+    x-axis-line := overlay-align('pinhole', 'pinhole', label, x-axis-line)
   end
-  
+
   x-axis-line
 end
 
-# consumes n (radians) and draws an image
 fun draw-clock-and-contents(n):
-  
+  # consumes n (radians) and draws an image
+
   # draw the 1 and -1 for the y-axis, positioning notches
   # at the top and bottom of the bounding box
   notch = circle(notch-radius, 'solid', 'black')
   y-axis-labels = overlay-xy(
-  beside-align("top", overlay-xy(make-number-sign("1 "), -6, -4, square(20, 'solid','transparent')), notch), 
-    -3, (radius * 2) - 20, 
-  beside-align("bottom", overlay-xy(make-number-sign("-1"), 4, -4, square(20, 'solid','transparent')), notch))
-  
+    beside-align("top",
+                 overlay-xy(make-number-sign("1 "),
+                 -6, -4,
+                 square(20, 'solid','transparent')), notch),
+    -3,
+    (radius * 2) - 20,
+    beside-align("bottom",
+                 overlay-xy(make-number-sign("-1"),
+                 4, -4,
+                 square(20, 'solid','transparent')), notch))
+
   # assemble the images, overlaying the y-axis labels on the graph
   beside-list([list:
-      draw-clock(n), 
+      draw-clock(n),
       rectangle(radius, 0, "outline", "white"),
       square(5, "solid", "transparent"),
-      overlay-xy(y-axis-labels, 25, 0, draw-graph(n))])
+      overlay-xy(y-axis-labels, 25, 0, draw-graph(n))
+      ])
 end
 
 fun draw-clock(n) block:
-  # spy: n end
+  # we're only marking NESW points of clock
+  clock-points = [list: 0, 1, 2, 3]
+  num-clock-points = clock-points.length()
   # compute (x,y) coords of point around the circle
-  # since it's a clock, "0" is technically 12 o'clock
-  # instead of 3. Adjust by subtracting PI/2.
-  adj-n = (n - (PI / 2)) + (num-modulo(_clock-start, 12) * (PI / 6))
+  # Since it's a clock, n=0 is at 12 oc rather than 3 oc.
+  # Adjust by subtracting π/2 from n.
+  adj-n = (n - (PI / 2)) + ((_clock-start / _clock-circumference) * 2 * PI)
   var x-coord = 0
   if _clock-wise:
     x-coord := cos-fn(adj-n) * radius
@@ -142,39 +198,84 @@ fun draw-clock(n) block:
   y-coord = sin-fn(adj-n) * radius
   containing-rect = square(2 * radius, "solid", "white")
   u-circle = circle(radius, 'outline', clock-color)
-  # iterate through the labels, drawing the label ever <label-skips>
-  label-skips   = labels.length() / _num-labels
-  label-indices = range-by(0, labels.length(), label-skips)
-  label-incr    = -1 * deg-to-rad(360 / labels.length())
-  placed-labels = for map(index from label-indices) block:
-    clock-x = (if _clock-wise: sin-fn else: neg-sin-fn end)(index * label-incr) * (radius - 12)
-    clock-y = cos-fn(index * label-incr) * (radius - 12)
-    label-img = make-clock-number-sign(num-to-string(labels.get(index)))
-    place-pinhole(
-      clock-x + (image-width(label-img) / 2), 
-      clock-y + ((image-height(label-img) / 2) - 2), 
-      label-img)
+  placed-labels = for map(clock-point from clock-points) block:
+    var clock-x = sin-fn((clock-point / num-clock-points) * -2 * PI) * radius
+    var clock-y = cos-fn((clock-point / num-clock-points) * 2 * PI) * radius
+    label-img = make-clock-number-sign(clock-point)
+    half-label-width = image-width(label-img) / 2
+    half-label-height = image-height(label-img) / 2
+    # labels at 12 & 6 oc move left by half
+    if (clock-point == 0) or (clock-point == 2) block:
+      clock-x := clock-x + half-label-width
+    else:
+      clock-x := clock-x
+    end
+    # labels at 3 & 9 oc move up by half
+    if (clock-point == 1) or (clock-point == 3) block:
+      clock-y := clock-y + half-label-height
+    else:
+      clock-y := clock-y
+    end
+    if clock-point == 0 block:
+      # label at 12 oc moves down by half
+      clock-y := clock-y - half-label-height
+    else if clock-point == 1:
+      # label at 3 oc moves left by half
+      clock-x := clock-x + half-label-width
+    else if clock-point == 2:
+      # label at 6 oc moves up by half
+      clock-y := clock-y + half-label-height
+    else:
+      # label at 9 oc moves right by half
+      clock-x := clock-x - half-label-width
+    end
+    # the following adjustments are heuristic
+    if num-is-integer(_clock-circumference):
+      if clock-point == 0 block:
+        clock-y := clock-y
+      else if clock-point == 1:
+        clock-x := clock-x + 12
+      else if clock-point == 2:
+        clock-y := clock-y + 12
+      else:
+        clock-x := clock-x
+      end
+    else:
+      if clock-point == 0:
+        clock-y := clock-y
+      else if clock-point == 1:
+        clock-x := clock-x + 18
+      else if clock-point == 2:
+        clock-y := clock-y + 12
+      else:
+        clock-x := clock-x + 12
+      end
+    end
+    place-pinhole(clock-x, clock-y, label-img)
   end
   vertical-axis = place-pinhole(0, radius, line(0, radius * 2, axis-color))
   horiz-axis = place-pinhole(radius, 0, line(radius * 2, 0, axis-color))
   r-line = place-pinhole(
-    # ensure pinhole at 0,0 end of line
-    if x-coord > 0: 0 else: 0 - x-coord end,
+  # ensure pinhole at 0,0 end of line
+  if x-coord > 0: 0 else: 0 - x-coord end,
     if y-coord > 0: 0 else: 0 - y-coord end,
-    line(x-coord, y-coord, 'darkgreen'))
-  along-x-drop = place-pinhole(if x-coord > 0: 0 else: 0 - x-coord end, 0 - y-coord, line(x-coord,0, sin-color))
-  along-y-drop = place-pinhole(0 - x-coord, if y-coord > 0: 0 else: 0 - y-coord end, line(0,y-coord, cos-color))
-  overlay-list([list: u-circle, vertical-axis, horiz-axis, r-line, along-x-drop, along-y-drop] 
-      + placed-labels + [list: containing-rect])
+      line(x-coord, y-coord, 'darkgreen'))
+      along-x-drop = place-pinhole(if x-coord > 0: 0 else: 0 - x-coord end, 0 - y-coord, line(x-coord,0, sin-color))
+      along-y-drop = place-pinhole(0 - x-coord, if y-coord > 0: 0 else: 0 - y-coord end, line(0,y-coord, cos-color))
+    overlay-list([list: u-circle, vertical-axis, horiz-axis, r-line, along-x-drop, along-y-drop]
+    + placed-labels + [list: containing-rect])
 end
 
 fun draw-graph(n):
-  containing-rect = place-pinhole(0, radius, rectangle(7.5 * radius, 2 * radius, "outline", "white"))
+  containing-rect = place-pinhole(0, radius, rectangle(x-axis-len, 2 * radius, "outline", "white"))
   # create the x- and y-axis, then add them together
   y-axis-line = place-pinhole(0, radius, line(0, 2 * radius, axis-color))
   x-axis-line = make-notched-x-axis-line()
+  fuzz = angle-incr
+  # offset = (0 - (PI / 2)) + ((_clock-start / _clock-circumference) * 2 * PI)
+  offset = 0
   axes-lines = overlay(x-axis-line, y-axis-line)
-  theta-range = range-by(0, n + angle-incr, angle-incr)
+  theta-range = range-by(offset, n + offset + fuzz, angle-incr)
   draw-coord-curve-onto(
     theta-range, user-fn, user-fn-color,
     draw-coord-curve-onto(
@@ -183,45 +284,19 @@ fun draw-graph(n):
         theta-range, cos-fn, cos-color,
         overlay(axes-lines, containing-rect))))
 end
+
 # Stop after 2 revolutions (adjusting for the deg-incr offset
 fun stop-clock(n):
+  # n >= (x-axis-num-quadrants * (PI / 2))
   n >= ((max-num-revolutions * 2 * PI) - (deg-incr / 360))
   # false # forever
 end
 
-fun spring-forward-clock(m):
-  m-modified = num-modulo(m + _clock-start, 12)
-  if m-modified == 0: 12
-  else: m-modified
-  end
-end
-
-fun spring-forward-radian(m):
-  m-modified = m + (_clock-start * (PI / 6))
-  if m-modified >= (2 * PI): m-modified - (2 * PI)
-  else: m-modified
-  end
-end
-
-fun start-clock(spt, slices, label-count, __clock-wise, __clock-start) block:
+fun start-clock(spt, __clock-circumference, __clock-wise, __clock-start) block:
   _clock-wise := __clock-wise
   _clock-start := __clock-start
-  if is-link(slices) block: 
-    labels     := slices
-    _num-labels := slices.length()
-  else:
-    # check for proper numbers
-    when (num-modulo(slices, label-count) <> 0):
-      raise("Cannot draw unit clock: " +
-        num-to-string(slices) + 
-        " does not divide evenly by " + 
-        num-to-string(label-count))
-    end
-    labels     := link(slices, if _clock-wise: range-by(1, slices, 1)
-                               else: range-by(slices - 1, 0, -1) end)
-    _num-labels := label-count # how many evenly-spaced labels should we show?
-  end
-  graph-labels := labels.map(spring-forward-clock)
+  _clock-circumference := __clock-circumference
+
   r = reactor:
     init: 0,
     seconds-per-tick: spt,
@@ -233,8 +308,8 @@ fun start-clock(spt, slices, label-count, __clock-wise, __clock-start) block:
   nothing
 end
 
-fun start-clock-fn(spt, slices, label-count, f) block:
+fun start-clock-fn(spt, slices, f) block:
   user-fn := f
   user-fn-color := 'orange'
-  start-clock(spt, slices, label-count, true, 12)
+  start-clock(spt, slices, true, 12)
 end
