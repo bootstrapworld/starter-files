@@ -144,7 +144,7 @@ fun make-notched-x-axis-line() block:
   # for each angle (represented as length on the x-axis), place the notch's pinhole
   # relative to the axis-pinhole by subtracting the "angle length" relative
   # to the center of the circle and add it to x-axis-line
-  clock-starting-quadrant = num-modulo((_clock-start / _clock-circumference) * 4, 4)
+  clock-starting-quadrant = num-modulo(num-floor(_clock-start / _clock-circumference) * 4, 4)
   # spy: _clock-start, clock-starting-quadrant, notch-range end
 
   for map(notch-num2 from notch-range) block:
