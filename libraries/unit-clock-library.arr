@@ -69,7 +69,7 @@ fun notch-num-to-label(n2) block:
   num-pis-in-circ = num-exact(_clock-circumference / PI)
   if num-is-integer(num-pis-in-circ) block:
     coeff = n * (num-pis-in-circ / 4)
-    spy: coeff end
+    # spy: coeff end
     if coeff == 0: "0"
     else if num-is-integer(coeff):
       if coeff == 1: "π"
@@ -108,9 +108,12 @@ fun draw-coord-curve-onto(theta-range, coord-gen-fn, curve-color, img):
   # compute the (x,y) coords for the ends of the minilines making up the graph:
   # abscissa has to account for rectangle swelling leftward by 1 notch-radius;
   # flip the y-value to account for orientation of Pyret's y-axis
+  offset = ((_clock-start / _clock-circumference) * 2 * PI)
   proj-range = for map(theta from theta-range):
-    {rad-to-abscissa(theta) + notch-radius; -1 * coord-gen-fn(theta) * radius}
+    theta2 = if _clock-wise: theta else: 0 - theta end
+    {rad-to-abscissa(theta) + notch-radius; -1 * coord-gen-fn(theta2 + offset) * radius}
   end
+  # spy: proj-range end
   # use proj-range to draw the mini-lines making up the graph
   cases(List) proj-range:
     | empty => raise("No points given!")
@@ -143,15 +146,20 @@ fun make-notched-x-axis-line() block:
   # for each angle (represented as length on the x-axis), place the notch's pinhole
   # relative to the axis-pinhole by subtracting the "angle length" relative
   # to the center of the circle and add it to x-axis-line
+  clock-starting-quadrant = num-modulo((_clock-start / _clock-circumference) * 4, 4)
+  # spy: _clock-start, clock-starting-quadrant, notch-range end
 
-  for map(notch-num from notch-range) block:
-    var notch-x = (notch-num / x-axis-num-quadrants) * x-axis-len
+  for map(notch-num2 from notch-range) block:
+    notch-num = num-modulo(notch-num2 + clock-starting-quadrant, 4)
+    # spy: clock-starting-quadrant, notch-num2, notch-num end
+    var notch-x = (notch-num2 / x-axis-num-quadrants) * x-axis-len
     if _clock-wise:
       notch-x := notch-x
     else:
       # notch-x is always positive
       notch-x := 0 - notch-x
     end
+    # spy 'for loop': notch-num2, notch-num, notch-x end
     x-axis-line := overlay-align(
       'pinhole', 'pinhole',
       # have to notch notch notch-x rightward, so its
@@ -168,7 +176,7 @@ fun make-notched-x-axis-line() block:
   x-axis-line
 end
 
-fun draw-clock-and-contents(n):
+fun draw-clock-and-graph(n):
   # consumes n (radians) and draws an image
 
   # draw the 1 and -1 for the y-axis, positioning notches
@@ -202,7 +210,12 @@ fun draw-clock(n) block:
   # compute (x,y) coords of point around the circle
   # Since it's a clock, n=0 is at 12 oc rather than 3 oc.
   # Adjust by subtracting π/2 from n.
-  adj-n = (n - (PI / 2)) + ((_clock-start / _clock-circumference) * 2 * PI)
+  var adj-n = n - (PI / 2)
+  if _clock-wise:
+    adj-n := adj-n + ((_clock-start / _clock-circumference) * 2 * PI)
+  else:
+    adj-n := adj-n - ((_clock-start / _clock-circumference) * 2 * PI)
+  end
   var x-coord = 0
   if _clock-wise:
     x-coord := cos-fn(adj-n) * radius
@@ -213,8 +226,8 @@ fun draw-clock(n) block:
   containing-rect = square(2 * radius, "solid", "white")
   u-circle = circle(radius, 'outline', clock-color)
   placed-labels = for map(clock-point from clock-points) block:
-    var clock-x = sin-fn((clock-point / num-clock-points) * -2 * PI) * radius
-    var clock-y = cos-fn((clock-point / num-clock-points) * 2 * PI) * radius
+    var clock-x = sin-fn((clock-point / num-clock-points) * -2 * PI) * (radius - 1)
+    var clock-y = cos-fn((clock-point / num-clock-points) * 2 * PI) * (radius - 1)
     label-img = make-clock-number-sign(clock-point)
     half-label-width = image-width(label-img) / 2
     half-label-height = image-height(label-img) / 2
@@ -286,23 +299,23 @@ fun draw-graph(n):
   y-axis-line = place-pinhole(0, radius, line(0, 2 * radius, axis-color))
   x-axis-line = make-notched-x-axis-line()
   fuzz = angle-incr
-  # offset = (0 - (PI / 2)) + ((_clock-start / _clock-circumference) * 2 * PI)
-  offset = 0
   axes-lines = overlay(x-axis-line, y-axis-line)
-  theta-range = range-by(offset, n + offset + fuzz, angle-incr)
+  theta-range = range-by(0, n + fuzz, angle-incr)
+  # spy:  theta-range end
+
   draw-coord-curve-onto(
     theta-range, user-fn, user-fn-color,
     draw-coord-curve-onto(
-      theta-range, if _clock-wise: sin-fn else: neg-sin-fn end, sin-color,
+      theta-range, sin-fn, sin-color,
       draw-coord-curve-onto(
         theta-range, cos-fn, cos-color,
         overlay(axes-lines, containing-rect))))
 end
 
-# Stop after 2 revolutions (adjusting for the deg-incr offset
 fun stop-clock(n):
-  # n >= (x-axis-num-quadrants * (PI / 2))
-  n >= ((max-num-revolutions * 2 * PI) - (deg-incr / 360))
+  n >= (x-axis-num-quadrants * (PI / 2)) # before crossing to right margin
+  # n >= ((max-num-revolutions * 2 * PI) - (deg-incr / 360)) # max-revs
+  # n >= (20 * (deg-incr / 360)) # very short, for debugging
   # false # forever
 end
 
@@ -315,7 +328,7 @@ fun start-clock(spt, __clock-circumference, __clock-wise, __clock-start) block:
     init: 0,
     seconds-per-tick: spt,
     on-tick: clock-hop,
-    to-draw: draw-clock-and-contents,
+    to-draw: draw-clock-and-graph,
     stop-when: stop-clock
   end
   R.interact(r)
