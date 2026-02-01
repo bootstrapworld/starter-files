@@ -65,12 +65,26 @@ fun notch-num-to-label(n2) block:
   # n2 is the number of quadrants clockwise from the top;
   # find the label corresponding to it
   n = num-modulo(n2, 4)
-  # for a clck circumference specified as 2π, use π-based labels rather than actual numbers
-  if num-exact(_clock-circumference) == num-exact(2 * PI) block:
-    if n == 0: "0"
-    else if n == 1: "π/2"
-    else if n == 2: "π"
-    else: "3π/2"
+  # for a clock circumference that's a multiple of 2π, use π-based labels rather than actual numbers
+  num-pis-in-circ = num-exact(_clock-circumference / PI)
+  if num-is-integer(num-pis-in-circ) block:
+    coeff = n * (num-pis-in-circ / 4)
+    spy: coeff end
+    if coeff == 0: "0"
+    else if num-is-integer(coeff):
+      if coeff == 1: "π"
+      else: num-to-string(coeff) + "π"
+      end
+    else if num-is-integer(2 * coeff):
+      coeff2 = 2 * coeff
+      if coeff2 == 1: "π/2"
+      else: num-to-string(coeff2) + "π/2"
+      end
+    else:
+      coeff4 = 4 * coeff
+      if coeff4 == 1: "π/4"
+      else: num-to-string(coeff4) + "π/4"
+      end
     end
   else if num-is-integer(_clock-circumference) and (num-modulo(_clock-circumference, 4) == 0):
     # for 4-divisible cirumference (e.g., a real clock), use integral labels
