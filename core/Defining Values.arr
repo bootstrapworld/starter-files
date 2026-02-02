@@ -6,8 +6,6 @@ x = 4
 
 y = -3
 
-pi = 3.1415926535
-
 z = "zebra" 
 
 t = triangle(100, "outline", "red")
@@ -19,9 +17,8 @@ my-name = text("Maya", 100, "purple")
 swamp =
 image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/algebra/swamp.png")
 
-c = 5 * pi
+c = 10 * PI
 
-a = 25 * pi
 
 # Some expressions can be broken up into multiple lines
 exampleA = circle(
