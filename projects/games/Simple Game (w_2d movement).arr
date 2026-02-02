@@ -1,5 +1,6 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/games", "../../libraries/core.arr")
-include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/games", "../../libraries/game-library.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "core.arr")
+include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "game-library.arr")
+
 
 # 0. Game title: Write the title of your game here
 TITLE = "Alfred Alfer's Awesome Adventure"
