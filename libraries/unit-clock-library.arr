@@ -310,7 +310,10 @@ end
 fun start-clock(spt, __clock-circumference, __clock-wise, __clock-start) block:
   _clock-wise := __clock-wise
   _clock-circumference := __clock-circumference
-  _clock-start := num-modulo(num-round((__clock-start / _clock-circumference) * 4), 4) * (_clock-circumference / 4)
+  var _clock-start2 = __clock-start
+  if not(_clock-wise): _clock-start2 := 0 - _clock-start2
+  else: 0 end
+  _clock-start := num-modulo(num-round(_clock-start2 / 3), 4) * (_clock-circumference / 4)
   # spy: __clock-start, _clock-start end
 
   r = reactor:
