@@ -40,6 +40,7 @@ var clock-color = 'black'
 var _clock-circumference = 0
 var _clock-wise = true
 var _clock-start = true
+var _clock-starting-quadrant = 0
 var draw-moving-line-p = true
 
 fun make-number-sign(label):
@@ -100,13 +101,18 @@ fun notch-num-to-label(n2) block:
   end
 end
 
-fun draw-coord-curve-onto(theta-range, coord-gen-fn, curve-color, img):
+fun draw-coord-curve-onto(theta-range, coord-gen-fn, curve-color, img) block:
   # Draws the curve onto the given image, assuming the pinhole of the image is at (0, h/2)
   # where h is the height of the image.
   # compute the (x,y) coords for the ends of the minilines making up the graph:
   # abscissa has to account for rectangle swelling leftward by 1 notch-radius;
   # flip the y-value to account for orientation of Pyret's y-axis
-  offset = ((_clock-start / _clock-circumference) * 2 * PI)
+  # offset = ((_clock-start / _clock-circumference) * 2 * PI)
+  var offset = _clock-starting-quadrant * (PI / 2)
+  if not(_clock-wise) block:
+    offset := 0 - offset
+  else: 0
+  end
   proj-range = for map(theta from theta-range):
     theta2 = if _clock-wise: theta else: 0 - theta end
     {rad-to-abscissa(theta) + notch-radius; -1 * coord-gen-fn(theta2 + offset) * radius}
@@ -133,18 +139,18 @@ fun make-notched-x-axis-line() block:
   var x-axis-line = place-pinhole(0,0, line(x-axis-len, 0, axis-color))
   fuzz = 1
   notch-range = range-by(0, x-axis-num-quadrants + fuzz, 1)
+  # spy: notch-range end
 
   notch = circle(notch-radius, 'outline', 'black')
 
   # for each angle (represented as length on the x-axis), place the notch's pinhole
   # relative to the axis-pinhole by subtracting the "angle length" relative
   # to the center of the circle and add it to x-axis-line
-  clock-starting-quadrant = num-round((_clock-start / _clock-circumference) * 4)
-  # spy: _clock-start, clock-starting-quadrant, notch-range end
 
   for map(notch-num2 from notch-range) block:
-    notch-num = num-modulo(notch-num2 + clock-starting-quadrant, 4)
-    # spy: clock-starting-quadrant, notch-num2, notch-num end
+    notch-num = num-modulo(notch-num2, 4)
+    # notch-num = num-modulo(notch-num2 + _clock-starting-quadrant, 4)
+    # spy: _clock-starting-quadrant, notch-num2, notch-num end
     var notch-x = (notch-num2 / x-axis-num-quadrants) * x-axis-len
     # spy 'for loop': notch-num2, notch-num, notch-x end
     x-axis-line := overlay-align(
@@ -191,60 +197,76 @@ fun draw-clock-and-graph(n):
 end
 
 fun draw-clock-face() block:
+  # spy 'doing clock face': _clock-starting-quadrant end
   # we're only marking NESW points of clock
   clock-points = [list: 0, 1, 2, 3]
   num-clock-points = clock-points.length()
   placed-labels = for map(clock-point from clock-points) block:
+    var physical-clock-point = clock-point
+    var actual-clock-point = clock-point
+    actual-clock-point := num-modulo(clock-point - _clock-starting-quadrant, 4)
+    # spy: clock-point, _clock-starting-quadrant, actual-clock-point end
+    label-img = make-clock-number-sign(actual-clock-point)
+    half-label-width = image-width(label-img) / 2
+    half-label-height = image-height(label-img) / 2
+    # spy: actual-clock-point, label-img, half-label-width, half-label-height end
+
     # find coordinates for label
+    # x axis points rt
+    # y axis points dn
+    # moving along + axes, decrease that coord
+    # moving along - axes, increase that coord
+    # up => +y;  dn => -y;  lft => -x; rt => +x
     var clock-x = 0
     var clock-y = 0
-    if clock-point == 0 block: clock-y := 1
-    else if clock-point == 1: clock-x := -1
-    else if clock-point == 2: clock-y := -1
-    else if clock-point == 3: clock-x := 1
-    else: 0
+    if _clock-wise block:
+      if clock-point == 0 block: clock-y := 1
+      else if clock-point == 1: clock-x := -1
+      else if clock-point == 2: clock-y := -1
+      else if clock-point == 3: clock-x := 1
+      else: 0
+      end
+    else:
+      if clock-point == 1: physical-clock-point := 3
+      else if clock-point == 3: physical-clock-point := 1
+      else: 0
+      end
+      if clock-point == 0 block: clock-y := 1
+      else if clock-point == 1: clock-x := 1
+      else if clock-point == 2: clock-y := -1
+      else if clock-point == 3: clock-x := -1
+      else: 0
+      end
     end
+
     # multiply by radius
     padding = 5
     clock-x := clock-x * (radius - padding)
     clock-y := clock-y * (radius - padding)
-    # correct for ccw
-    if not(_clock-wise): clock-x := 0 - clock-x
-    else: 0
-    end
 
-    label-img = make-clock-number-sign(clock-point)
-    half-label-width = image-width(label-img) / 2
-    half-label-height = image-height(label-img) / 2
+    # spy: clock-x, clock-y end
 
     # labels at N & S move left by half
-    if (clock-point == 0) or (clock-point == 2) block:
+    if (physical-clock-point == 0) or (physical-clock-point == 2):
       clock-x := clock-x + half-label-width
     else: 0
     end
 
     # labels at E & W move up by half
-    if (clock-point == 1) or (clock-point == 3) block:
+    if (physical-clock-point == 1) or (physical-clock-point == 3) block:
       clock-y := clock-y + half-label-height
     else: 0
     end
 
     # label at E moves left by one
-    if _clock-wise:
-      if (clock-point == 1):
-        clock-x := clock-x + (2 * half-label-width)
-      else: 0
-      end
-    else:
-      if (clock-point == 3):
-        clock-x := clock-x + (2 * half-label-width)
-      else: 0
-      end
+    if (physical-clock-point == 1):
+      clock-x := clock-x + (2 * half-label-width)
+    else: 0
     end
 
     # label at S moves up by one
-    if (clock-point == 2):
-      clock-y := clock-y + (2 * half-label-width)
+    if (physical-clock-point == 2):
+      clock-y := clock-y + (2 * half-label-height)
     else: 0
     end
 
@@ -261,8 +283,8 @@ fun draw-clock(n) block:
   adj-n := adj-n + ((_clock-start / _clock-circumference) * 2 * PI)
   var x-coord = 0
   x-coord := cos-fn(adj-n) * radius
-  if _clock-wise: x-coord := x-coord
-  else: x-coord := 0 - x-coord
+  if not(_clock-wise): x-coord := 0 - x-coord
+  else: 0
   end
   y-coord = sin-fn(adj-n) * radius
   containing-rect = square(2 * radius, "solid", "white")
@@ -312,8 +334,10 @@ fun start-clock(spt, __clock-circumference, __clock-wise, __clock-start) block:
   _clock-circumference := __clock-circumference
   var _clock-start2 = __clock-start
   if not(_clock-wise): _clock-start2 := 0 - _clock-start2
-  else: 0 end
-  _clock-start := num-modulo(num-round(_clock-start2 / 3), 4) * (_clock-circumference / 4)
+  else: 0
+  end
+  _clock-starting-quadrant := num-modulo(num-round(_clock-start2 / 3), 4)
+  _clock-start := _clock-starting-quadrant * (_clock-circumference / 4)
   # spy: __clock-start, _clock-start end
 
   r = reactor:
