@@ -132,31 +132,20 @@ end
 fun make-notched-x-axis-line() block:
   var x-axis-line = place-pinhole(0,0, line(x-axis-len, 0, axis-color))
   fuzz = 1
-  var notch-range = 0
-  if _clock-wise:
-    notch-range := range-by(0, x-axis-num-quadrants + fuzz, 1)
-  else:
-    notch-range := range-by(0, 0 - x-axis-num-quadrants - fuzz, -1)
-  end
+  notch-range = range-by(0, x-axis-num-quadrants + fuzz, 1)
 
   notch = circle(notch-radius, 'outline', 'black')
 
   # for each angle (represented as length on the x-axis), place the notch's pinhole
   # relative to the axis-pinhole by subtracting the "angle length" relative
   # to the center of the circle and add it to x-axis-line
-  clock-starting-quadrant = num-modulo(num-floor(_clock-start / _clock-circumference) * 4, 4)
+  clock-starting-quadrant = num-round((_clock-start / _clock-circumference) * 4)
   # spy: _clock-start, clock-starting-quadrant, notch-range end
 
   for map(notch-num2 from notch-range) block:
     notch-num = num-modulo(notch-num2 + clock-starting-quadrant, 4)
     # spy: clock-starting-quadrant, notch-num2, notch-num end
     var notch-x = (notch-num2 / x-axis-num-quadrants) * x-axis-len
-    if _clock-wise:
-      notch-x := notch-x
-    else:
-      # notch-x is always positive
-      notch-x := 0 - notch-x
-    end
     # spy 'for loop': notch-num2, notch-num, notch-x end
     x-axis-line := overlay-align(
       'pinhole', 'pinhole',
@@ -201,83 +190,84 @@ fun draw-clock-and-graph(n):
       ])
 end
 
-fun draw-clock(n) block:
+fun draw-clock-face() block:
   # we're only marking NESW points of clock
   clock-points = [list: 0, 1, 2, 3]
   num-clock-points = clock-points.length()
+  placed-labels = for map(clock-point from clock-points) block:
+    # find coordinates for label
+    var clock-x = 0
+    var clock-y = 0
+    if clock-point == 0 block: clock-y := 1
+    else if clock-point == 1: clock-x := -1
+    else if clock-point == 2: clock-y := -1
+    else if clock-point == 3: clock-x := 1
+    else: 0
+    end
+    # multiply by radius
+    padding = 5
+    clock-x := clock-x * (radius - padding)
+    clock-y := clock-y * (radius - padding)
+    # correct for ccw
+    if not(_clock-wise): clock-x := 0 - clock-x
+    else: 0
+    end
+
+    label-img = make-clock-number-sign(clock-point)
+    half-label-width = image-width(label-img) / 2
+    half-label-height = image-height(label-img) / 2
+
+    # labels at N & S move left by half
+    if (clock-point == 0) or (clock-point == 2) block:
+      clock-x := clock-x + half-label-width
+    else: 0
+    end
+
+    # labels at E & W move up by half
+    if (clock-point == 1) or (clock-point == 3) block:
+      clock-y := clock-y + half-label-height
+    else: 0
+    end
+
+    # label at E moves left by one
+    if _clock-wise:
+      if (clock-point == 1):
+        clock-x := clock-x + (2 * half-label-width)
+      else: 0
+      end
+    else:
+      if (clock-point == 3):
+        clock-x := clock-x + (2 * half-label-width)
+      else: 0
+      end
+    end
+
+    # label at S moves up by one
+    if (clock-point == 2):
+      clock-y := clock-y + (2 * half-label-width)
+    else: 0
+    end
+
+    place-pinhole(clock-x, clock-y, label-img)
+  end
+  placed-labels
+end
+
+fun draw-clock(n) block:
   # compute (x,y) coords of point around the circle
   # Since it's a clock, n=0 is at 12 oc rather than 3 oc.
   # Adjust by subtracting π/2 from n.
   var adj-n = n - (PI / 2)
-  if _clock-wise:
-    adj-n := adj-n + ((_clock-start / _clock-circumference) * 2 * PI)
-  else:
-    adj-n := adj-n - ((_clock-start / _clock-circumference) * 2 * PI)
-  end
+  adj-n := adj-n + ((_clock-start / _clock-circumference) * 2 * PI)
   var x-coord = 0
-  if _clock-wise:
-    x-coord := cos-fn(adj-n) * radius
-  else:
-    x-coord := 0 - (cos-fn(adj-n) * radius)
+  x-coord := cos-fn(adj-n) * radius
+  if _clock-wise: x-coord := x-coord
+  else: x-coord := 0 - x-coord
   end
   y-coord = sin-fn(adj-n) * radius
   containing-rect = square(2 * radius, "solid", "white")
   u-circle = circle(radius, 'outline', clock-color)
-  placed-labels = for map(clock-point from clock-points) block:
-    var clock-x = sin-fn((clock-point / num-clock-points) * -2 * PI) * (radius - 1)
-    var clock-y = cos-fn((clock-point / num-clock-points) * 2 * PI) * (radius - 1)
-    label-img = make-clock-number-sign(clock-point)
-    half-label-width = image-width(label-img) / 2
-    half-label-height = image-height(label-img) / 2
-    # labels at 12 & 6 oc move left by half
-    if (clock-point == 0) or (clock-point == 2) block:
-      clock-x := clock-x + half-label-width
-    else:
-      clock-x := clock-x
-    end
-    # labels at 3 & 9 oc move up by half
-    if (clock-point == 1) or (clock-point == 3) block:
-      clock-y := clock-y + half-label-height
-    else:
-      clock-y := clock-y
-    end
-    if clock-point == 0 block:
-      # label at 12 oc moves down by half
-      clock-y := clock-y - half-label-height
-    else if clock-point == 1:
-      # label at 3 oc moves left by half
-      clock-x := clock-x + half-label-width
-    else if clock-point == 2:
-      # label at 6 oc moves up by half
-      clock-y := clock-y + half-label-height
-    else:
-      # label at 9 oc moves right by half
-      clock-x := clock-x - half-label-width
-    end
-    # the following adjustments are heuristic
-    if num-is-integer(_clock-circumference):
-      if clock-point == 0 block:
-        clock-y := clock-y
-      else if clock-point == 1:
-        clock-x := clock-x + 12
-      else if clock-point == 2:
-        clock-y := clock-y + 12
-      else:
-        clock-x := clock-x
-      end
-    else:
-      if clock-point == 0:
-        clock-y := clock-y
-      else if clock-point == 1:
-        clock-x := clock-x + 18
-      else if clock-point == 2:
-        clock-y := clock-y + 12
-      else:
-        clock-x := clock-x + 12
-      end
-    end
-    place-pinhole(clock-x, clock-y, label-img)
-  end
+  placed-labels = draw-clock-face()
   vertical-axis = place-pinhole(0, radius, line(0, radius * 2, axis-color))
   horiz-axis = place-pinhole(radius, 0, line(radius * 2, 0, axis-color))
   r-line = place-pinhole(
@@ -320,7 +310,8 @@ end
 fun start-clock(spt, __clock-circumference, __clock-wise, __clock-start) block:
   _clock-wise := __clock-wise
   _clock-circumference := __clock-circumference
-  _clock-start := num-modulo(num-round((__clock-start / _clock-circumference) * 4), 4) / 4
+  _clock-start := num-modulo(num-round((__clock-start / _clock-circumference) * 4), 4) * (_clock-circumference / 4)
+  # spy: __clock-start, _clock-start end
 
   r = reactor:
     init: 0,
