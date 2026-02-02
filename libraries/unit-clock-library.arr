@@ -39,7 +39,6 @@ var x-axis-len = x-axis-len-in-radii * radius
 var clock-color = 'black'
 var _clock-circumference = 0
 var _clock-wise = true
-var _clock-start = true
 var _clock-starting-quadrant = 0
 var draw-moving-line-p = true
 
@@ -107,7 +106,6 @@ fun draw-coord-curve-onto(theta-range, coord-gen-fn, curve-color, img) block:
   # compute the (x,y) coords for the ends of the minilines making up the graph:
   # abscissa has to account for rectangle swelling leftward by 1 notch-radius;
   # flip the y-value to account for orientation of Pyret's y-axis
-  # offset = ((_clock-start / _clock-circumference) * 2 * PI)
   var offset = _clock-starting-quadrant * (PI / 2)
   if not(_clock-wise) block:
     offset := 0 - offset
@@ -280,7 +278,7 @@ fun draw-clock(n) block:
   # Since it's a clock, n=0 is at 12 oc rather than 3 oc.
   # Adjust by subtracting π/2 from n.
   var adj-n = n - (PI / 2)
-  adj-n := adj-n + ((_clock-start / _clock-circumference) * 2 * PI)
+  adj-n := adj-n + (_clock-starting-quadrant * (PI / 2))
   var x-coord = 0
   x-coord := cos-fn(adj-n) * radius
   if not(_clock-wise): x-coord := 0 - x-coord
@@ -337,8 +335,6 @@ fun start-clock(spt, __clock-circumference, __clock-wise, __clock-start) block:
   else: 0
   end
   _clock-starting-quadrant := num-modulo(num-round(_clock-start2 / 3), 4)
-  _clock-start := _clock-starting-quadrant * (_clock-circumference / 4)
-  # spy: __clock-start, _clock-start end
 
   r = reactor:
     init: 0,
