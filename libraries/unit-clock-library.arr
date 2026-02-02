@@ -319,8 +319,8 @@ end
 
 fun start-clock(spt, __clock-circumference, __clock-wise, __clock-start) block:
   _clock-wise := __clock-wise
-  _clock-start := __clock-start
   _clock-circumference := __clock-circumference
+  _clock-start := num-modulo(num-round((__clock-start / _clock-circumference) * 4), 4) / 4
 
   r = reactor:
     init: 0,
