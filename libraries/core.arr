@@ -1550,6 +1550,7 @@ fun fit-model(t, ls, xs, ys, fn) block:
     .legend("Data")
     .point-size(5)
   fn-plot = from-list.function-plot(fn)
+    .color(C.red)
     .legend("Model")
   intervals = from-list.interval-chart(
     t.column(xs),
