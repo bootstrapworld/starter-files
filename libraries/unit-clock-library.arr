@@ -327,9 +327,13 @@ fun stop-clock(n):
   # false # forever
 end
 
-fun start-clock(spt, __clock-circumference, __clock-wise, __clock-start) block:
-  _clock-wise := __clock-wise
-  _clock-circumference := __clock-circumference
+fun start-clock(
+    seconds-per-frame :: NumPositive, 
+    num-slices :: NumPositive, 
+    is-cw :: Boolean, 
+    __clock-start :: NumPositive) block:
+  _clock-wise := is-cw
+  _clock-circumference := num-slices
   var _clock-start2 = __clock-start
   if not(_clock-wise): _clock-start2 := 0 - _clock-start2
   else: 0
@@ -338,7 +342,7 @@ fun start-clock(spt, __clock-circumference, __clock-wise, __clock-start) block:
 
   r = reactor:
     init: 0,
-    seconds-per-tick: spt,
+    seconds-per-tick: seconds-per-frame,
     on-tick: clock-hop,
     to-draw: draw-clock-and-graph,
     stop-when: stop-clock

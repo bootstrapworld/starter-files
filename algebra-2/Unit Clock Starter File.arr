@@ -15,12 +15,13 @@ num-slices = 12  # a clock has 12 hours
 # true = clockwise, false = counter-clockwise
 is-cw = true
 
-# start of clock, in hours o'clock
+# start of clock, in "hours o'clock"
+# For example, North (Top) = 12, East (Right) = 3, Southwest = 7.5
 clock-start = 12
 
 # a sample function, which is just the horizontal line f(x) = 0.5
 fun f(x): 0.5 end
 
 # start the clock animation!
-start-clock(seconds-per-frame, num-slices,is-cw, clock-start)
+start-clock(seconds-per-frame, num-slices, is-cw, clock-start)
 
