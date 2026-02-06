@@ -328,7 +328,7 @@ fun stop-clock(n):
 end
 
 fun start-clock(
-    seconds-per-frame :: NumPositive, 
+    frames-per-second :: NumPositive, 
     num-slices :: NumPositive, 
     is-cw :: Boolean, 
     __clock-start :: NumPositive) block:
@@ -342,7 +342,7 @@ fun start-clock(
 
   r = reactor:
     init: 0,
-    seconds-per-tick: seconds-per-frame,
+    seconds-per-tick: 1 / frames-per-second,
     on-tick: clock-hop,
     to-draw: draw-clock-and-graph,
     stop-when: stop-clock

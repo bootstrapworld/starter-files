@@ -5,23 +5,24 @@ include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files
 # length of A and B over time.
 
 # speed of the animation 
-# smaller = faster, larger = slower
-seconds-per-frame = 1/10
+# faster = more frames/sec
+frames-per-second = 5
 
-# divide clock into "slices"
-num-slices = 12  # a clock has 12 hours
+# divide the circle into "slices"
+# For example, a clock would have 12 hours
+num-slices = 12  
 
 # direction of rotation
 # true = clockwise, false = counter-clockwise
 is-cw = true
 
-# start of clock, in "hours o'clock"
-# For example, North (Top) = 12, East (Right) = 3, Southwest = 7.5
-clock-start = 12
+# where should the first label be? (in "hours o'clock")
+# For example, Top = 12, Right = 3, Southwest = 7.5
+start = 12
 
 # a sample function, which is just the horizontal line f(x) = 0.5
 fun f(x): 0.5 end
 
 # start the clock animation!
-start-clock(seconds-per-frame, num-slices, is-cw, clock-start)
+start-clock(frames-per-second, num-slices, is-cw, start)
 
