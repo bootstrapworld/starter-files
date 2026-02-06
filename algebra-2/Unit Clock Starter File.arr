@@ -20,9 +20,5 @@ is-cw = true
 # For example, Top = 12, Right = 3, Southwest = 7.5
 start = 12
 
-# a sample function, which is just the horizontal line f(x) = 0.5
-fun f(x): 0.5 end
-
 # start the clock animation!
 start-clock(frames-per-second, num-slices, is-cw, start)
-
