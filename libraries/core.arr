@@ -2064,8 +2064,15 @@ fun uneq-variance-t(t, col1, col2) block:
 end
 
 fun make-noisy-table(fn, min, max, noise-level) block:
-  xs = L.range-by(min, max, Math.max([list: (max - min) / 500]))
-  fn_ys = xs.map(fn)
+  samples = L.range-by(min, max, Math.max([list: (max - min) / 500]))
+  defined-points = samples.foldr(lam(sample, points): 
+      cases (Option) maybe-get-value(lam(): fn(sample) end):
+        | some(y) => link({sample;y}, points)
+        | none => points
+    end
+    end, empty)
+  xs = defined-points.map(lam(t): t.{0} end)
+  fn_ys = defined-points.map(lam(t): t.{1} end)
   noise = random-normal-distribution(xs.length() + 1)
   ys = map2(lam(x, y): x + ((noise-level * (y - 0.5))) end, fn_ys, noise)
   [T.table-from-columns: {"x"; xs}, {"y"; ys}]
@@ -2080,6 +2087,13 @@ fun make-noisy-scatter-chart(fn, min, max, noise-level) block:
 end
 
 ################# UTILITY FUNCTIONS ###########################
+
+fun maybe-get-value(f :: Function):
+  cases (Eth.Either) run-task({(): f()}):
+    | left(v) => some(v)
+    | right(v) => none
+  end
+end
 
 # courtesy of Ben Lerner
 # first, we define a data structure that we can run cases on...
