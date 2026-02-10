@@ -1205,6 +1205,7 @@ end
 box-plot-raw :: (t :: Table, vs :: String, low :: Number, high :: Number, horizontal :: Boolean, showOutliers :: Boolean) -> Image
 fun box-plot-raw(t, vs, low, high, horizontal, showOutliers) block:
   l = ensure-numbers(t.column(vs))
+  padding = (high - low) / 1000 # pad with 1000th the range
   if not(is-number(l.get(0))):
     raise(Err.message-exception("Cannot make a box plot, because the 'values' column does not contain numeric data"))
   else if (low > high):
@@ -1215,7 +1216,8 @@ fun box-plot-raw(t, vs, low, high, horizontal, showOutliers) block:
       .color(make-color(0,0,100,1))
     chart = render-chart(series)
       .title(get-5-num-summary(t, vs))
-      .min(low).max(high)
+      .min(low - padding)
+      .max(high + padding)
     img = display-chart(chart)
     title = make-title([list:"Distribution of", vs])
     above(title, add-margin(img))
