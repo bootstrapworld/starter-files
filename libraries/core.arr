@@ -1309,10 +1309,11 @@ fun scatter-plot(t, labels, xs, ys) block:
     raise(Err.message-exception("Cannot make a scatter plot, because the 'xs' and 'ys' columns must both contain numeric data"))
   else:
     series = from-list.labeled-scatter-plot(ls, ensure-numbers(t.column(xs)), ensure-numbers(t.column(ys)))
+    padding = (Math.max(t.column(ys)) - Math.min(t.column(ys))) / 100
     chart = render-chart(series).width(600).height(400)
       .x-axis(xs)
       .y-axis(ys)
-      .y-min(Math.min(t.column(ys)))
+      .y-min(Math.min(t.column(ys)) - padding)
     img = display-chart(chart)
     title = make-title([list:"", ys, "vs.", xs])
     above(title, add-margin(img))
@@ -1326,9 +1327,11 @@ fun simple-scatter-plot(t, xs, ys) block:
     raise(Err.message-exception("Cannot make a scatter plot, because the 'xs' and 'ys' columns must both contain numeric data"))
   else:
     series = from-list.scatter-plot(ensure-numbers(t.column(xs)), ensure-numbers(t.column(ys)))
+    padding = (Math.max(t.column(ys)) - Math.min(t.column(ys))) / 100
     chart = render-chart(series).width(600).height(400)
       .x-axis(xs)
       .y-axis(ys)
+      .y-min(Math.min(t.column(ys)) - padding)
     img = display-chart(chart)
     title = make-title([list:"", ys, "vs.", xs])
     above(title, add-margin(img))
@@ -1393,6 +1396,7 @@ fun lr-plot(t, ls, xs, ys) block:
   else:
     scatter = from-list.labeled-scatter-plot(labels, ensure-numbers(t.column(xs)), ensure-numbers(t.column(ys)))
       .legend("Data")
+    padding = (Math.max(t.column(ys)) - Math.min(t.column(ys))) / 100
     fn = Stats.linear-regression(t.column(xs), t.column(ys))
     fn-plot = from-list.function-plot(fn)
       .legend("Model")
@@ -1402,6 +1406,7 @@ fun lr-plot(t, ls, xs, ys) block:
       .title(make-lr-title(fn, r-sqr-num, s-num))
       .x-axis(xs)
       .y-axis(ys)
+      .y-min(Math.min(t.column(ys)) - padding)
     img = display-chart(chart)
     title = make-title([list:"", ys, "vs.", xs])
     above(title, add-margin(img))
@@ -1417,6 +1422,7 @@ fun simple-lr-plot(t, xs, ys) block:
     scatter = from-list.scatter-plot(
       ensure-numbers(t.column(xs)),
       ensure-numbers(t.column(ys)))
+    padding = (Math.max(t.column(ys)) - Math.min(t.column(ys))) / 100
     fn = Stats.linear-regression(t.column(xs), t.column(ys))
     fn-plot = from-list.function-plot(fn)
     s-num = S(t, xs, ys, fn)
@@ -1425,6 +1431,7 @@ fun simple-lr-plot(t, xs, ys) block:
       .title(make-lr-title(fn, r-sqr-num, s-num))
       .x-axis(xs)
       .y-axis(ys)
+      .y-min(Math.min(t.column(ys)) - padding)
     img = display-chart(chart)
     title = make-title([list:"", ys, "vs.", xs])
     above(title, add-margin(img))
@@ -1443,6 +1450,7 @@ fun image-lr-plot(t, xs, ys, f) block:
       ensure-numbers(t.column(xs)),
       ensure-numbers(t.column(ys)))
       .legend("Data")
+    padding = (Math.max(t.column(ys)) - Math.min(t.column(ys))) / 100
     fn = Stats.linear-regression(t.column(xs), t.column(ys))
     fn-plot = from-list.function-plot(fn)
       .legend("Model")
@@ -1452,6 +1460,7 @@ fun image-lr-plot(t, xs, ys, f) block:
       .title(make-lr-title(fn, r-sqr-num, s-num))
       .x-axis(xs)
       .y-axis(ys)
+      .y-min(Math.min(t.column(ys)) - padding)
     img = display-chart(chart)
     title = make-title([list:"", ys, "vs.", xs])
     above(title, add-margin(img))
@@ -1563,6 +1572,7 @@ fun fit-model(t, ls, xs, ys, fn) block:
     ensure-numbers(t.column(ys)))
     .legend("Data")
     .point-size(5)
+  padding = (Math.max(t.column(ys)) - Math.min(t.column(ys))) / 100
   fn-plot = from-list.function-plot(fn)
     .color(C.red)
     .legend("Model")
@@ -1581,6 +1591,7 @@ fun fit-model(t, ls, xs, ys, fn) block:
     .title(title-str)
     .x-axis(xs)
     .y-axis(ys)
+    .y-min(Math.min(t.column(ys)) - padding)
   img = display-chart(chart)
   title = make-title([list:"", ys, "vs.", xs])
   above(title, add-margin(img))
