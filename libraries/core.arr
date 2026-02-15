@@ -1384,7 +1384,7 @@ fun make-lr-title(fn, r-sqr-num, s-num) :
   r-str = easy-num-repr(r-num, 6)
   r-sqr-str = easy-num-repr(r-sqr-num, 6)
   S-str     = easy-num-repr(s-num, 9)
-  "y=" + alpha-str + "x + "  + beta-str + "  r: " + r-str + "  R²: " + r-sqr-str + "  S: " + S-str
+  "y=" + alpha-str + "x + " + beta-str + "  r: " + r-str + "  R²: " + r-sqr-str + " S: " + S-str
 end
 
 lr-plot :: (t :: Table, ls :: String, xs :: String, ys :: String) -> Image
