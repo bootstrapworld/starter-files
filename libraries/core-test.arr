@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/core", "../libraries/core.arr")
 import csv as csv
 
 height = table: player, inches
@@ -229,7 +229,7 @@ bar-chart(animals-table, "species")
 color-pie-chart(animals-table, "species", animal-color)
 color-bar-chart(animals-table, "species", animal-color)
 image-bar-chart(animals-table, "species", lam(x): circle(10,"solid","red") end)
-#color-dot-plot(animals-table, "pounds", animal-color)
+color-dot-plot(animals-table, "pounds", animal-color)
 dot-plot(animals-table, "name", "pounds")
 scatter-plot(animals-table, "name", "weeks", "pounds")
 simple-scatter-plot(animals-table, "weeks", "pounds")

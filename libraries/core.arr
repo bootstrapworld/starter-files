@@ -1106,7 +1106,7 @@ end
 
 fun color-dot-plot(t, vals, f :: (Row -> Image)) block:
   fun image-from-row(r): square(10, "solid", f(r)) end
-  image-bar-chart(t, vals, image-from-row)
+  image-dot-plot(t, vals, image-from-row)
 end
 
 fun image-dot-plot(t, vals, f :: (Row -> Image)) block:
