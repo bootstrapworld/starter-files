@@ -67,7 +67,7 @@ shadow range = lam(t :: Table, col :: String) block:
   num-to-string-digits(Math.max(l) - Math.min(l), 2)
 end
 
-fun nth-root(n, r): num-expt(n, 1 / r) end
+fun nth-root(n, r): expt(n, 1 / r) end
 
 var display-chart = lam(c): c.display() end
 
@@ -128,14 +128,14 @@ end
 
 fun get-girth(n):
   if n == 0: 0
-  else: num-floor(log-base(10, num-abs(n)))
+  else: num-floor(log-base(10, abs(n)))
   end
 end
 
 fun make-sci(underlying-num, underlying-num-str, max-chars) block:
   # spy "make-sci": underlying-num, underlying-num-str, max-chars end
   underlying-num-str-len = string-length(underlying-num-str)
-  girth = num-floor(log-base(10, num-abs(underlying-num)))
+  girth = num-floor(log-base(10, abs(underlying-num)))
   neg-girth = 0 - girth
   # spy 'girth': girth, neg-girth end
   decimal-point-position = string-index-of(underlying-num-str, '.')
@@ -376,7 +376,7 @@ fun num-to-sci(n, max-chars) block:
     else if underlying-num == 0:
       output := prefix + '0'
     else:
-      girth = num-floor(log-base(10, num-abs(underlying-num)))
+      girth = num-floor(log-base(10, abs(underlying-num)))
       sci-num-str = make-sci(underlying-num, underlying-num-str,
         max-chars-mod)
       # spy: fixme: 2, girth, underlying-num-str, sci-num-str, max-chars-mod end

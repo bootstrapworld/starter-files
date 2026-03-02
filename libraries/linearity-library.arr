@@ -16,7 +16,7 @@ end
 # MYSTERY FUNCTIONS
 
 # non-linear
-fun funA(x): num-expt(x, 3) end
+fun funA(x): expt(x, 3) end
 fun funD(x): 1 / x end
 fun funE(x): num-sqr(x) end
 fun funH(x): num-sqrt(x) end

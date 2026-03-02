@@ -70,7 +70,7 @@ fun legend(w):
     time-text("Time: " + tostring(time) + ss(time, "second")),
     scale(1.2, time-text("       [spacebar] adds one second.  [b] goes back!")))
   theight = height-text("Height: " + num-to-string-digits(height, 4) + ss(height, "meter"))
-  light-text = if num-abs(speed) > 299792458:
+  light-text = if abs(speed) > 299792458:
     "  That's faster than light!"
   else:
     ""
@@ -122,7 +122,7 @@ end
 
 fun rocket-scale(height):
   k = 40
-  h = 2 + num-abs(height)
+  h = 2 + abs(height)
   d = num-log(k * h)
   num-max(
     1/25,
@@ -154,7 +154,7 @@ fun graph-draw-world(w):
   end
 
   {seconds; fn} = w
-  x-step = num-max(1, num-round(num-abs(seconds) / NUM-MARKS))
+  x-step = num-max(1, num-round(abs(seconds) / NUM-MARKS))
   x-seconds = marks(num-min(0, seconds), num-max(0, seconds), x-step)
   y-outputs = map(fn, x-seconds)
   biggest-y = reduce(num-max, y-outputs)
@@ -307,12 +307,12 @@ fun sanity-checks():
     lam(s): s / 3 end,
     lam(s): 500 + (s * -7) end,
     num-sqr
-    #    lam(s): num-expt(s, 5) end,
-    #|lam(s): num-expt(3.1415, s) end
-    lam(s): num-expt(num-abs(s) + 1, -5) end,
-    lam(s): num-expt(-2, s) end,
-    lam(s): num-expt(s, 7) end,
-    lam(s): num-expt(10, s) end|#
+    #    lam(s): expt(s, 5) end,
+    #|lam(s): expt(3.1415, s) end
+    lam(s): expt(abs(s) + 1, -5) end,
+    lam(s): expt(-2, s) end,
+    lam(s): expt(s, 7) end,
+    lam(s): expt(10, s) end|#
   ]
   times = [list: -10, -1, 0, 1, 2, 3, 5, 10, 30, 80, 200]
   fun at-times(test-fn):

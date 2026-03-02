@@ -27,6 +27,6 @@ end
 
 examples:
 
-  num-expt(-6, 2) - 11 is 25
+  expt(-6, 2) - 11 is 25
 
 end
