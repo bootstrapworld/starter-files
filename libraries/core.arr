@@ -50,6 +50,8 @@ provide:
   module L
 end
 
+var debugging = false
+
 
 data Posn:
   | posn(x :: Number, y :: Number)
@@ -69,7 +71,10 @@ end
 
 fun nth-root(n, r): expt(n, 1 / r) end
 
-var display-chart = lam(c): c.display() end
+var display-chart = lam(c) block: 
+  when debugging: print(c.get-spec()) end
+  c.display() 
+end
 
 #################################################
 # Numerical functions
