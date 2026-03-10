@@ -2183,7 +2183,7 @@ fun blend-images(imgA, imgB) block:
 
   width = num-max(image-width(imgA), image-width(imgB))
   height = num-max(image-height(imgA), image-height(imgB))
-  bg = rectangle(width, height, "solid", "transparent")
+  bg = rectangle(width, height, "solid", "white")
   pixelsA = image-to-color-list(overlay(imgA, bg))
   pixelsB = image-to-color-list(overlay(imgB, bg))
   pixelsAB = map2(
