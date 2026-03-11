@@ -2169,21 +2169,27 @@ end
 shadow translate = put-image
 
 ################################################################
-######################### BLEND IMAGES ########################
+#################### BLEND & INVERT IMAGES #####################
 
 
-fun blend-images(imgA, imgB) block:
+shadow blend-images = lam(imgA, imgB) block:
+  # if A is transparent, use B
+  # if B is transparent, use A
+  # otherwise, average them together
   fun blend-pixels(A, B):
-    make-color(
-      num-round((A.red   + B.red  ) / 2),
-      num-round((A.green + B.green) / 2),
-      num-round((A.blue  + B.blue ) / 2),
-      num-round((A.alpha + B.alpha) / 2))
+    if (A.alpha == 0): B
+    else if (B.alpha == 0): A
+    else: make-color(
+        num-round((A.red   + B.red  ) / 2),
+        num-round((A.green + B.green) / 2),
+        num-round((A.blue  + B.blue ) / 2),
+        num-round((A.alpha + B.alpha) / 2))
+    end
   end
 
   width = num-max(image-width(imgA), image-width(imgB))
   height = num-max(image-height(imgA), image-height(imgB))
-  bg = rectangle(width, height, "solid", "white")
+  bg = rectangle(width, height, "solid", "transparent")
   pixelsA = image-to-color-list(overlay(imgA, bg))
   pixelsB = image-to-color-list(overlay(imgB, bg))
   pixelsAB = map2(
@@ -2191,6 +2197,19 @@ fun blend-images(imgA, imgB) block:
     pixelsA,
     pixelsB)
   color-list-to-image(pixelsAB, width, height, num-round(width / 2), num-round(height / 2))
+end
+
+fun invert(img) block:
+  pixels = image-to-color-list(img)
+  
+  fun invert-pixel(p):
+    make-color(255 - p.red, 255 - p.green, 255 - p.blue, p.alpha)
+  end
+  
+  inverted-pixels = map(invert-pixel, pixels)
+  width = image-width(img)
+  height = image-height(img)
+  color-list-to-image(inverted-pixels, width, height, num-round(width / 2), num-round(height / 2))
 end
 
 
