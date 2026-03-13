@@ -1,11 +1,11 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations", "../libraries/core.arr")
 
 #Question 1 & 2
-Azara = text("Azara", 150, "yellow")
-A1 = flip-vertical(Azara)
-A2 = rotate(90, Azara)
-A3 = flip-vertical(flip-horizontal(Azara))
-A4 = rotate(180, Azara)
+ImageA = text("Azara", 150, "yellow")
+A1 = flip-vertical(ImageA)
+A2 = rotate(90, ImageA)
+A3 = flip-vertical(flip-horizontal(ImageA))
+A4 = rotate(180, ImageA)
 
 #Questions 3 and 4:
 B1 = rectangle(20, 80, "solid", "blue")
