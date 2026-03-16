@@ -622,7 +622,7 @@ fun get-labels(t, ls) block:
         end
       end)
   else:
-    ls-col.map(to-repr)
+    ls-col.map(to-string)
   end
 end
 
