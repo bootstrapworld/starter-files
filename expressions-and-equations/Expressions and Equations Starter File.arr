@@ -9,6 +9,8 @@ yellow-rect  = rectangle(120, 60, "solid", "yellow")
 bootstrap    = text("BootStrap", 50, "green")
 blue-ellipse = ellipse(60, 30, "solid", "blue")
 
+clear-circle = circle(150, "solid", "transparent")
+
 dog = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/puppy.png")
 
 hello = text("hello", 40, "red") 
