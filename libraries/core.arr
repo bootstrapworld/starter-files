@@ -2171,47 +2171,90 @@ shadow translate = put-image
 ################################################################
 #################### BLEND & INVERT IMAGES #####################
 
+# luminance :: Color -> Number
+# computes the perceptual luminance of a pixel using the
+# standard ITU-R BT.709 coefficients
+fun luminance(c) -> Number:
+  (0.2126 * c.red) + (0.7152 * c.green) + (0.0722 * c.blue)
+end
 
-shadow blend-images = lam(imgA, imgB) block:
-  # if A is transparent, use B
-  # if B is transparent, use A
-  # otherwise, average them together
-  fun blend-pixels(A, B):
-    if (A.alpha == 0): B
-    else if (B.alpha == 0): A
-    else: make-color(
-        num-round((A.red   + B.red  ) / 2),
-        num-round((A.green + B.green) / 2),
-        num-round((A.blue  + B.blue ) / 2),
-        num-round((A.alpha + B.alpha) / 2))
-    end
+# pixels-to-image :: (List<Color>, Number, Number) -> Image
+# shared helper that converts a pixel list back into an image,
+# centering the pinhole
+fun pixels-to-image(pixels, width, height) -> Image:
+  color-list-to-image(pixels, width, height, num-round(width / 2), num-round(height / 2))
+end
+
+# combine-pixels :: (Image, Image, (Color, Color -> Color)) -> Image
+# merges two same-sized images pixel-by-pixel using the given pick
+# function. transparency handling is the responsibility of the caller.
+fun combine-pixels(img1 :: Image, img2 :: Image, pick :: (C.Color, C.Color -> C.Color)) -> Image:
+  width  = image-width(img1)
+  height = image-height(img1)
+  new-px-list = for map2(c1 from image-to-color-list(img1), c2 from image-to-color-list(img2)):
+    pick(c1, c2)
   end
+  pixels-to-image(new-px-list, width, height)
+end
 
-  width = num-max(image-width(imgA), image-width(imgB))
+# lighter :: (Image, Image) -> Image
+# produces an image where each pixel is whichever of the two
+# input pixels has higher luminance. transparent pixels pass through.
+fun lighter(img1 :: Image, img2 :: Image) -> Image:
+  combine-pixels(img1, img2, lam(c1, c2):
+    if c1.alpha == 0: c1
+    else if c2.alpha == 0: c2
+    else if luminance(c1) >= luminance(c2): c1
+    else: c2
+    end
+  end)
+end
+
+# darker :: (Image, Image) -> Image
+# produces an image where each pixel is whichever of the two
+# input pixels has lower luminance. transparent pixels pass through.
+fun darker(img1 :: Image, img2 :: Image) -> Image:
+  combine-pixels(img1, img2, lam(c1, c2):
+    if c1.alpha == 0: c1
+    else if c2.alpha == 0: c2
+    else if luminance(c1) <= luminance(c2): c1
+    else: c2
+    end
+  end)
+end
+
+# blend-images :: (Image, Image) -> Image
+# averages the RGB and alpha channels of each pair of pixels.
+# transparent pixels in either image show through to the other.
+# handles images of different sizes by padding both to the same dimensions.
+shadow blend-images = lam(imgA :: Image, imgB :: Image) -> Image:
+  width  = num-max(image-width(imgA),  image-width(imgB))
   height = num-max(image-height(imgA), image-height(imgB))
   bg = rectangle(width, height, "solid", "transparent")
-  pixelsA = image-to-color-list(overlay(imgA, bg))
-  pixelsB = image-to-color-list(overlay(imgB, bg))
-  pixelsAB = map2(
-    blend-pixels,
-    pixelsA,
-    pixelsB)
-  color-list-to-image(pixelsAB, width, height, num-round(width / 2), num-round(height / 2))
+  combine-pixels(overlay(imgA, bg), overlay(imgB, bg), lam(c1, c2):
+    if c1.alpha == 0: c2
+    else if c2.alpha == 0: c1
+    else:
+      make-color(
+        num-round((c1.red   + c2.red)   / 2),
+        num-round((c1.green + c2.green) / 2),
+        num-round((c1.blue  + c2.blue)  / 2),
+        num-round((c1.alpha + c2.alpha) / 2))
+    end
+  end)
 end
 
-fun invert(img) block:
-  pixels = image-to-color-list(img)
-  
-  fun invert-pixel(p):
-    make-color(255 - p.red, 255 - p.green, 255 - p.blue, p.alpha)
-  end
-  
-  inverted-pixels = map(invert-pixel, pixels)
-  width = image-width(img)
+# invert :: Image -> Image
+# inverts the RGB channels of each pixel, preserving alpha
+fun invert(img :: Image) -> Image:
+  width  = image-width(img)
   height = image-height(img)
-  color-list-to-image(inverted-pixels, width, height, num-round(width / 2), num-round(height / 2))
+  pixels-to-image(
+    image-to-color-list(img).map(lam(p):
+      make-color(255 - p.red, 255 - p.green, 255 - p.blue, p.alpha)
+    end),
+    width, height)
 end
-
 
 
 ################################################################
