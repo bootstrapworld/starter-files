@@ -2179,6 +2179,16 @@ fun luminance(c) -> Number:
   (0.2126 * c.red) + (0.7152 * c.green) + (0.0722 * c.blue)
 end
 
+# Convert an RGB color to a grayscale intensity (0-255)
+# Uses the standard luminance-weighted formula
+fun color-to-gray(c :: C.Color) -> Number:
+  num-round(
+    (0.299 * c.red) +
+    (0.587 * c.green) +
+    (0.114 * c.blue)
+  )
+end
+
 # pixels-to-image :: (List<Color>, Number, Number) -> Image
 # shared helper that converts a pixel list back into an image,
 # centering the pinhole
@@ -2224,6 +2234,19 @@ fun darker(img1 :: Image, img2 :: Image) -> Image:
   end)
 end
 
+# grayscale :: (Image) -> Image
+# produces an identical image in which all pixels
+# have been converted to grayscale
+fun grayscale(img :: Image) -> Image:
+  pixels-to-image(
+    image-to-color-list(img).map(lam(p) block:
+        g = color-to-gray(p)
+        make-color(g, g, g, p.alpha)
+      end),
+    image-width(img),
+    image-height(img))
+end
+    
 # blend-images :: (Image, Image) -> Image
 # averages the RGB and alpha channels of each pair of pixels.
 # transparent pixels in either image show through to the other.
