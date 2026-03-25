@@ -48,6 +48,7 @@ provide:
   module SD,
   module R,
   module L
+  module Stats
 end
 
 var debugging = false
