@@ -47,7 +47,7 @@ provide:
   module T,
   module SD,
   module R,
-  module L
+  module L,
   module Stats
 end
 
