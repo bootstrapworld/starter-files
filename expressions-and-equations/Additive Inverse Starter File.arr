@@ -1,33 +1,19 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations", "../libraries/core.arr")
 
-########### 1: The Additive Inverse ################
+butterfly  = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/butterfly.png")
+butterfly2 = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/butterfly2.png")
 
-examples "Part 1":
-  
-  (54 + -54) == 0        is true
-  0 == (-6 + 6)          is true
-  (28 + -28) == 0        is true
-  (5 + -5) == (-600 + 600) is true
-  (-9.2 + 9.2) == 0      is true
+cat  = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/cat.png")
+cat2 = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/cat2.png")
 
-end
+dove  = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/dove.png")
+dove2 = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/dove2.png")
 
-####### 2: Subtraction = Adding the Opposite ######
+tractor  = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/tractor.png")
+tractor2 = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/tractor2.png")
 
-examples "Part 2":
-  
-  (30 -  5) == (30 +   5) is true
-  (11 + -9) == (11 -   9) is true
-  ( 5 - 30) == (5  - -30) is true
-  (24 + -4) == (24 - -4)  is true
-  (60 - 55) == (60 + -55) is true
-  
-end 
-  
-######### 3: My Own Example Block ###################
+imageA = put-image(circle(20, "solid", "white"), 55, 25,rectangle(100,50,"solid","black"))
+imageB = put-image(circle(20, "solid", "black"), 75, 25,rectangle(100,50,"solid","white"))
 
-examples "Part 3":
-  
-  (45 + -5) == (45 - 4)   is true
-  
-end 
+imageC = overlay(radial-star(10, 30, 60, "solid", "dark-grey"), circle(60, "solid", "white"))  
+imageD = overlay(radial-star(10, 30, 60, "solid", "light-grey"), circle(60, "solid", "black"))
