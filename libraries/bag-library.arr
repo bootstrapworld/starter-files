@@ -23,6 +23,7 @@ data Model:
   | model(t :: Table) with:
     method _output(self) block:
       cols = self.t.column-names()
+      # re-make the table, truncating any string vals > MAX-DOC-LEN
       t = for fold(t from self.t, col from cols):
         t.transform-column(col, lam(v):
             if not(is-string(v) and (string-length(v) > MAX-DOC-LEN)): v
@@ -97,7 +98,7 @@ fun add-color-names(m :: Model) -> Model block:
     else: "blue"
     end
   end
-  model(build-column(m.t, "COLOR-NAMES", lam(r): image-to-color-list(r["DOC"])
+  model(m.t.build-column("COLOR-NAMES", lam(r): image-to-color-list(r["DOC"])
           .filter(lam(pixel): pixel.alpha > 0 end)
           .map(dominant-color)
           .join-str(" ")
@@ -106,7 +107,7 @@ end
 
 SMALL-IMAGE-WIDTH = 100
 fun shrink-images(m :: Model) -> Model:
-  model(transform-column(m.t, "DOC", lam(img):
+  model(m.t.transform-column("DOC", lam(img):
         factor = SMALL-IMAGE-WIDTH / image-width(img)
         scale(factor, img)
       end))
@@ -114,7 +115,7 @@ end
 
 # For every row, compute luminance of the DOC image
 fun add-luminance(m :: Model) -> Model:
-  model(build-column(m.t, "LUMINANCE", lam(r):
+  model(m.t.build-column("LUMINANCE", lam(r):
         avg-luminance = Stats.mean(image-to-color-list(r["DOC"]).map(luminance))
         num-exact(num-round-to(avg-luminance, 10))
       end))
@@ -132,7 +133,7 @@ fun add-entropy(m :: Model) -> Model block:
         entropy-sum(rest, freq, total, acc - contribution)
     end
   end
-  model(build-column(m.t, "ENTROPY", lam(r):
+  model(m.t.build-column("ENTROPY", lam(r):
         # Build a frequency table of grayscale values as a StringDict
         fun build-freq(pixels :: List, acc :: SD.StringDict) -> SD.StringDict:
           cases (List) pixels:
@@ -153,7 +154,7 @@ end
 
 # For every row, compute the dominant color of the DOC image
 fun add-color(m :: Model) -> Model:
-  model(build-column(m.t, "MAIN-COLOR", lam(r):
+  model(m.t.build-column("MAIN-COLOR", lam(r):
         fun pixel-color(p): (p.red * sqr(256)) + (p.green * 256) + p.blue end
         color-encodings = image-to-color-list(r["DOC"]).map(pixel-color)
         num-exact(num-round-to(Stats.mean(color-encodings), 10))
@@ -180,15 +181,6 @@ end
 # "a" etc.) that carry little meaning and can be ignored when comparing
 # DOCs for similarity. From Fox (1990).
 standard-stop-words = [list: "the", "and", "a", "that", "was", "for", "with", "not", "on", "at", "i", "had", "are", "or", "an", "they", "one", "would", "all", "there", "their", "him", "has", "when", "if", "out", "what", "up", "about", "into", "can", "other", "some", "time", "two", "then", "do", "now", "such", "man", "our", "even", "made", "after", "many", "must", "years", "much", "your", "down", "should", "of", "to", "in", "is", "he", "it", "as", "his", "be", "by", "this", "but", "from", "have", "you", "which", "were", "her", "she", "will", "we", "been", "who", "more", "no", "so", "said", "its", "than", "them", "only", "new", "could", "these", "may", "first", "any", "my", "like", "over", "me", "most", "also", "did", "before", "through", "where", "back", "way", "well", "because", "each", "people", "state", "mr", "how", "make", "still", "own", "work", "long", "both", "under", "never", "same", "while", "last", "might", "day", "since", "come", "great", "three", "go", "few", "use", "without", "place", "old", "small", "home", "went", "once", "school", "every", "united", "number", "does", "away", "water", "fact", "though", "enough", "almost", "took", "night", "system", "general", "better", "why", "end", "find", "asked", "going", "knew", "toward", "just", "those", "too", "world", "very", "good", "see", "men", "here", "get", "between", "year", "another", "being", "life", "know", "us", "off", "against", "came", "right", "states", "take", "himself", "during", "again", "around", "however", "mrs", "thought", "part", "high", "upon", "say", "used", "war", "until", "always", "something", "public", "put", "think", "head", "far", "hand", "set", "nothing", "point", "house", "later", "eyes", "next", "program", "give", "white", "room", "social", "young", "present", "order", "second", "possible", "light", "face", "important", "among", "early", "need", "within", "business", "felt", "best", "ever", "least", "got", "mind", "want", "others", "although", "open", "area", "done", "certain", "door", "different", "sense", "help", "perhaps", "group", "side", "several", "let", "national", "given", "rather", "per", "often", "god", "things", "large", "big", "become", "case", "along", "four", "power", "saw", "less", "thing", "today", "interest", "turned", "members", "family", "problem", "kind", "began", "thus", "seemed", "whole", "itself"]
-#|
-   # remove-stop-words filters a list of words, removing
-   # any that appear in the standard stop words list
-   fun remove-stops(s :: String) -> String:
-  string-split-all(s, ' ')
-    .filter({(w): not(standard-stop-words.member(w))})
-    .join-str(' ')
-   end
-|#
 
 # normalize the "DOC" column by:
 # 1) massaging the string (lowercase + remove punctuation)
@@ -196,7 +188,7 @@ standard-stop-words = [list: "the", "and", "a", "that", "was", "for", "with", "n
 # 3) filtering out any empty strings
 fun normalize(m :: Model, remove-stops :: Boolean) -> Model block:
   fun is-non-empty-string(w :: String) -> Boolean:  w <> '' end
-  model(build-column(m.t, "NORMALIZED",
+  model(m.t.build-column("NORMALIZED",
       lam(r): string-split-all(massage-string(string-to-lower(r["DOC"])), ' ')
           .filter(is-non-empty-string)
           .filter({(w):
@@ -204,6 +196,26 @@ fun normalize(m :: Model, remove-stops :: Boolean) -> Model block:
             else: true
             end})
           .join-str(' ')
+      end))
+end
+
+# grade-level :: Model -> Model
+# consumes text and produces the great level according
+# to Flesch-Kincaid:
+# Grade = .39(words/sentences)+11.8(syllables/words)-15.59
+# https://en.wikipedia.org/wiki/Flesch%E2%80%93Kincaid_readability_tests
+fun add-grade-level(m :: Model) -> Model:
+  model(m.t.build-column("GRADE-LEVEL",
+      lam(r):
+        total-words = num-words(r["DOC"])
+        total-sentences = num-sentences(r["DOC"])
+        total-syllables = num-syllables(r["DOC"])
+        num-exact(
+          num-round-to(
+            ((0.39 * (total-words / total-sentences)) +
+              (11.8 * (total-syllables / total-words))) -
+            15.59,
+            10))
       end))
 end
 
@@ -241,6 +253,7 @@ end
 fun longest-snaps(s): longest-streak(s, "🫰") end
 fun longest-clap(s):  longest-streak(s, "👏") end
 fun longest-stomp(s): longest-streak(s, "🦶") end
+
 
 
 ##############################################################################################################
@@ -316,6 +329,18 @@ fun recommend(m :: Model) -> Model block:
 end
 
 
+fun search-by-centroid(m, centroid):
+  model(m.t
+      .build-column("similarity", {(r): cosine-similarity(centroid, r)})
+      .order-by("similarity", false))
+end
+
+fun search-by-tag(m, tag):
+  matching-docs = model(
+    m.t.filter({(r): string-split-all(r["TAGS"], ",").member(tag) }))
+  centroid = build-centroid(matching-docs)
+  search-by-centroid(m, centroid)
+end
 ##############################################################################################################
 # Bag Of Words Tools
 
@@ -480,7 +505,7 @@ end
 fun cosine-similarity(r1 :: Row, r2 :: Row) -> Number block:
   cols = get-unrestricted-cols(r1)
   when cols.length() < 2:
-    raise("Cosine and angle similarity require at least two columns to work with (not counting any existing 'ID' and 'DOC' columns)")
+    raise("Cosine and angle similarity require at least 2 quantitative columns.")
   end
   # convert each row to a StringDict, and compute cosine similarity
   sd-cos-sim(row-to-dict(cols, r1), row-to-dict(cols, r2))
@@ -496,7 +521,7 @@ end
 fun compute-similarity(m :: Model, id, fn) block:
   compare-to = row-n(m.t.filter({(r): r["ID"] == id}), 0)
   fun compare-row(r): fn(r, compare-to) end
-  model(build-column(m.t, "similarity", compare-row))
+  model(m.t.build-column("similarity", compare-row))
 end
 
 
@@ -546,4 +571,10 @@ shadow lr-plot = lam(m :: Model, ls :: String, xs :: String, ys :: String):
 end
 shadow fit-model = lam(m :: Model, ls :: String, xs :: String, ys :: String, fn):
   fit-model(m.t, ls, xs, ys, fn)
+end
+shadow filter = lam(m :: Model, fn :: (Row -> Boolean)) -> Model:
+  model(filter(m.t, fn))
+end
+shadow build-column = lam(m :: Model, col :: String, fn :: (Row -> Any)) -> Model:
+  model(build-column(m.t, col, fn))
 end
