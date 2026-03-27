@@ -2226,12 +2226,12 @@ end
 # input pixels has lower luminance. transparent pixels pass through.
 fun darker(img1 :: Image, img2 :: Image) -> Image:
   combine-pixels(img1, img2, lam(c1, c2):
-    if c1.alpha == 0: c1
-    else if c2.alpha == 0: c2
-    else if luminance(c1) <= luminance(c2): c1
-    else: c2
-    end
-  end)
+      if c1.alpha == 0: c2
+      else if c2.alpha == 0: c1
+      else if luminance(c1) <= luminance(c2): c1
+      else: c2
+      end
+    end)
 end
 
 # grayscale :: (Image) -> Image
