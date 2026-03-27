@@ -2286,7 +2286,7 @@ end
 
 num-words :: String -> Number
 fun num-words(txt):
-  string-split-all(txt, " ").filter({(w): w <> ""})length()
+  string-split-all(txt, " ").filter({(w): w <> ""}).length()
 end
 
 
