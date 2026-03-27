@@ -47,6 +47,51 @@ fun get-unrestricted-cols(r):
   r.get-column-names().filter({(c): not(member(restricted-cols, c))})
 end
 
+
+########################################################################
+# Wrap DS chart functions
+shadow mean   = lam(m :: Model, col): mean(m.t, col) end
+shadow median = lam(m :: Model, col): median(m.t, col) end
+shadow modes  = lam(m :: Model, col): modes(m.t, col) end
+
+shadow row-n  = lam(m :: Model, index): m.t.row-n(index) end
+shadow count  = lam(m :: Model, col): count(m.t, col) end
+shadow stdev  = lam(m :: Model, col): stdev(m.t, col) end
+
+shadow bar-chart = lam(m :: Model, col): bar-chart(m.t, col) end
+shadow multi-bar-chart = lam(m :: Model, col1, col2):
+  multi-bar-chart(m.t, col1, col2)
+end
+shadow stacked-bar-chart = lam(m :: Model, col1, col2):
+  stacked-bar-chart(m.t, col1, col2)
+end
+
+shadow pie-chart = lam(m :: Model, col): pie-chart(m.t, col) end
+shadow box-plot  = lam(m :: Model, col): box-plot(m.t, col) end
+shadow dot-plot  = lam(m :: Model, ls, vs): dot-plot(m.t, ls, vs) end
+shadow histogram = lam(m :: Model, ls, vs, bin-width):
+  histogram(m.t, ls, vs, bin-width)
+end
+
+shadow scatter-plot = lam(m :: Model, ls :: String, xs :: String, ys :: String):
+  scatter-plot(m.t, ls, xs, ys)
+end
+shadow image-scatter-plot = lam(m :: Model, ls :: String, xs :: String, ys :: String, fn :: (Row -> Image)):
+  image-scatter-plot(m.t, ls, xs, ys, fn)
+end
+shadow lr-plot = lam(m :: Model, ls :: String, xs :: String, ys :: String):
+  lr-plot(m.t, ls, xs, ys)
+end
+shadow fit-model = lam(m :: Model, ls :: String, xs :: String, ys :: String, fn):
+  fit-model(m.t, ls, xs, ys, fn)
+end
+shadow filter = lam(m :: Model, fn :: (Row -> Boolean)) -> Model:
+  model(filter(m.t, fn))
+end
+shadow build-column = lam(m :: Model, col :: String, fn :: (Row -> Any)) -> Model:
+  model(build-column(m.t, col, fn))
+end
+
 ########################################################################
 # Model Data Structure
 # Load the spreadsheet and define our tables
@@ -219,10 +264,6 @@ fun add-grade-level(m :: Model) -> Model:
       end))
 end
 
-
-##############################################################################################################
-# Song Helpers
-
 fun longest-streak(str :: String, target :: String) -> Number:
   words = string-split-all(str, " ")
 
@@ -249,15 +290,16 @@ where:
   longest-streak("sand sun sea", "cyan")            is 0
   longest-streak("sun sun sand sun sun sun", "sun") is 3
 end
+##############################################################################################################
+# Song Helpers
 
 fun longest-snaps(s): longest-streak(s, "🫰") end
 fun longest-clap(s):  longest-streak(s, "👏") end
 fun longest-stomp(s): longest-streak(s, "🦶") end
 
 
-
 ##############################################################################################################
-# Ratings & Recommendations
+# Ratings, Recommendations, and Search
 
 # Given a table, recursively build the centroid as a StringDict
 # by averaging each non-restricted column. Use exactnum to allow
@@ -292,9 +334,9 @@ examples:
   build-centroid(_centroid-test) is [T.raw-row: {"ID";"CENTROID"},{"DOC";""}, {"RATING";""}, {"TAGS";""},{"x";3},{"y";3}]
 end
 
-fun likes(m):    model(filter(m.t, {(r): r["RATING"] == "like"    })) end
-fun dislikes(m): model(filter(m.t, {(r): r["RATING"] == "dislike" })) end
-fun unrated(m):  model(filter(m.t, {(r): r["RATING"] == "-"       })) end
+fun likes(m):    model(m.t.filter({(r): r["RATING"] == "like"    })) end
+fun dislikes(m): model(m.t.filter({(r): r["RATING"] == "dislike" })) end
+fun unrated(m):  model(m.t.filter({(r): r["RATING"] == "-"       })) end
 
 
 
@@ -329,9 +371,9 @@ fun recommend(m :: Model) -> Model block:
 end
 
 
-fun search-by-centroid(m, centroid):
+fun search-by-row(m, row):
   model(m.t
-      .build-column("similarity", {(r): cosine-similarity(centroid, r)})
+      .build-column("similarity", {(r): cosine-similarity(row, r)})
       .order-by("similarity", false))
 end
 
@@ -339,7 +381,7 @@ fun search-by-tag(m, tag):
   matching-docs = model(
     m.t.filter({(r): string-split-all(r["TAGS"], ",").member(tag) }))
   centroid = build-centroid(matching-docs)
-  search-by-centroid(m, centroid)
+  search-by-row(m, centroid)
 end
 ##############################################################################################################
 # Bag Of Words Tools
@@ -519,7 +561,7 @@ end
 
 
 fun compute-similarity(m :: Model, id, fn) block:
-  compare-to = row-n(m.t.filter({(r): r["ID"] == id}), 0)
+  compare-to = m.t.filter({(r): r["ID"] == id}).row-n(0)
   fun compare-row(r): fn(r, compare-to) end
   model(m.t.build-column("similarity", compare-row))
 end
@@ -529,52 +571,27 @@ song-model  = add-bag-cols(song-corpus, "DOC")
 poem-model  = add-bag-cols(normalize(poem-corpus, true), "NORMALIZED")
 text-model  = add-bag-cols(normalize(text-corpus, true), "NORMALIZED")
 
+# shrink the images for performance - how small before losing accuracy?
 small-images = shrink-images(image-corpus)
+image-model =
+  add-bag-cols(
+    add-color-names(
+      add-luminance(
+        add-entropy(small-images))),
+    "COLOR-NAMES")
 
-image-model = add-bag-cols(add-color-names(add-luminance(add-entropy(small-images))), "COLOR-NAMES")
+# search for images tagged with "sun" (or similar)
+# search-by-tag(image-model, "sun")
 
+# find images closest to the liked images
+# loved-images    = likes(image-model)
+# loathed-images = dislikes(image-model)
+# img-preference  = build-centroid(loved-images)
+# img-aversion    = build-centroid(loathed-images)
+# search-by-row(image-model, img-preference)
+# search-by-row(image-model, img-aversion
 
+# find images closest to the liked images AND
+#     farthest away from the disliked ones
+# recommend(image-model)
 
-########################################################################
-# Wrap DS chart functions
-shadow mean   = lam(m :: Model, col): mean(m.t, col) end
-shadow median = lam(m :: Model, col): median(m.t, col) end
-shadow modes  = lam(m :: Model, col): modes(m.t, col) end
-
-shadow row-n  = lam(m :: Model, index): m.t.row-n(index) end
-shadow count  = lam(m :: Model, col): count(m.t, col) end
-shadow stdev  = lam(m :: Model, col): stdev(m.t, col) end
-
-shadow bar-chart = lam(m :: Model, col): bar-chart(m.t, col) end
-shadow multi-bar-chart = lam(m :: Model, col1, col2):
-  multi-bar-chart(m.t, col1, col2)
-end
-shadow stacked-bar-chart = lam(m :: Model, col1, col2):
-  stacked-bar-chart(m.t, col1, col2)
-end
-
-shadow pie-chart = lam(m :: Model, col): pie-chart(m.t, col) end
-shadow box-plot  = lam(m :: Model, col): box-plot(m.t, col) end
-shadow dot-plot  = lam(m :: Model, ls, vs): dot-plot(m.t, ls, vs) end
-shadow histogram = lam(m :: Model, ls, vs, bin-width):
-  histogram(m.t, ls, vs, bin-width)
-end
-
-shadow scatter-plot = lam(m :: Model, ls :: String, xs :: String, ys :: String):
-  scatter-plot(m.t, ls, xs, ys)
-end
-shadow image-scatter-plot = lam(m :: Model, ls :: String, xs :: String, ys :: String, fn :: (Row -> Image)):
-  image-scatter-plot(m.t, ls, xs, ys, fn)
-end
-shadow lr-plot = lam(m :: Model, ls :: String, xs :: String, ys :: String):
-  lr-plot(m.t, ls, xs, ys)
-end
-shadow fit-model = lam(m :: Model, ls :: String, xs :: String, ys :: String, fn):
-  fit-model(m.t, ls, xs, ys, fn)
-end
-shadow filter = lam(m :: Model, fn :: (Row -> Boolean)) -> Model:
-  model(filter(m.t, fn))
-end
-shadow build-column = lam(m :: Model, col :: String, fn :: (Row -> Any)) -> Model:
-  model(build-column(m.t, col, fn))
-end
