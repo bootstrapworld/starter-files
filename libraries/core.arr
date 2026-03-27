@@ -2280,6 +2280,47 @@ fun invert(img :: Image) -> Image:
     width, height)
 end
 
+################################################################
+###################### TEXT TOOLS ##################
+
+
+num-words :: String -> Number
+fun num-words(txt):
+  string-split-all(txt, " ").filter({(w): w <> ""})length()
+end
+
+
+num-sentences :: String -> Number
+fun num-sentences(txt): string-split-all(txt, ". ").length() end
+
+# count-syllables :: String -> Number
+# consumes text, breaks it into words, then produces the
+# sum of their syllables
+# crude algorithm from https://stackoverflow.com/questions/49754440/count-syllables-function-scheme
+fun num-syllables(txt):
+  vowels = [list: "a", "e", "i", "o", "u"]
+  fun syllables(lst):
+    ask:
+      | L.is-empty(lst) then: 0
+      | vowels.member(lst.get(0)) then:
+        1 + skip-vowels(lst.rest)
+      | otherwise: syllables(lst.rest)
+    end
+  end
+
+  fun skip-vowels(lst):
+    ask:
+    | L.is-empty(lst) then: syllables([list:])
+      | vowels.member(lst.get(0)) then: skip-vowels(lst.rest)
+      | otherwise: syllables(lst)
+    end
+  end
+  words = string-split(txt, " ")
+  words.foldl(lam(w, shadow count):
+    count + syllables(string-explode(w)) end,
+    0)
+end
+
 
 ################################################################
 ###################### INEQUALITIES SIMULATOR ##################
