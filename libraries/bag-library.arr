@@ -93,7 +93,6 @@ shadow build-column = lam(m :: Model, col :: String, fn :: (Row -> Any)) -> Mode
 end
 
 ########################################################################
-# Model Data Structure
 # Load the spreadsheet and define our tables
 data-sheet = load-spreadsheet(
   "https://docs.google.com/spreadsheets/d/1e_3op5DNDUOAjInXtlrzQ0fKZSuASd65E9-VEjNyteo/")
@@ -128,7 +127,7 @@ text-corpus = model(load-table: ID, DOC, RATING, TAGS
 mystery-text = "The okapi is classified under the family Giraffidae, along with its closest extant relative, the giraffe. Its distinguishing characteristics are its long neck, and large, flexible ears. Male okapis have horn-like protuberances called ossicones. "
 
 
-##############################################################################################################
+##################################################################################
 # Image Helpers
 
 # add-color-names :: Model -> Model
@@ -205,7 +204,7 @@ fun add-color(m :: Model) -> Model:
         num-exact(num-round-to(Stats.mean(color-encodings), 10))
       end))
 end
-##############################################################################################################
+###################################################################################
 # Text Helpers
 
 fun massage-string(w :: String) -> String block:
@@ -245,7 +244,7 @@ fun normalize(m :: Model, remove-stops :: Boolean) -> Model block:
 end
 
 # grade-level :: Model -> Model
-# consumes text and produces the great level according
+# consumes the "DOC" column and produces the great level according
 # to Flesch-Kincaid:
 # Grade = .39(words/sentences)+11.8(syllables/words)-15.59
 # https://en.wikipedia.org/wiki/Flesch%E2%80%93Kincaid_readability_tests
@@ -290,7 +289,7 @@ where:
   longest-streak("sand sun sea", "cyan")            is 0
   longest-streak("sun sun sand sun sun sun", "sun") is 3
 end
-##############################################################################################################
+###################################################################################
 # Song Helpers
 
 fun longest-snaps(s): longest-streak(s, "🫰") end
@@ -298,7 +297,7 @@ fun longest-clap(s):  longest-streak(s, "👏") end
 fun longest-stomp(s): longest-streak(s, "🦶") end
 
 
-##############################################################################################################
+###################################################################################
 # Ratings, Recommendations, and Search
 
 # Given a table, recursively build the centroid as a StringDict
@@ -323,7 +322,7 @@ fun build-centroid(m :: Model) -> Row:
         end
     end
   end
-  # compute all the averages in reverse-order (since L.link reverses)
+  # compute all the averages in reverse-order (since add-col-avgs also reverses)
   averages = add-col-avgs(cols.reverse(), [list:])
   restricted = [list: {"ID";"CENTROID"}, {"DOC";""}, {"RATING";""}, {"TAGS";""}]
   T.raw-row.make(raw-array-from-list(L.append(restricted, averages)))
@@ -337,7 +336,6 @@ end
 fun likes(m):    model(m.t.filter({(r): r["RATING"] == "like"    })) end
 fun dislikes(m): model(m.t.filter({(r): r["RATING"] == "dislike" })) end
 fun unrated(m):  model(m.t.filter({(r): r["RATING"] == "-"       })) end
-
 
 
 # Given a model, find the centroids for likes and dislikes,
@@ -370,20 +368,21 @@ fun recommend(m :: Model) -> Model block:
       .order-by("recommend", false))
 end
 
-
+# given a row, return a sorted table in cosine-similarity order
 fun search-by-row(m, row):
   model(m.t
       .build-column("similarity", {(r): cosine-similarity(row, r)})
       .order-by("similarity", false))
 end
 
+# build a centroid for every matching row, then use that to search-by-row
 fun search-by-tag(m, tag):
   matching-docs = model(
     m.t.filter({(r): string-split-all(r["TAGS"], ",").member(tag) }))
   centroid = build-centroid(matching-docs)
   search-by-row(m, centroid)
 end
-##############################################################################################################
+###################################################################################
 # Bag Of Words Tools
 
 # list-of-words-to-sd converts a list of strings into a StringDict
@@ -421,10 +420,10 @@ end
 #   "doo be doo"  |  2  |  1 |  0
 #   "be bop bop"  |  0  |  1 |  2
 fun add-bag-cols(m :: Model, col :: String) -> Model block:
-  # Step 1: convert each row's text into a normalized word list
+  # convert each row's text into a normalized word list
   all-word-lists = m.t.column(col).map(lam(s): string-split-all(s, ' ') end)
 
-  # Step 2: collect the union of all unique words across every row
+  # collect the union of all unique words across every row
   unique-words = all-word-lists.foldl(
     lam(word-list, acc):
       word-list.foldl(lam(w, shadow acc): acc.add(w) end, acc)
@@ -432,7 +431,7 @@ fun add-bag-cols(m :: Model, col :: String) -> Model block:
     Sets.list-to-set([list:]))
     .to-list()
 
-  # Step 3: for each unique word, add a column whose values are the
+  # for each unique word, add a column whose values are the
   # per-row frequency of that word. We recompute the word-frequency
   # dict inside each build-column call since build-column only gives
   # us the row, not the row index.
@@ -448,11 +447,10 @@ fun add-bag-cols(m :: Model, col :: String) -> Model block:
           end)
       end,
       m.t))
-  #    .drop("DOC")
 end
 
 
-##############################################################################################################
+##################################################################################
 # Similarity Tools
 # All of these methods of comparison produce a numerical value
 
@@ -559,19 +557,30 @@ fun angle-similarity(r1 :: Row, r2 :: Row) -> Number:
   num-exact((num-acos(cosine-similarity(r1, r2)) * 180) / 3.14159265)
 end
 
-
+# sort a table in terms of similarity-to-a-specific-row, as
+# specified by the ID
 fun compute-similarity(m :: Model, id, fn) block:
   compare-to = m.t.filter({(r): r["ID"] == id}).row-n(0)
   fun compare-row(r): fn(r, compare-to) end
   model(m.t.build-column("similarity", compare-row))
 end
 
+########################################################################
+# Some examples of models, and how to use them
 
+# text can be normalized with or without stop-word removal
+# normalizing will always create a new column called "NORMALIZED"
+normed-poems = normalize(poem-corpus, true)
+normed-text  = normalize(text-corpus, true)
+
+# create some bag-of-word columns, using the normalized text
+# the song corpus is normalized by default, since it's just emoji
 song-model  = add-bag-cols(song-corpus, "DOC")
-poem-model  = add-bag-cols(normalize(poem-corpus, true), "NORMALIZED")
-text-model  = add-bag-cols(normalize(text-corpus, true), "NORMALIZED")
+poem-model  = add-bag-cols(normed-poems, "NORMALIZED")
+text-model  = add-bag-cols(add-grade-level(normed-text), "NORMALIZED")
 
 # shrink the images for performance - how small before losing accuracy?
+# then add all the fun columns, and a BOW set for pixels
 small-images = shrink-images(image-corpus)
 image-model =
   add-bag-cols(
