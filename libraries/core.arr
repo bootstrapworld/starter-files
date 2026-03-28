@@ -2169,8 +2169,9 @@ end
 
 shadow translate = put-image
 
-################################################################
-#################### BLEND & INVERT IMAGES #####################
+
+##################################################################################
+# Image Helpers
 
 # luminance :: Color -> Number
 # computes the perceptual luminance of a pixel using the
@@ -2194,6 +2195,88 @@ end
 # centering the pinhole
 fun pixels-to-image(pixels, width, height) -> Image:
   color-list-to-image(pixels, width, height, num-round(width / 2), num-round(height / 2))
+end
+
+# image-color-names :: Image -> String
+# Given an image, it to a string of space-separated color names 
+# ("red", "green", or "blue"), representing the dominant channel 
+# of each non-transparent pixel
+fun image-color-names(img :: Image) -> String block:
+  fun dominant-color(pixel) -> String:
+    if (pixel.alpha == 0): "" 
+    else if (pixel.red >= pixel.green) and (pixel.red >= pixel.blue): "red"
+    else if (pixel.green >= pixel.red) and (pixel.green >= pixel.blue): "green"
+    else: "blue"
+    end
+  end
+  image-to-color-list(img)
+    .filter(lam(pixel): pixel.alpha > 0 end)
+    .map(dominant-color)
+    .join-str(" ")
+end
+
+# invert :: Image -> Image
+# inverts the RGB channels of each pixel, preserving alpha
+fun invert(img :: Image) -> Image:
+  width  = image-width(img)
+  height = image-height(img)
+  pixels-to-image(
+    image-to-color-list(img).map(lam(p):
+      make-color(255 - p.red, 255 - p.green, 255 - p.blue, p.alpha)
+    end),
+    width, height)
+end
+
+# grayscale :: (Image) -> Image
+# produces an identical image in which all pixels
+# have been converted to grayscale
+fun grayscale(img :: Image) -> Image:
+  pixels-to-image(
+    image-to-color-list(img).map(lam(p) block:
+        g = color-to-gray(p)
+        make-color(g, g, g, p.alpha)
+      end),
+    image-width(img),
+    image-height(img))
+end
+
+# Consumes an image and computes the average luminance
+# round to 10 digits and use exact
+fun image-luminance(img :: Image) -> Number:
+  avg-luminance = Stats.mean(image-to-color-list(img).map(luminance))
+  num-exact(num-round-to(avg-luminance, 10))
+end
+
+# Consumes an image and computes the entropy
+# round to 10 digits and use exact
+fun image-entropy(img :: Image) -> Number block:
+  # Sum -p*log2(p) over all keys in the frequency table
+  fun entropy-sum(keys :: List, freq :: SD.StringDict, total, acc) -> Number:
+    cases (List) keys:
+      | empty => acc
+      | link(k, rest) =>
+        p = freq.get-value(k) / total
+        contribution = p * (num-log(p) / num-log(2))
+        entropy-sum(rest, freq, total, acc - contribution)
+    end
+  end
+
+  # Build a frequency table of grayscale values as a StringDict
+  fun build-freq(pixels :: List, acc :: SD.StringDict) -> SD.StringDict:
+    cases (List) pixels:
+      | empty => acc
+      | link(px, rest) =>
+        key = num-to-string(color-to-gray(px))
+        shadow count = if acc.has-key(key): acc.get-value(key) else: 0 end
+        build-freq(rest, acc.set(key, count + 1))
+    end
+  end
+
+  pixels = image-to-color-list(img)
+  total = pixels.length()
+  freq = build-freq(pixels, [SD.string-dict:])
+  entropy = entropy-sum(freq.keys().to-list(), freq, total, 0)
+  num-exact(num-round-to(entropy, 10))
 end
 
 # combine-pixels :: (Image, Image, (Color, Color -> Color)) -> Image
@@ -2233,19 +2316,6 @@ fun darker(img1 :: Image, img2 :: Image) -> Image:
       end
     end)
 end
-
-# grayscale :: (Image) -> Image
-# produces an identical image in which all pixels
-# have been converted to grayscale
-fun grayscale(img :: Image) -> Image:
-  pixels-to-image(
-    image-to-color-list(img).map(lam(p) block:
-        g = color-to-gray(p)
-        make-color(g, g, g, p.alpha)
-      end),
-    image-width(img),
-    image-height(img))
-end
     
 # blend-images :: (Image, Image) -> Image
 # averages the RGB and alpha channels of each pair of pixels.
@@ -2266,18 +2336,6 @@ shadow blend-images = lam(imgA :: Image, imgB :: Image) -> Image:
         num-round((c1.alpha + c2.alpha) / 2))
     end
   end)
-end
-
-# invert :: Image -> Image
-# inverts the RGB channels of each pixel, preserving alpha
-fun invert(img :: Image) -> Image:
-  width  = image-width(img)
-  height = image-height(img)
-  pixels-to-image(
-    image-to-color-list(img).map(lam(p):
-      make-color(255 - p.red, 255 - p.green, 255 - p.blue, p.alpha)
-    end),
-    width, height)
 end
 
 ################################################################

@@ -196,6 +196,18 @@ and-intersection(lt1, gt5, range-by(-21, 24 + 1, 6))
 
 
 #####################################################################
+## Image testing
+examples:
+  image-entropy(square(10, "solid", "black")) is 0
+  image-entropy(square(10, "solid", "white")) is 0
+  image-luminance(square(10, "solid", "black")) is 0
+  image-luminance(square(10, "solid", "white")) is 255
+  lighter(square(10, "solid", "black"), square(10, "solid", "white")) is square(10, "solid", "white")
+  darker(square(10, "solid", "black"), square(10, "solid", "white")) is square(10, "solid", "black")
+end
+
+
+#####################################################################
 ## Chart testing
 
 animals-url = "https://docs.google.com/spreadsheets/d/1VeR2_bhpLvnRUZslmCAcSRKfZWs_5RNVujtZgEl6umA/export?format=csv"
