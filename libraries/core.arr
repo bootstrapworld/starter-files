@@ -1850,7 +1850,7 @@ fun split-and-reduce(t, col-to-split, col-to-reduce, reducer) block:
             {(r): reducer(r["subtable"], col-to-reduce)})
         end):
     | left(v) => v
-    | right(v) => raise(Err.message-exception("An error occurred when trying to use your reducer. Are you sure it consumes *only* a valid Table and column name?",v))
+    | right(v) => raise(Err.message-exception("An error occurred when trying to use your reducer. Are you sure it consumes *only* a valid Table and column name?"))
   end.drop("subtable")
 end
 
