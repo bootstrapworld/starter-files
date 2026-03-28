@@ -55,6 +55,25 @@ shadow median = lam(m :: Model, col): median(m.t, col) end
 shadow modes  = lam(m :: Model, col): modes(m.t, col) end
 
 shadow row-n  = lam(m :: Model, index): m.t.row-n(index) end
+shadow filter = lam(m :: Model, fn :: (Row -> Boolean)) -> Model:
+  model(filter(m.t, fn))
+end
+shadow build-column = lam(m :: Model, col :: String, fn :: (Row -> Any)) -> Model:
+  model(build-column(m.t, col, fn))
+end
+shadow add-row = lam(m :: Model, r :: Row) -> Model:
+  model(m.t.add-row(r))
+end
+
+shadow split-and-reduce = lam(m :: Model, col1 :: String, col2 :: String, f) -> Model:
+  f_ = {(t, c) block:
+    display(t)
+    f(model(t), c)
+  }
+  model(split-and-reduce(m.t, col1, col2, f_))
+end
+
+
 shadow count  = lam(m :: Model, col): count(m.t, col) end
 shadow stdev  = lam(m :: Model, col): stdev(m.t, col) end
 
@@ -84,12 +103,6 @@ shadow lr-plot = lam(m :: Model, ls :: String, xs :: String, ys :: String):
 end
 shadow fit-model = lam(m :: Model, ls :: String, xs :: String, ys :: String, fn):
   fit-model(m.t, ls, xs, ys, fn)
-end
-shadow filter = lam(m :: Model, fn :: (Row -> Boolean)) -> Model:
-  model(filter(m.t, fn))
-end
-shadow build-column = lam(m :: Model, col :: String, fn :: (Row -> Any)) -> Model:
-  model(build-column(m.t, col, fn))
 end
 
 ########################################################################
@@ -292,9 +305,16 @@ end
 ###################################################################################
 # Song Helpers
 
-fun longest-snaps(s): longest-streak(s, "🫰") end
-fun longest-clap(s):  longest-streak(s, "👏") end
-fun longest-stomp(s): longest-streak(s, "🦶") end
+fun add-longest-snap(m):
+  model(m.t.build-column("longest 🫰", lam(r): longest-streak(r["DOC"], "🫰") end))
+end
+fun add-longest-clap(m):
+  model(m.t.build-column("longest 👏", lam(r): longest-streak(r["DOC"], "👏") end))
+end
+fun add-longest-stomp(m):
+  model(m.t.build-column("longest 🦶", lam(r): longest-streak(r["DOC"], "🦶") end))
+end
+
 
 
 ###################################################################################
@@ -303,7 +323,7 @@ fun longest-stomp(s): longest-streak(s, "🦶") end
 # Given a table, recursively build the centroid as a StringDict
 # by averaging each non-restricted column. Use exactnum to allow
 # for easy comparison
-fun build-centroid(m :: Model) -> Row:
+fun build-centroid(m :: Model, name) -> Row:
   cols = m.t.column-names().filter({(c):
       not(member(restricted-cols.append([list: "NORMALIZED", "COLOR-NAMES"]), c))
     })
@@ -324,13 +344,17 @@ fun build-centroid(m :: Model) -> Row:
   end
   # compute all the averages in reverse-order (since add-col-avgs also reverses)
   averages = add-col-avgs(cols.reverse(), [list:])
-  restricted = [list: {"ID";"CENTROID"}, {"DOC";""}, {"RATING";""}, {"TAGS";""}]
+  restricted = [list:
+    {"ID";"CENTROID (" + name + ")"},
+    {"DOC";""}, {"RATING";""},
+    {"TAGS";""}
+  ]
   T.raw-row.make(raw-array-from-list(L.append(restricted, averages)))
 end
 
 _centroid-test = model(table: x, y row: 2, 1 row: 4, 5 end)
 examples:
-  build-centroid(_centroid-test) is [T.raw-row: {"ID";"CENTROID"},{"DOC";""}, {"RATING";""}, {"TAGS";""},{"x";3},{"y";3}]
+  build-centroid(_centroid-test, "test") is [T.raw-row: {"ID";"CENTROID (test)"},{"DOC";""}, {"RATING";""}, {"TAGS";""},{"x";3},{"y";3}]
 end
 
 fun likes(m):    model(m.t.filter({(r): r["RATING"] == "like"    })) end
@@ -353,8 +377,8 @@ fun recommend(m :: Model) -> Model block:
   end
 
   # compute the centroids
-  preference = build-centroid(liked)
-  aversion   = build-centroid(disliked)
+  preference = build-centroid(liked, "likes")
+  aversion   = build-centroid(disliked, "dislikes")
 
   # for every unlabeled DOC, compute the similarity from both
   # centroids. Then subtract dislike from like for a general
@@ -364,8 +388,10 @@ fun recommend(m :: Model) -> Model block:
         if liked.t.length() == 0: 0 else: cosine-similarity(preference, r) end })
       .build-column("dislike",    {(r):
         if disliked.t.length() == 0: 0 else: cosine-similarity(aversion, r) end })
-      .build-column("recommend",  {(r): r["like"] - r["dislike"]})
-      .order-by("recommend", false))
+      .build-column("STRENGTH",  {(r): r["like"] - r["dislike"]})
+      .order-by("STRENGTH", false)
+      .drop("like")
+      .drop("dislike"))
 end
 
 # given a row, return a sorted table in cosine-similarity order
@@ -379,7 +405,7 @@ end
 fun search-by-tag(m, tag):
   matching-docs = model(
     m.t.filter({(r): string-split-all(r["TAGS"], ",").member(tag) }))
-  centroid = build-centroid(matching-docs)
+  centroid = build-centroid(matching-docs, tag)
   search-by-row(m, centroid)
 end
 ###################################################################################
@@ -594,11 +620,11 @@ image-model =
 
 # find images closest to the liked images
 # loved-images    = likes(image-model)
-# loathed-images = dislikes(image-model)
-# img-preference  = build-centroid(loved-images)
-# img-aversion    = build-centroid(loathed-images)
+# loathed-images  = dislikes(image-model)
+# img-preference  = build-centroid(loved-images, "😍")
+# img-aversion    = build-centroid(loathed-images, "😡")
 # search-by-row(image-model, img-preference)
-# search-by-row(image-model, img-aversion
+# search-by-row(image-model, img-aversion)
 
 # find images closest to the liked images AND
 #     farthest away from the disliked ones
