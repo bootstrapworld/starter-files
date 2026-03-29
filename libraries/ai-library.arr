@@ -325,10 +325,6 @@ fun shrink-images(m):
   model(m.t.transform-column("DOC", shrink-image), m.pipeline)
 end
 
-fun add-row(m :: Model, r :: Row) -> Model:
-  model(m.t.add-row(r))
-end
-
 
 ########################################################################
 # Wrap DS chart functions
