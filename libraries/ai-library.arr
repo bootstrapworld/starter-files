@@ -1,14 +1,19 @@
-
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr")
 ################################################################
-# Bootstrap Bag of Words Library, as of Fall 2026
-
+# Bootstrap AI Library, as of Fall 2026
 provide *
 
-# Re-export everything from starter2024, except for functions we override
+# re-export every symbol from Core
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr") as Core
+provide from Core: * end
+
+# export every symbol from starter2024 except for those we override
 import starter2024 as Starter
-include from Starter:
-    * hiding(translate, filter, range, sort, sin, cos, tan)
+provide from Starter:
+  * hiding(translate, filter, range, sort, sin, cos, tan)
 end
+
+# we use custom renderers for AI 
 include valueskeleton
 
 ########################################################################
@@ -230,7 +235,7 @@ data Model:
       fun list-of-words-to-sd(xx :: List<String>) -> SD.StringDict<Number> block:
         msd = [SD.mutable-string-dict:]
         for each(x from xx):
-          old-value = cases(Starter.Option) (msd.get-now(x)):
+          old-value = cases(Eth.Option) (msd.get-now(x)):
             | none => 0
             | some(v) => v
           end
@@ -260,7 +265,7 @@ data Model:
             t.build-column(word, lam(r):
                 words = string-split-all(r[col], ' ')
                 sd = list-of-words-to-sd(words)
-                cases(Starter.Option) sd.get(word):
+                cases(Eth.Option) sd.get(word):
                   | none => 0
                   | some(shadow count) => count
                 end
@@ -576,6 +581,7 @@ fun compute-similarity(m :: Model, id, fn) block:
   model(m.t.build-column("SIMILARITY", compare-row))
 end
 
+#|
 ########################################################################
 # Some examples of models, and how to use them
 
@@ -653,3 +659,4 @@ match-row(image-model, img-preference)
 # find images closest to the liked images AND
 #     farthest away from the disliked ones
 recommend(image-model)
+|#
