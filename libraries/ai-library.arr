@@ -365,16 +365,16 @@ end
 
 
 ###################################################################################
-# Song Helpers
+# Song-Specific Helpers
 
 fun add-longest-snap(m):
-  model(m.t.build-column("longest 🫰", lam(r): text-streak(r["DOC"], "🫰") end))
+  make-model(m.t.build-column("longest 🫰", lam(r): text-streak(r["DOC"], "🫰") end))
 end
 fun add-longest-clap(m):
-  model(m.t.build-column("longest 👏", lam(r): text-streak(r["DOC"], "👏") end))
+  make-model(m.t.build-column("longest 👏", lam(r): text-streak(r["DOC"], "👏") end))
 end
 fun add-longest-stomp(m):
-  model(m.t.build-column("longest 🦶", lam(r): text-streak(r["DOC"], "🦶") end))
+  make-model(m.t.build-column("longest 🦶", lam(r): text-streak(r["DOC"], "🦶") end))
 end
 
 
