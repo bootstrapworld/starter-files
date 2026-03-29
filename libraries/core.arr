@@ -1,8 +1,18 @@
 use context starter2024
 
-provide *
-
-provide: type Posn end
+provide: 
+  *,
+  type Posn,
+  type TaggedFunction,
+  module Eth,
+  module Err,
+  module Sets,
+  module T,
+  module SD,
+  module R,
+  module L,
+  module Stats
+end
 
 # export every symbol from starter2024 except for those we override
 import starter2024 as Starter
@@ -40,17 +50,6 @@ provide from G:
     * hiding(load-spreadsheet),
   type *,
   data *
-end
-
-provide:
-  module Eth,
-  module Err,
-  module Sets,
-  module T,
-  module SD,
-  module R,
-  module L,
-  module Stats
 end
 
 var debugging = false

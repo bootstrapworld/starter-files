@@ -1,5 +1,27 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "core.arr")
 
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr") as Core
+
+provide from Core: 
+  *,
+  type Posn,
+  module Eth,
+  module Err,
+  module Sets,
+  module T,
+  module SD,
+  module R,
+  module L,
+  module Stats
+end
+
+
+# export every symbol from starter2024 except for those we override
+import starter2024 as Starter
+provide from Starter:
+  * hiding(translate, filter, range, sort, sin, cos, tan)
+end
+
 # The DeliveryState is two numbers: an x-coordinate and a y-coordinate
 data DeliveryState:
   | delivery(

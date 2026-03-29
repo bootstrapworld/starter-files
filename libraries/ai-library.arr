@@ -5,8 +5,17 @@ provide *
 
 # re-export every symbol from Core
 import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr") as Core
-provide from Core: * end
-
+provide from Core:
+  *,
+  type Posn,
+  module Err,
+  module Sets,
+  module T,
+  module SD,
+  module R,
+  module L,
+  module Stats
+end
 # export every symbol from starter2024 except for those we override
 import starter2024 as Starter
 provide from Starter:
@@ -15,7 +24,7 @@ end
 
 # we use custom renderers for AI 
 include valueskeleton
-
+include option
 ########################################################################
 # Some helpers that might eventually make their way into the core library
 
@@ -235,7 +244,7 @@ data Model:
       fun list-of-words-to-sd(xx :: List<String>) -> SD.StringDict<Number> block:
         msd = [SD.mutable-string-dict:]
         for each(x from xx):
-          old-value = cases(Eth.Option) (msd.get-now(x)):
+          old-value = cases(Option) (msd.get-now(x)):
             | none => 0
             | some(v) => v
           end
@@ -265,7 +274,7 @@ data Model:
             t.build-column(word, lam(r):
                 words = string-split-all(r[col], ' ')
                 sd = list-of-words-to-sd(words)
-                cases(Eth.Option) sd.get(word):
+                cases(Option) sd.get(word):
                   | none => 0
                   | some(shadow count) => count
                 end
