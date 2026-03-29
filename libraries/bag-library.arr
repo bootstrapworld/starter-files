@@ -11,11 +11,110 @@ include from Starter:
 end
 include valueskeleton
 
+########################################################################
+# Some helpers that might eventually make their way into the core library
+
+# A standard list of English stop words (common words like "the", "and",
+# "a" etc.) that carry little meaning and can be ignored when comparing
+# DOCs for similarity. From Fox (1990).
+stop-words = [list: "the", "and", "a", "that", "was", "for", "with", "not", "on", "at", "i", "had", "are", "or", "an", "they", "one", "would", "all", "there", "their", "him", "has", "when", "if", "out", "what", "up", "about", "into", "can", "other", "some", "time", "two", "then", "do", "now", "such", "man", "our", "even", "made", "after", "many", "must", "years", "much", "your", "down", "should", "of", "to", "in", "is", "he", "it", "as", "his", "be", "by", "this", "but", "from", "have", "you", "which", "were", "her", "she", "will", "we", "been", "who", "more", "no", "so", "said", "its", "than", "them", "only", "new", "could", "these", "may", "first", "any", "my", "like", "over", "me", "most", "also", "did", "before", "through", "where", "back", "way", "well", "because", "each", "people", "state", "mr", "how", "make", "still", "own", "work", "long", "both", "under", "never", "same", "while", "last", "might", "day", "since", "come", "great", "three", "go", "few", "use", "without", "place", "old", "small", "home", "went", "once", "school", "every", "united", "number", "does", "away", "water", "fact", "though", "enough", "almost", "took", "night", "system", "general", "better", "why", "end", "find", "asked", "going", "knew", "toward", "just", "those", "too", "world", "very", "good", "see", "men", "here", "get", "between", "year", "another", "being", "life", "know", "us", "off", "against", "came", "right", "states", "take", "himself", "during", "again", "around", "however", "mrs", "thought", "part", "high", "upon", "say", "used", "war", "until", "always", "something", "public", "put", "think", "head", "far", "hand", "set", "nothing", "point", "house", "later", "eyes", "next", "program", "give", "white", "room", "social", "young", "present", "order", "second", "possible", "light", "face", "important", "among", "early", "need", "within", "business", "felt", "best", "ever", "least", "got", "mind", "want", "others", "although", "open", "area", "done", "certain", "door", "different", "sense", "help", "perhaps", "group", "side", "several", "let", "national", "given", "rather", "per", "often", "god", "things", "large", "big", "become", "case", "along", "four", "power", "saw", "less", "thing", "today", "interest", "turned", "members", "family", "problem", "kind", "began", "thus", "seemed", "whole", "itself"]
+
+
+# Given a string, produce the grade level according to Flesch-Kincaid:
+# Grade = .39(words/sentences)+11.8(syllables/words)-15.59
+# https://en.wikipedia.org/wiki/Flesch%E2%80%93Kincaid_readability_tests
+fun text-grade(txt :: String) -> String:
+  total-words = num-words(txt)
+  total-sentences = num-sentences(txt)
+  total-syllables = num-syllables(txt)
+  words-per-sentence = total-words / total-sentences
+  syllables-per-word = (total-syllables / total-words)
+  flesch-kincaid = ((0.39 * words-per-sentence) + (11.8 * syllables-per-word)) - 15.59
+  num-exact(num-round-to(flesch-kincaid, 10))
+end
+
+fun text-streak(str :: String, target :: String) -> Number:
+  words = string-split-all(str, " ")
+
+  init-state = { current: 0, max-seen: 0 }
+
+  final-stats = for fold(acc from init-state, w from words):
+    if w == target:
+      new-current = acc.current + 1
+      {
+        current: new-current,
+        max-seen: num-max(new-current, acc.max-seen) }
+    else:
+      {
+        current: 0,
+        max-seen: acc.max-seen
+      }
+    end
+  end
+
+  final-stats.max-seen
+where:
+  text-streak("sun sea sun sun sand", "sun")     is 2
+  text-streak("sea sea sea", "sea")              is 3
+  text-streak("sand sun sea", "cyan")            is 0
+  text-streak("sun sun sand sun sun sun", "sun") is 3
+end
+
+
+SMALL-IMAGE-WIDTH = 100
+fun shrink-image(img :: Image) -> Image:
+  factor = SMALL-IMAGE-WIDTH / image-width(img)
+  scale(factor, img)
+end
+
+# 1) massaging the string (lowercase + remove punctuation)
+# 2) splitting on spaces
+# 3) filtering out any empty strings
+fun text-clean(txt :: String, remove-stops :: Boolean) -> String block:
+  fun is-non-punct(c :: String) -> Boolean block:
+    # Code points for 'a' and 'z', used to test if a char is a lowercase ASCII letter
+    lower-case-a-cp = string-to-code-point('a')
+    lower-case-z-cp = string-to-code-point('z')
+    if (c == ' ') or (c == '\n'): true
+    else:
+      c-cp = string-to-code-point(c)
+      (c-cp >= lower-case-a-cp) and (c-cp <= lower-case-z-cp)
+    end
+  end
+
+  fun massage-string(w :: String) -> String block:
+    lowercase-chars = string-explode(string-to-lower(w))
+    fold({(a, b): a + b }, '', lowercase-chars.filter(is-non-punct))
+  end
+
+  fun is-non-empty-string(w :: String) -> Boolean:  w <> '' end
+
+  string-split-all(massage-string(txt), ' ')
+    .filter(is-non-empty-string)
+    .filter({(w):
+      if remove-stops: not(stop-words.member(w))
+      else: true
+      end})
+    .join-str(' ')
+end
 
 ########################################################################
 # Model Data Structure
 # We want some custom rendering, so we need to define our own datatype
 # This can also be extended later, should we use a StringDict for BOW
+
+
+# add a DOC to the model
+fun add-doc(m, id, doc):
+  row = [T.raw-row: {"ID"; id}, {"DOC"; doc}]
+  m(m.t.empty().add-row(row).stack(m.t))
+end
+
+# columns that should always be ignored
+restricted-cols = [list: "ID", "DOC", "RATING", "TAGS"]
+fun get-unrestricted-cols(r):
+  r.get-column-names().filter({(c): not(member(restricted-cols, c))})
+end
 
 MAX-DOC-LEN = 51
 
@@ -32,20 +131,118 @@ data Model:
           end)
       end
       vs-value(t)
+    end,
+
+    # image methods
+    method add-luminance(self):
+      model(self.t.build-column("LUMINANCE", {(r): image-luminance(r["DOC"])}))
+    end,
+    method add-entropy(self):
+      model(self.t.build-column("ENTROPY", {(r): image-entropy(r["DOC"])}))
+    end,
+    method add-color-names(self):
+      model(self.t.build-column("COLOR-NAMES", {(r): image-color-names(r["DOC"])}))
+    end,
+    method shrink-images(self):
+      model(self.t.transform-column("DOC", shrink-image))
+    end,
+
+    # text methods
+    method add-word-count(self, col):
+      model(self.t.build-column("WORD-COUNT", {(r): num-words(r[col])}))
+    end,
+    method add-sentence-count(self, col):
+      model(self.t.build-column(self, "SENTENCE-COUNT", {(r): num-sentences(r[col])}))
+    end,
+    method add-grade(self, col):
+      model(self.t.build-column(self, "GRADE", {(r): text-grade(r[col])}))
+    end,
+    method clean-text(self, col, remove-stop):
+      model(self.t.build-column("CLEANED", {(r): text-clean(r[col], remove-stop)}))
+    end,
+    method longest-streak(self, col, target):
+      model(self.t.build-column("LONGEST" + target, {(r): text-streak(r[col], target)}))
+    end,
+
+    # add-bag-cols consumes a table containing a "text" column and returns
+    # an expanded version of that table with one additional column per
+    # unique word found across all rows. Each new column is named after
+    # the word it represents, and each cell contains the number of times
+    # that word appears in that row's text. Rows where the word doesn't
+    # appear get a count of 0.
+    #
+    # For example, given:
+    #   text
+    #   ------------
+    #   "doo be doo"
+    #   "be bop bop"
+    #
+    # ...the result would be:
+    #   text          | doo | be | bop
+    #   --------------|-----|----|----|
+    #   "doo be doo"  |  2  |  1 |  0
+    #   "be bop bop"  |  0  |  1 |  2
+    method add-bag-cols(self, col :: String) -> Model block:
+      # list-of-words-to-sd converts a list of strings into a StringDict
+      # mapping each unique word to its frequency count.
+      # For example, ["a", "b", "a"] -> {"a": 2, "b": 1}
+      fun list-of-words-to-sd(xx :: List<String>) -> SD.StringDict<Number> block:
+        msd = [SD.mutable-string-dict:]
+        for each(x from xx):
+          old-value = cases(Starter.Option) (msd.get-now(x)):
+            | none => 0
+            | some(v) => v
+          end
+          msd.set-now(x, old-value + 1)
+        end
+        msd.freeze()
+      end
+
+
+      # convert each row's text into a normalized word list
+      all-word-lists = self.t.column(col).map(lam(s): string-split-all(s, ' ') end)
+
+      # collect the union of all unique words across every row
+      unique-words = all-word-lists.foldl(
+        lam(word-list, acc):
+          word-list.foldl(lam(w, shadow acc): acc.add(w) end, acc)
+        end,
+        Sets.list-to-set([list:]))
+        .to-list()
+
+      # for each unique word, add a column whose values are the
+      # per-row frequency of that word. We recompute the word-frequency
+      # dict inside each build-column call since build-column only gives
+      # us the row, not the row index.
+      model(unique-words.foldl(
+          lam(word, shadow t):
+            t.build-column(word, lam(r):
+                words = string-split-all(r[col], ' ')
+                sd = list-of-words-to-sd(words)
+                cases(Starter.Option) sd.get(word):
+                  | none => 0
+                  | some(shadow count) => count
+                end
+              end)
+          end,
+          self.t))
     end
 end
 
-# add a DOC to the model
-fun add-doc(m, id, doc):
-  row = [T.raw-row: {"ID"; id}, {"DOC"; doc}]
-  model(m.t.empty().add-row(row).stack(m.t))
-end
+#######################################################################
+# Wrap model methods as functions
+fun add-luminance(m): m.add-luminance() end
+fun add-entropy(m): m.add-entropy() end
+fun add-color-names(m): m.add-color-names() end
+fun shrink-images(m): m.shrink-images() end
 
-# columns that should always be ignored
-restricted-cols = [list: "ID", "DOC", "RATING", "TAGS"]
-fun get-unrestricted-cols(r):
-  r.get-column-names().filter({(c): not(member(restricted-cols, c))})
-end
+fun add-word-count(m, col): m.add-word-count(col) end
+fun add-sentence-count(m, col): m.add-sentence-count(col) end
+fun add-grade(m, col): m.add-grade(col) end
+fun clean-text(m, col, remove-stop): m.clean-text(col, remove-stop) end
+fun longest-streak(m, col, target): m.longest-streak(col, target) end
+fun add-bag-cols(m, col): m.add-bag-cols(col) end
+
 
 
 ########################################################################
@@ -140,179 +337,19 @@ text-corpus = model(load-table: ID, DOC, RATING, TAGS
 mystery-text = "The okapi is classified under the family Giraffidae, along with its closest extant relative, the giraffe. Its distinguishing characteristics are its long neck, and large, flexible ears. Male okapis have horn-like protuberances called ossicones. "
 
 
-##################################################################################
-# Image Helpers
 
-# add-color-names :: Model -> Model
-# Addsa column in which each image has been converted to a string of
-# space-separated color names ("red", "green", or "blue"),
-# representing the dominant channel of each non-transparent pixel
-fun add-color-names(m :: Model) -> Model block:
-  fun dominant-color(pixel) -> String:
-    if (pixel.alpha == 0): ""
-    else if (pixel.red >= pixel.green) and (pixel.red >= pixel.blue): "red"
-    else if (pixel.green >= pixel.red) and (pixel.green >= pixel.blue): "green"
-    else: "blue"
-    end
-  end
-  model(m.t.build-column("COLOR-NAMES", lam(r): image-to-color-list(r["DOC"])
-          .filter(lam(pixel): pixel.alpha > 0 end)
-          .map(dominant-color)
-          .join-str(" ")
-      end))
-end
 
-SMALL-IMAGE-WIDTH = 100
-fun shrink-images(m :: Model) -> Model:
-  model(m.t.transform-column("DOC", lam(img):
-        factor = SMALL-IMAGE-WIDTH / image-width(img)
-        scale(factor, img)
-      end))
-end
-
-# For every row, compute luminance of the DOC image
-fun add-luminance(m :: Model) -> Model:
-  model(m.t.build-column("LUMINANCE", lam(r):
-        avg-luminance = Stats.mean(image-to-color-list(r["DOC"]).map(luminance))
-        num-exact(num-round-to(avg-luminance, 10))
-      end))
-end
-
-# For every row, compute entropy of the DOC image
-fun add-entropy(m :: Model) -> Model block:
-  # Sum -p*log2(p) over all keys in the frequency table
-  fun entropy-sum(keys :: List, freq :: SD.StringDict, total :: Number, acc :: Number) -> Number:
-    cases (List) keys:
-      | empty => acc
-      | link(k, rest) =>
-        p = freq.get-value(k) / total
-        contribution = p * (num-log(p) / num-log(2))
-        entropy-sum(rest, freq, total, acc - contribution)
-    end
-  end
-  model(m.t.build-column("ENTROPY", lam(r):
-        # Build a frequency table of grayscale values as a StringDict
-        fun build-freq(pixels :: List, acc :: SD.StringDict) -> SD.StringDict:
-          cases (List) pixels:
-            | empty => acc
-            | link(px, rest) =>
-              key = num-to-string(color-to-gray(px))
-              shadow count = if acc.has-key(key): acc.get-value(key) else: 0 end
-              build-freq(rest, acc.set(key, count + 1))
-          end
-        end
-        pixels = image-to-color-list(r["DOC"])
-        total = pixels.length()
-        freq = build-freq(pixels, [SD.string-dict:])
-        entropy = entropy-sum(freq.keys().to-list(), freq, total, 0)
-        num-exact(num-round-to(entropy, 10))
-      end))
-end
-
-# For every row, compute the dominant color of the DOC image
-fun add-color(m :: Model) -> Model:
-  model(m.t.build-column("MAIN-COLOR", lam(r):
-        fun pixel-color(p): (p.red * sqr(256)) + (p.green * 256) + p.blue end
-        color-encodings = image-to-color-list(r["DOC"]).map(pixel-color)
-        num-exact(num-round-to(Stats.mean(color-encodings), 10))
-      end))
-end
-###################################################################################
-# Text Helpers
-
-fun massage-string(w :: String) -> String block:
-  fun is-non-punct(c :: String) -> Boolean block:
-    # Code points for 'a' and 'z', used to test if a char is a lowercase ASCII letter
-    lower-case-a-cp = string-to-code-point('a')
-    lower-case-z-cp = string-to-code-point('z')
-    if (c == ' ') or (c == '\n'): true
-    else:
-      c-cp = string-to-code-point(c)
-      (c-cp >= lower-case-a-cp) and (c-cp <= lower-case-z-cp)
-    end
-  end
-  fold(lam(string-a, string-b): string-a + string-b end, '', string-explode(string-to-lower(w)).filter(is-non-punct))
-end
-
-# A standard list of English stop words (common words like "the", "and",
-# "a" etc.) that carry little meaning and can be ignored when comparing
-# DOCs for similarity. From Fox (1990).
-standard-stop-words = [list: "the", "and", "a", "that", "was", "for", "with", "not", "on", "at", "i", "had", "are", "or", "an", "they", "one", "would", "all", "there", "their", "him", "has", "when", "if", "out", "what", "up", "about", "into", "can", "other", "some", "time", "two", "then", "do", "now", "such", "man", "our", "even", "made", "after", "many", "must", "years", "much", "your", "down", "should", "of", "to", "in", "is", "he", "it", "as", "his", "be", "by", "this", "but", "from", "have", "you", "which", "were", "her", "she", "will", "we", "been", "who", "more", "no", "so", "said", "its", "than", "them", "only", "new", "could", "these", "may", "first", "any", "my", "like", "over", "me", "most", "also", "did", "before", "through", "where", "back", "way", "well", "because", "each", "people", "state", "mr", "how", "make", "still", "own", "work", "long", "both", "under", "never", "same", "while", "last", "might", "day", "since", "come", "great", "three", "go", "few", "use", "without", "place", "old", "small", "home", "went", "once", "school", "every", "united", "number", "does", "away", "water", "fact", "though", "enough", "almost", "took", "night", "system", "general", "better", "why", "end", "find", "asked", "going", "knew", "toward", "just", "those", "too", "world", "very", "good", "see", "men", "here", "get", "between", "year", "another", "being", "life", "know", "us", "off", "against", "came", "right", "states", "take", "himself", "during", "again", "around", "however", "mrs", "thought", "part", "high", "upon", "say", "used", "war", "until", "always", "something", "public", "put", "think", "head", "far", "hand", "set", "nothing", "point", "house", "later", "eyes", "next", "program", "give", "white", "room", "social", "young", "present", "order", "second", "possible", "light", "face", "important", "among", "early", "need", "within", "business", "felt", "best", "ever", "least", "got", "mind", "want", "others", "although", "open", "area", "done", "certain", "door", "different", "sense", "help", "perhaps", "group", "side", "several", "let", "national", "given", "rather", "per", "often", "god", "things", "large", "big", "become", "case", "along", "four", "power", "saw", "less", "thing", "today", "interest", "turned", "members", "family", "problem", "kind", "began", "thus", "seemed", "whole", "itself"]
-
-# normalize the "DOC" column by:
-# 1) massaging the string (lowercase + remove punctuation)
-# 2) splitting on spaces
-# 3) filtering out any empty strings
-fun normalize(m :: Model, remove-stops :: Boolean) -> Model block:
-  fun is-non-empty-string(w :: String) -> Boolean:  w <> '' end
-  model(m.t.build-column("NORMALIZED",
-      lam(r): string-split-all(massage-string(string-to-lower(r["DOC"])), ' ')
-          .filter(is-non-empty-string)
-          .filter({(w):
-            if remove-stops: not(standard-stop-words.member(w))
-            else: true
-            end})
-          .join-str(' ')
-      end))
-end
-
-# grade-level :: Model -> Model
-# consumes the "DOC" column and produces the great level according
-# to Flesch-Kincaid:
-# Grade = .39(words/sentences)+11.8(syllables/words)-15.59
-# https://en.wikipedia.org/wiki/Flesch%E2%80%93Kincaid_readability_tests
-fun add-grade-level(m :: Model) -> Model:
-  model(m.t.build-column("GRADE-LEVEL",
-      lam(r):
-        total-words = num-words(r["DOC"])
-        total-sentences = num-sentences(r["DOC"])
-        total-syllables = num-syllables(r["DOC"])
-        num-exact(
-          num-round-to(
-            ((0.39 * (total-words / total-sentences)) +
-              (11.8 * (total-syllables / total-words))) -
-            15.59,
-            10))
-      end))
-end
-
-fun longest-streak(str :: String, target :: String) -> Number:
-  words = string-split-all(str, " ")
-
-  init-state = { current: 0, max-seen: 0 }
-
-  final-stats = for fold(acc from init-state, w from words):
-    if w == target:
-      new-current = acc.current + 1
-      {
-        current: new-current,
-        max-seen: num-max(new-current, acc.max-seen) }
-    else:
-      {
-        current: 0,
-        max-seen: acc.max-seen
-      }
-    end
-  end
-
-  final-stats.max-seen
-where:
-  longest-streak("sun sea sun sun sand", "sun")     is 2
-  longest-streak("sea sea sea", "sea")              is 3
-  longest-streak("sand sun sea", "cyan")            is 0
-  longest-streak("sun sun sand sun sun sun", "sun") is 3
-end
 ###################################################################################
 # Song Helpers
 
 fun add-longest-snap(m):
-  model(m.t.build-column("longest 🫰", lam(r): longest-streak(r["DOC"], "🫰") end))
+  model(m.t.build-column("longest 🫰", lam(r): text-streak(r["DOC"], "🫰") end))
 end
 fun add-longest-clap(m):
-  model(m.t.build-column("longest 👏", lam(r): longest-streak(r["DOC"], "👏") end))
+  model(m.t.build-column("longest 👏", lam(r): text-streak(r["DOC"], "👏") end))
 end
 fun add-longest-stomp(m):
-  model(m.t.build-column("longest 🦶", lam(r): longest-streak(r["DOC"], "🦶") end))
+  model(m.t.build-column("longest 🦶", lam(r): text-streak(r["DOC"], "🦶") end))
 end
 
 
@@ -407,72 +444,6 @@ fun search-by-tag(m, tag):
     m.t.filter({(r): string-split-all(r["TAGS"], ",").member(tag) }))
   centroid = build-centroid(matching-docs, tag)
   search-by-row(m, centroid)
-end
-###################################################################################
-# Bag Of Words Tools
-
-# list-of-words-to-sd converts a list of strings into a StringDict
-# mapping each unique word to its frequency count.
-# For example, ["a", "b", "a"] -> {"a": 2, "b": 1}
-fun list-of-words-to-sd(xx :: List<String>) -> SD.StringDict<Number> block:
-  msd = [SD.mutable-string-dict:]
-  for each(x from xx):
-    old-value = cases(Starter.Option) (msd.get-now(x)):
-      | none => 0
-      | some(v) => v
-    end
-    msd.set-now(x, old-value + 1)
-  end
-  msd.freeze()
-end
-
-
-# add-bag-cols consumes a table containing a "text" column and returns
-# an expanded version of that table with one additional column per
-# unique word found across all rows. Each new column is named after
-# the word it represents, and each cell contains the number of times
-# that word appears in that row's text. Rows where the word doesn't
-# appear get a count of 0.
-#
-# For example, given:
-#   text
-#   ------------
-#   "doo be doo"
-#   "be bop bop"
-#
-# ...the result would be:
-#   text          | doo | be | bop
-#   --------------|-----|----|----|
-#   "doo be doo"  |  2  |  1 |  0
-#   "be bop bop"  |  0  |  1 |  2
-fun add-bag-cols(m :: Model, col :: String) -> Model block:
-  # convert each row's text into a normalized word list
-  all-word-lists = m.t.column(col).map(lam(s): string-split-all(s, ' ') end)
-
-  # collect the union of all unique words across every row
-  unique-words = all-word-lists.foldl(
-    lam(word-list, acc):
-      word-list.foldl(lam(w, shadow acc): acc.add(w) end, acc)
-    end,
-    Sets.list-to-set([list:]))
-    .to-list()
-
-  # for each unique word, add a column whose values are the
-  # per-row frequency of that word. We recompute the word-frequency
-  # dict inside each build-column call since build-column only gives
-  # us the row, not the row index.
-  model(unique-words.foldl(
-      lam(word, shadow t):
-        t.build-column(word, lam(r):
-            words = string-split-all(r[col], ' ')
-            sd = list-of-words-to-sd(words)
-            cases(Starter.Option) sd.get(word):
-              | none => 0
-              | some(shadow count) => count
-            end
-          end)
-      end,
-      m.t))
 end
 
 
@@ -596,37 +567,34 @@ end
 
 # text can be normalized with or without stop-word removal
 # normalizing will always create a new column called "NORMALIZED"
-normed-poems = normalize(poem-corpus, true)
-normed-text  = normalize(text-corpus, true)
+normed-poems = clean-text(poem-corpus, "DOC", true)
+normed-text  = clean-text(text-corpus, "DOC", true)
 
 # create some bag-of-word columns, using the normalized text
 # the song corpus is normalized by default, since it's just emoji
 song-model  = add-bag-cols(song-corpus, "DOC")
-poem-model  = add-bag-cols(normed-poems, "NORMALIZED")
-text-model  = add-bag-cols(add-grade-level(normed-text), "NORMALIZED")
+#poem-model  = add-bag-cols(normed-poems, "NORMALIZED")
+#text-model  = add-bag-cols(add-grade(normed-text), "NORMALIZED")
 
 # shrink the images for performance - how small before losing accuracy?
 # then add all the fun columns, and a BOW set for pixels
-small-images = shrink-images(image-corpus)
 image-model =
-  add-bag-cols(
-    add-color-names(
-      add-luminance(
-        add-entropy(small-images))),
-    "COLOR-NAMES")
+  add-color-names(
+    add-luminance(
+      add-entropy(
+        shrink-images(image-corpus))))
 
 # search for images tagged with "sun" (or similar)
-# search-by-tag(image-model, "sun")
+search-by-tag(image-model, "sun")
 
 # find images closest to the liked images
-# loved-images    = likes(image-model)
-# loathed-images  = dislikes(image-model)
-# img-preference  = build-centroid(loved-images, "😍")
-# img-aversion    = build-centroid(loathed-images, "😡")
-# search-by-row(image-model, img-preference)
-# search-by-row(image-model, img-aversion)
+loved-images    = likes(image-model)
+loathed-images  = dislikes(image-model)
+img-preference  = build-centroid(loved-images, "😍")
+img-aversion    = build-centroid(loathed-images, "😡")
+#search-by-row(image-model, img-preference)
+#search-by-row(image-model, img-aversion)
 
 # find images closest to the liked images AND
 #     farthest away from the disliked ones
-# recommend(image-model)
-
+#recommend(image-model)
