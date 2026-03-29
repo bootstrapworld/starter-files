@@ -6,7 +6,28 @@ provide *
 # re-export every symbol from Core
 import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr") as Core
 provide from Core:
-  *,
+    * hiding(
+    mean,
+    median,
+    modes,
+    row-n,
+    filter,
+    build-column,
+    split-and-reduce,
+    count,
+    stdev,
+    bar-chart,
+    multi-bar-chart,
+    stacked-bar-chart,
+    pie-chart,
+    box-plot,
+    dot-plot,
+    histogram,
+    scatter-plot,
+    image-scatter-plot,
+    lr-plot,
+    fit-model
+    ),
   type Posn,
   module Err,
   module Sets,
@@ -19,7 +40,7 @@ end
 # export every symbol from starter2024 except for those we override
 import starter2024 as Starter
 provide from Starter:
-  * hiding(translate, filter, range, sort, sin, cos, tan)
+    * hiding(translate, filter, range, sort, sin, cos, tan)
 end
 
 # we use custom renderers for AI 
@@ -304,6 +325,9 @@ fun shrink-images(m):
   model(m.t.transform-column("DOC", shrink-image), m.pipeline)
 end
 
+fun add-row = lam(m :: Model, r :: Row) -> Model:
+  model(m.t.add-row(r))
+end
 
 
 ########################################################################
@@ -318,9 +342,6 @@ shadow filter = lam(m :: Model, fn :: (Row -> Boolean)) -> Model:
 end
 shadow build-column = lam(m :: Model, col :: String, fn :: (Row -> Any)) -> Model:
   model(build-column(m.t, col, fn))
-end
-shadow add-row = lam(m :: Model, r :: Row) -> Model:
-  model(m.t.add-row(r))
 end
 
 shadow split-and-reduce = lam(m :: Model, col1 :: String, col2 :: String, f) -> Model:
@@ -591,57 +612,57 @@ fun compute-similarity(m :: Model, id, fn) block:
 end
 
 #|
-########################################################################
-# Some examples of models, and how to use them
+   ########################################################################
+   # Some examples of models, and how to use them
 
-########################################################################
-# Load the spreadsheet and define our tables
-data-sheet = load-spreadsheet(
+   ########################################################################
+   # Load the spreadsheet and define our tables
+   data-sheet = load-spreadsheet(
   "https://docs.google.com/spreadsheets/d/1e_3op5DNDUOAjInXtlrzQ0fKZSuASd65E9-VEjNyteo/")
 
-image-corpus = make-model(transform-column(
+   image-corpus = make-model(transform-column(
     load-table: ID, DOC, RATING, TAGS
       source: data-sheet.sheet-by-name("Images", true)
     end,
     "DOC",
     image-url))
 
-mystery-image = image-url("https://bootstrapworld.org/materials/fall2025/en-us/lessons/ai-intro/images/small-imgs/mystery.png")
+   mystery-image = image-url("https://bootstrapworld.org/materials/fall2025/en-us/lessons/ai-intro/images/small-imgs/mystery.png")
 
-poem-corpus = make-model(load-table: ID, DOC, RATING, TAGS
+   poem-corpus = make-model(load-table: ID, DOC, RATING, TAGS
     source: data-sheet.sheet-by-name("Poems", true)
   end)
 
-mystery-poem = "The sun is big, but the sea is all"
+   mystery-poem = "The sun is big, but the sea is all"
 
-song-corpus = make-model(load-table: ID, DOC, RATING, TAGS
+   song-corpus = make-model(load-table: ID, DOC, RATING, TAGS
     source: data-sheet.sheet-by-name("Songs", true)
   end)
 
-mystery-song = "👏 👏 🫰 🫰 👏 🫰 👏 🫰 🫰 🫰 🫰 🫰 🫰 🫰 👏 👏 🫰"
+   mystery-song = "👏 👏 🫰 🫰 👏 🫰 👏 🫰 🫰 🫰 🫰 🫰 🫰 🫰 👏 👏 🫰"
 
 
-text-corpus = make-model(load-table: ID, DOC, RATING, TAGS
+   text-corpus = make-model(load-table: ID, DOC, RATING, TAGS
     source: data-sheet.sheet-by-name("Text", true)
   end)
 
-# from https://en.wikipedia.org/wiki/Okapi
-mystery-text = "The okapi is classified under the family Giraffidae, along with its closest extant relative, the giraffe. Its distinguishing characteristics are its long neck, and large, flexible ears. Male okapis have horn-like protuberances called ossicones. "
+   # from https://en.wikipedia.org/wiki/Okapi
+   mystery-text = "The okapi is classified under the family Giraffidae, along with its closest extant relative, the giraffe. Its distinguishing characteristics are its long neck, and large, flexible ears. Male okapis have horn-like protuberances called ossicones. "
 
 
-# text can be normalized with or without stop-word removal
-normed-poems = add-cleaned(poem-corpus, true)
-normed-text  = add-cleaned(text-corpus, true)
+   # text can be normalized with or without stop-word removal
+   normed-poems = add-cleaned(poem-corpus, true)
+   normed-text  = add-cleaned(text-corpus, true)
 
-# create some bag-of-word columns, using the normalized text
-# the song corpus is normalized by default, since it's just emoji
-song-model  = add-bag-cols(song-corpus, "DOC")
-poem-model  = add-bag-cols(normed-poems, "DOC")
-text-model  = add-bag-cols(add-grade(normed-text, "CLEANED"), "DOC")
+   # create some bag-of-word columns, using the normalized text
+   # the song corpus is normalized by default, since it's just emoji
+   song-model  = add-bag-cols(song-corpus, "DOC")
+   poem-model  = add-bag-cols(normed-poems, "DOC")
+   text-model  = add-bag-cols(add-grade(normed-text, "CLEANED"), "DOC")
 
-# shrink the OG images for performance - how small before losing accuracy?
-# then add all the fun columns, and a BOW set for pixels
-image-model =
+   # shrink the OG images for performance - how small before losing accuracy?
+   # then add all the fun columns, and a BOW set for pixels
+   image-model =
   add-bag-cols(
     add-color-names(
       add-luminance(
@@ -649,23 +670,23 @@ image-model =
           shrink-images(image-corpus)))),
     "COLOR-NAMES")
 
-# now add a new image, and watch the model regenerate itself with all the same cols!
-# image-model.add-doc("test", mystery-image, "dislike", "")
+   # now add a new image, and watch the model regenerate itself with all the same cols!
+   # image-model.add-doc("test", mystery-image, "dislike", "")
 
-# search for images tagged with "sun" (or similar)
-#search-by-tag(image-model, "sun")
+   # search for images tagged with "sun" (or similar)
+   #search-by-tag(image-model, "sun")
 
-# find images closest to the liked images
-loved-images    = likes(image-model)
-loathed-images  = dislikes(image-model)
-img-preference  = build-centroid(loved-images,   "👍")
-img-aversion    = build-centroid(loathed-images, "👎")
+   # find images closest to the liked images
+   loved-images    = likes(image-model)
+   loathed-images  = dislikes(image-model)
+   img-preference  = build-centroid(loved-images,   "👍")
+   img-aversion    = build-centroid(loathed-images, "👎")
 
-# find the distance between each row and the provided row
-match-row(image-model, img-preference)
-#match-row(image-model, img-aversion)
+   # find the distance between each row and the provided row
+   match-row(image-model, img-preference)
+   #match-row(image-model, img-aversion)
 
-# find images closest to the liked images AND
-#     farthest away from the disliked ones
-recommend(image-model)
+   # find images closest to the liked images AND
+   #     farthest away from the disliked ones
+   recommend(image-model)
 |#
