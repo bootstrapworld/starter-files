@@ -23,7 +23,7 @@ stop-words = [list: "the", "and", "a", "that", "was", "for", "with", "not", "on"
 # Given a string, produce the grade level according to Flesch-Kincaid:
 # Grade = .39(words/sentences)+11.8(syllables/words)-15.59
 # https://en.wikipedia.org/wiki/Flesch%E2%80%93Kincaid_readability_tests
-fun text-grade(txt :: String) -> String:
+fun text-grade(txt :: String) -> Number:
   total-words = num-words(txt)
   total-sentences = num-sentences(txt)
   total-syllables = num-syllables(txt)
@@ -35,23 +35,16 @@ end
 
 fun text-streak(str :: String, target :: String) -> Number:
   words = string-split-all(str, " ")
-
   init-state = { current: 0, max-seen: 0 }
 
   final-stats = for fold(acc from init-state, w from words):
     if w == target:
       new-current = acc.current + 1
-      {
-        current: new-current,
-        max-seen: num-max(new-current, acc.max-seen) }
+      { current: new-current, max-seen: num-max(new-current, acc.max-seen) }
     else:
-      {
-        current: 0,
-        max-seen: acc.max-seen
-      }
+      { current: 0,           max-seen: acc.max-seen                       }
     end
   end
-
   final-stats.max-seen
 where:
   text-streak("sun sea sun sun sand", "sun")     is 2
@@ -98,28 +91,71 @@ fun text-clean(txt :: String, remove-stops :: Boolean) -> String block:
     .join-str(' ')
 end
 
+#######################################################################
+# Wrap model methods as functions
+fun add-luminance(m): m.add-luminance() end
+fun add-entropy(m): m.add-entropy() end
+fun add-color-names(m): m.add-color-names() end
+
+fun add-word-count(m, col): m.add-word-count(col) end
+fun add-sentence-count(m, col): m.add-sentence-count(col) end
+fun add-grade(m, col): m.add-grade(col) end
+fun add-cleaned(m, remove-stop): m.add-cleaned(remove-stop) end
+fun add-longest-streak(m, col, target): m.add-longest-streak(col, target) end
+fun add-bag-cols(m, col): m.add-bag-cols(col) end
+
+
 ########################################################################
-# Model Data Structure
+# Model Functions and Structures
 # We want some custom rendering, so we need to define our own datatype
 # This can also be extended later, should we use a StringDict for BOW
 
 
-# add a DOC to the model
-fun add-doc(m, id, doc):
-  row = [T.raw-row: {"ID"; id}, {"DOC"; doc}]
-  m(m.t.empty().add-row(row).stack(m.t))
+# columns that should always be ignored
+restricted-cols = [list: "ID", "DOC", "RATING", "TAGS", "SIMILARITTY", "STRENGTH"]
+fun get-unrestricted-cols(r):
+  r.get-column-names().filter({(c):
+      not(restricted-cols.any({(rc): string-contains(c, rc)}))})
 end
 
-# columns that should always be ignored
-restricted-cols = [list: "ID", "DOC", "RATING", "TAGS"]
-fun get-unrestricted-cols(r):
-  r.get-column-names().filter({(c): not(member(restricted-cols, c))})
+
+# add a DOC to the model
+fun add-doc(m :: Model, id :: String, doc, rating :: String, tags :: String):
+  m.add-doc(id, doc, rating, tags)
+end
+
+# given a model and reverse-order pipeline, apply all the
+# function calls to the model in-order
+fun replay-pipeline(m, pipeline):
+  for foldr(shadow m from m, op from pipeline) block:
+    args = op.args
+    f = op.f
+    #display(op.name + "(" + push(args,"m").map(to-string).join-str(", ") + ")")
+    if      args.length() == 0: f(m)
+    else if args.length() == 1: f(m, args.get(0))
+    else if args.length() == 2: f(m, args.get(0), args.get(1))
+    else: raise(args.length() + " were specified in the pipeline for " + op.name)
+    end
+  end
+end
+
+# given a model, return the table, with all the added columns stripped
+fun get-original-table(m :: Model) -> Table:
+  for fold(t from m.t, col from m.t.column-names()):
+    if restricted-cols.member(col): t
+    else: t.drop(col)
+    end
+  end
+end
+
+
+data function-application:
+  | call(f, name :: String, args:: List)
 end
 
 MAX-DOC-LEN = 51
-
 data Model:
-  | model(t :: Table) with:
+  | model(t :: Table, pipeline :: List) with:
     method _output(self) block:
       cols = self.t.column-names()
       # re-make the table, truncating any string vals > MAX-DOC-LEN
@@ -135,33 +171,38 @@ data Model:
 
     # image methods
     method add-luminance(self):
-      model(self.t.build-column("LUMINANCE", {(r): image-luminance(r["DOC"])}))
+      model(self.t.build-column("LUMINANCE", {(r): image-luminance(r["DOC"])}),
+        push(self.pipeline, call(add-luminance, "add-luminance",  [list:])))
     end,
     method add-entropy(self):
-      model(self.t.build-column("ENTROPY", {(r): image-entropy(r["DOC"])}))
+      model(self.t.build-column("ENTROPY", {(r): image-entropy(r["DOC"])}),
+        push(self.pipeline, call(add-entropy, "add-entropy", [list:])))
     end,
     method add-color-names(self):
-      model(self.t.build-column("COLOR-NAMES", {(r): image-color-names(r["DOC"])}))
-    end,
-    method shrink-images(self):
-      model(self.t.transform-column("DOC", shrink-image))
+      model(self.t.build-column("COLOR-NAMES", {(r): image-color-names(r["DOC"])}),
+        push(self.pipeline, call(add-color-names, "add-color-names", [list:])))
     end,
 
     # text methods
-    method add-word-count(self, col):
-      model(self.t.build-column("WORD-COUNT", {(r): num-words(r[col])}))
+    method add-cleaned(self, remove-stop :: Boolean):
+      model(self.t.build-column("CLEANED", {(r): text-clean(r["DOC"], remove-stop)}),
+        push(self.pipeline, call(add-cleaned, "add-cleaned", [list: remove-stop])))
     end,
-    method add-sentence-count(self, col):
-      model(self.t.build-column(self, "SENTENCE-COUNT", {(r): num-sentences(r[col])}))
+    method add-word-count(self, col :: String):
+      model(self.t.build-column("WORD-COUNT", {(r): num-words(r[col])}),
+        push(self.pipeline, call(add-word-count, "add-word-count", [list: col])))
     end,
-    method add-grade(self, col):
-      model(self.t.build-column(self, "GRADE", {(r): text-grade(r[col])}))
+    method add-sentence-count(self, col :: String):
+      model(self.t.build-column(self, "SENTENCE-COUNT", {(r): num-sentences(r[col])}),
+        push(self.pipeline, call(add-sentence-count, "add-sentence-count", [list: col])))
     end,
-    method clean-text(self, col, remove-stop):
-      model(self.t.build-column("CLEANED", {(r): text-clean(r[col], remove-stop)}))
+    method add-grade(self, col :: String):
+      model(self.t.build-column("GRADE", {(r): text-grade(r[col])}),
+        push(self.pipeline, call(add-grade, "add-grade", [list: col])))
     end,
-    method longest-streak(self, col, target):
-      model(self.t.build-column("LONGEST" + target, {(r): text-streak(r[col], target)}))
+    method add-longest-streak(self, col :: String, target :: String):
+      model(self.t.build-column("LONGEST" + target, {(r): text-streak(r[col], target)}),
+        push(self.pipeline, call(add-longest-streak, "add-longest-streak", [list: col, target])))
     end,
 
     # add-bag-cols consumes a table containing a "text" column and returns
@@ -225,23 +266,29 @@ data Model:
                 end
               end)
           end,
-          self.t))
+          self.t),
+        push(self.pipeline, call(add-bag-cols, "add-bag-cols", [list: col])))
+    end,
+
+    # adding a document with a rating and tags
+    method add-doc(self, id :: String, doc, rating :: String, tags :: String):
+      # get the original table without all added columns
+      og-table = get-original-table(self)
+      # add the doc to our bare table as a new row
+      og-table-with-doc = og-table.add-row(
+        [T.raw-row: {"ID";id}, {"DOC";doc}, {"RATING";rating}, {"TAGS";tags}])
+      # replay all the operations
+      replay-pipeline(make-model(og-table-with-doc), self.pipeline)
     end
 end
 
-#######################################################################
-# Wrap model methods as functions
-fun add-luminance(m): m.add-luminance() end
-fun add-entropy(m): m.add-entropy() end
-fun add-color-names(m): m.add-color-names() end
-fun shrink-images(m): m.shrink-images() end
+# fake constructor that builds a model and starts with an empty pipeline
+fun make-model(t:: Table): model(t, empty) end
 
-fun add-word-count(m, col): m.add-word-count(col) end
-fun add-sentence-count(m, col): m.add-sentence-count(col) end
-fun add-grade(m, col): m.add-grade(col) end
-fun clean-text(m, col, remove-stop): m.clean-text(col, remove-stop) end
-fun longest-streak(m, col, target): m.longest-streak(col, target) end
-fun add-bag-cols(m, col): m.add-bag-cols(col) end
+# a doc-mutating function
+fun shrink-images(m):
+  model(m.t.transform-column("DOC", shrink-image), m.pipeline)
+end
 
 
 
@@ -302,42 +349,6 @@ shadow fit-model = lam(m :: Model, ls :: String, xs :: String, ys :: String, fn)
   fit-model(m.t, ls, xs, ys, fn)
 end
 
-########################################################################
-# Load the spreadsheet and define our tables
-data-sheet = load-spreadsheet(
-  "https://docs.google.com/spreadsheets/d/1e_3op5DNDUOAjInXtlrzQ0fKZSuASd65E9-VEjNyteo/")
-
-image-corpus = model(transform-column(
-    load-table: ID, DOC, RATING, TAGS
-      source: data-sheet.sheet-by-name("Images", true)
-    end,
-    "DOC",
-    image-url))
-
-mystery-image = image-url("https://bootstrapworld.org/materials/fall2025/en-us/lessons/ai-intro/images/small-imgs/mystery.png")
-
-poem-corpus = model(load-table: ID, DOC, RATING, TAGS
-    source: data-sheet.sheet-by-name("Poems", true)
-  end)
-
-mystery-poem = "The sun is big, but the sea is all"
-
-song-corpus = model(load-table: ID, DOC, RATING, TAGS
-    source: data-sheet.sheet-by-name("Songs", true)
-  end)
-
-mystery-song = "👏 👏 🫰 🫰 👏 🫰 👏 🫰 🫰 🫰 🫰 🫰 🫰 🫰 👏 👏 🫰"
-
-
-text-corpus = model(load-table: ID, DOC, RATING, TAGS
-    source: data-sheet.sheet-by-name("Text", true)
-  end)
-
-# from https://en.wikipedia.org/wiki/Okapi
-mystery-text = "The okapi is classified under the family Giraffidae, along with its closest extant relative, the giraffe. Its distinguishing characteristics are its long neck, and large, flexible ears. Male okapis have horn-like protuberances called ossicones. "
-
-
-
 
 ###################################################################################
 # Song Helpers
@@ -382,21 +393,22 @@ fun build-centroid(m :: Model, name) -> Row:
   # compute all the averages in reverse-order (since add-col-avgs also reverses)
   averages = add-col-avgs(cols.reverse(), [list:])
   restricted = [list:
-    {"ID";"CENTROID (" + name + ")"},
+    {"ID";name + " CENTROID"},
     {"DOC";""}, {"RATING";""},
     {"TAGS";""}
   ]
   T.raw-row.make(raw-array-from-list(L.append(restricted, averages)))
 end
 
-_centroid-test = model(table: x, y row: 2, 1 row: 4, 5 end)
+_centroid-test = make-model(table: x, y row: 2, 1 row: 4, 5 end)
 examples:
-  build-centroid(_centroid-test, "test") is [T.raw-row: {"ID";"CENTROID (test)"},{"DOC";""}, {"RATING";""}, {"TAGS";""},{"x";3},{"y";3}]
+  build-centroid(_centroid-test, "test") is
+  [T.raw-row: {"ID";"test CENTROID"},{"DOC";""}, {"RATING";""}, {"TAGS";""},{"x";3},{"y";3}]
 end
 
-fun likes(m):    model(m.t.filter({(r): r["RATING"] == "like"    })) end
-fun dislikes(m): model(m.t.filter({(r): r["RATING"] == "dislike" })) end
-fun unrated(m):  model(m.t.filter({(r): r["RATING"] == "-"       })) end
+fun likes(m):    make-model(m.t.filter({(r): r["RATING"] == "like"    })) end
+fun dislikes(m): make-model(m.t.filter({(r): r["RATING"] == "dislike" })) end
+fun unrated(m):  make-model(m.t.filter({(r): r["RATING"] == "-"       })) end
 
 
 # Given a model, find the centroids for likes and dislikes,
@@ -420,7 +432,8 @@ fun recommend(m :: Model) -> Model block:
   # for every unlabeled DOC, compute the similarity from both
   # centroids. Then subtract dislike from like for a general
   # recommendation score, and sort from most-recommended to least
-  model(not-rated.t
+  model(
+    not-rated.t
       .build-column("like",       {(r):
         if liked.t.length() == 0: 0 else: cosine-similarity(preference, r) end })
       .build-column("dislike",    {(r):
@@ -428,22 +441,23 @@ fun recommend(m :: Model) -> Model block:
       .build-column("STRENGTH",  {(r): r["like"] - r["dislike"]})
       .order-by("STRENGTH", false)
       .drop("like")
-      .drop("dislike"))
+      .drop("dislike"),
+    m.pipeline)
 end
 
 # given a row, return a sorted table in cosine-similarity order
-fun search-by-row(m, row):
-  model(m.t
-      .build-column("similarity", {(r): cosine-similarity(row, r)})
-      .order-by("similarity", false))
+fun match-row(m, row):
+  make-model(m.t
+      .build-column("SIMILARITY to " + row["ID"], {(r): cosine-similarity(row, r)})
+      .order-by("SIMILARITY to " + row["ID"], false))
 end
 
-# build a centroid for every matching row, then use that to search-by-row
+# build a centroid for every row w/this tag, then use that to match-row
 fun search-by-tag(m, tag):
-  matching-docs = model(
+  matching-docs = make-model(
     m.t.filter({(r): string-split-all(r["TAGS"], ",").member(tag) }))
   centroid = build-centroid(matching-docs, tag)
-  search-by-row(m, centroid)
+  match-row(m, centroid)
 end
 
 
@@ -559,42 +573,83 @@ end
 fun compute-similarity(m :: Model, id, fn) block:
   compare-to = m.t.filter({(r): r["ID"] == id}).row-n(0)
   fun compare-row(r): fn(r, compare-to) end
-  model(m.t.build-column("similarity", compare-row))
+  model(m.t.build-column("SIMILARITY", compare-row))
 end
 
 ########################################################################
 # Some examples of models, and how to use them
 
+########################################################################
+# Load the spreadsheet and define our tables
+data-sheet = load-spreadsheet(
+  "https://docs.google.com/spreadsheets/d/1e_3op5DNDUOAjInXtlrzQ0fKZSuASd65E9-VEjNyteo/")
+
+image-corpus = make-model(transform-column(
+    load-table: ID, DOC, RATING, TAGS
+      source: data-sheet.sheet-by-name("Images", true)
+    end,
+    "DOC",
+    image-url))
+
+mystery-image = image-url("https://bootstrapworld.org/materials/fall2025/en-us/lessons/ai-intro/images/small-imgs/mystery.png")
+
+poem-corpus = make-model(load-table: ID, DOC, RATING, TAGS
+    source: data-sheet.sheet-by-name("Poems", true)
+  end)
+
+mystery-poem = "The sun is big, but the sea is all"
+
+song-corpus = make-model(load-table: ID, DOC, RATING, TAGS
+    source: data-sheet.sheet-by-name("Songs", true)
+  end)
+
+mystery-song = "👏 👏 🫰 🫰 👏 🫰 👏 🫰 🫰 🫰 🫰 🫰 🫰 🫰 👏 👏 🫰"
+
+
+text-corpus = make-model(load-table: ID, DOC, RATING, TAGS
+    source: data-sheet.sheet-by-name("Text", true)
+  end)
+
+# from https://en.wikipedia.org/wiki/Okapi
+mystery-text = "The okapi is classified under the family Giraffidae, along with its closest extant relative, the giraffe. Its distinguishing characteristics are its long neck, and large, flexible ears. Male okapis have horn-like protuberances called ossicones. "
+
+
 # text can be normalized with or without stop-word removal
-# normalizing will always create a new column called "NORMALIZED"
-normed-poems = clean-text(poem-corpus, "DOC", true)
-normed-text  = clean-text(text-corpus, "DOC", true)
+normed-poems = add-cleaned(poem-corpus, true)
+normed-text  = add-cleaned(text-corpus, true)
 
 # create some bag-of-word columns, using the normalized text
 # the song corpus is normalized by default, since it's just emoji
 song-model  = add-bag-cols(song-corpus, "DOC")
-#poem-model  = add-bag-cols(normed-poems, "NORMALIZED")
-#text-model  = add-bag-cols(add-grade(normed-text), "NORMALIZED")
+poem-model  = add-bag-cols(normed-poems, "DOC")
+text-model  = add-bag-cols(add-grade(normed-text, "CLEANED"), "DOC")
 
-# shrink the images for performance - how small before losing accuracy?
+# shrink the OG images for performance - how small before losing accuracy?
 # then add all the fun columns, and a BOW set for pixels
 image-model =
-  add-color-names(
-    add-luminance(
-      add-entropy(
-        shrink-images(image-corpus))))
+  add-bag-cols(
+    add-color-names(
+      add-luminance(
+        add-entropy(
+          shrink-images(image-corpus)))),
+    "COLOR-NAMES")
+
+# now add a new image, and watch the model regenerate itself with all the same cols!
+# image-model.add-doc("test", mystery-image, "dislike", "")
 
 # search for images tagged with "sun" (or similar)
-search-by-tag(image-model, "sun")
+#search-by-tag(image-model, "sun")
 
 # find images closest to the liked images
 loved-images    = likes(image-model)
 loathed-images  = dislikes(image-model)
-img-preference  = build-centroid(loved-images, "😍")
-img-aversion    = build-centroid(loathed-images, "😡")
-#search-by-row(image-model, img-preference)
-#search-by-row(image-model, img-aversion)
+img-preference  = build-centroid(loved-images,   "👍")
+img-aversion    = build-centroid(loathed-images, "👎")
+
+# find the distance between each row and the provided row
+match-row(image-model, img-preference)
+#match-row(image-model, img-aversion)
 
 # find images closest to the liked images AND
 #     farthest away from the disliked ones
-#recommend(image-model)
+recommend(image-model)
