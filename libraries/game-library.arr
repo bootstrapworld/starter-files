@@ -5,6 +5,11 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 
 provide *
 
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr") as Core
+
+provide from Core: * end
+provide from Core: type Posn end
+
 # export every symbol from starter2024 except for those we override
 import starter2024 as Starter
 provide from Starter:

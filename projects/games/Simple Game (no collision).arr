@@ -1,9 +1,5 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/games", "../../libraries/core.arr")
-include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/games", "../../libraries/game-library.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects/games", "../../libraries/game-library.arr")
 
-# DO NOT MODIFY LINE 5
-# its modifies the chart functions to generates image without popups
-display-chart := lam(c): c.get-image() end
 # 0. Game title: Write the title of your game here
 TITLE = "Alfred Alfer's Awesome Adventure"
 TITLE-COLOR = "white"

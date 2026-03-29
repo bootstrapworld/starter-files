@@ -2,6 +2,8 @@ use context starter2024
 
 provide *
 
+provide: type Posn end
+
 # export every symbol from starter2024 except for those we override
 import starter2024 as Starter
 provide from Starter:
@@ -2168,6 +2170,7 @@ end
 
 
 shadow translate = put-image
+shadow dilate = scale
 
 
 ##################################################################################
