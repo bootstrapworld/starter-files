@@ -547,7 +547,7 @@ fun match-row(m, row):
 end
 
 # build a centroid for every row w/this tag, then use that to match-row
-fun search-by-tag(m, tag, cutoff):
+fun search-by-tag(m, tag):
   matching-docs = filter(m, 
     {(r): string-split-all(r["TAGS"], ",").member(tag) })
   centroid = build-centroid(matching-docs, tag)
