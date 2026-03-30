@@ -146,12 +146,16 @@ fun add-bag-cols(m, col): m.add-bag-cols(col) end
 # We want some custom rendering, so we need to define our own datatype
 # This can also be extended later, should we use a StringDict for BOW
 
+fun is-all-uppercase(s :: String) -> Boolean:
+  (string-length(s) > 0) and
+  (string-to-upper(s) == s)
+end
 
 # columns that should always be ignored
-restricted-cols = [list: "ID", "DOC", "RATING", "TAGS", "SIMILARITTY", "STRENGTH"]
+restricted-cols = [list: "ID", "DOC", "RATING", "TAGS", "SIMILARITTY", "STRENGTH", "COLOR-NAMES"]
 fun get-unrestricted-cols(r):
   r.get-column-names().filter({(c):
-      not(restricted-cols.any({(rc): string-contains(c, rc)}))})
+      not(restricted-cols.any({(rc): string-contains(c, rc) or is-all-uppercase(c)}))})
 end
 
 
