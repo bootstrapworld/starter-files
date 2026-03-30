@@ -930,8 +930,8 @@ fun color-pie-chart(t, col, f) block:
 end
 
 #|
-image-pie-chart :: (t :: Table, col :: String, f :: (Row -> Image)) -> Image
-fun image-pie-chart(t, col, f) block:
+   image-pie-chart :: (t :: Table, col :: String, f :: (Row -> Image)) -> Image
+   fun image-pie-chart(t, col, f) block:
   check-integrity(t, [list: col])
   summary = count(t, col)
   images = make-images-from-grouped-rows(summary, col, f)
@@ -943,7 +943,7 @@ fun image-pie-chart(t, col, f) block:
   img = display-chart(chart)
   title = make-title([list:"Distribution of", col])
   above(title, add-margin(img))
-end
+   end
 |#
 bar-chart :: (t :: Table, col :: String) -> Image
 fun bar-chart(t, col) block:
@@ -1547,7 +1547,7 @@ fun mr-S(t, explanations, response, model) block:
     raise(Err.message-exception("Cannot calculate S for this model and function, because a model with " + explanations.length() + " parameters requires a table with at least " + all-cols.length() + " rows"))
   end
   check-integrity(t, all-cols)
-  
+
   # compute the S-value
   params = explanations.length()
   rows = t.length()
@@ -1844,15 +1844,22 @@ split-and-reduce :: (
   reducer :: (Table, String -> Any)
   ) -> Table
 fun split-and-reduce(t, col-to-split, col-to-reduce, reducer) block:
-  split = group(t, col-to-split)
-  cases(Eth.Either) run-task(lam():
-          split.build-column(
-            "result",
-            {(r): reducer(r["subtable"], col-to-reduce)})
-        end):
-    | left(v) => v
-    | right(v) => raise(Err.message-exception("An error occurred when trying to use your reducer. Are you sure it consumes *only* a valid Table and column name?"))
-  end.drop("subtable")
+  fun wrapped-reducer(r):
+    cases(Eth.Either) run-task(lam():
+            reducer(r["subtable"], col-to-reduce)
+          end):
+      | left(v) => v
+      | right(v) => 
+        if Err.is-arity-mismatch(exn-unwrap(v)):
+          raise(Err.message-exception("An error occurred when trying to use your reducer. Are you sure it consumes *only* a valid Table and column name?)"))
+        else:
+          raise(exn-unwrap(v))
+        end
+    end
+  end
+  group(t, col-to-split)
+    .build-column("result", wrapped-reducer)
+    .drop("subtable")
 end
 
 first-n-rows :: (t :: Table, n :: Number) -> Table
@@ -2101,7 +2108,7 @@ fun make-noisy-table(fn, min, max, noise-level) block:
       cases (Option) maybe-get-value(lam(): fn(sample) end):
         | some(y) => link({sample;y}, points)
         | none => points
-    end
+      end
     end, empty)
   xs = defined-points.map(lam(t): t.{0} end)
   fn_ys = defined-points.map(lam(t): t.{1} end)
@@ -2189,7 +2196,7 @@ fun color-to-gray(c :: C.Color) -> Number:
     (0.299 * c.red) +
     (0.587 * c.green) +
     (0.114 * c.blue)
-  )
+    )
 end
 
 # pixels-to-image :: (List<Color>, Number, Number) -> Image
@@ -2224,8 +2231,8 @@ fun invert(img :: Image) -> Image:
   height = image-height(img)
   pixels-to-image(
     image-to-color-list(img).map(lam(p):
-      make-color(255 - p.red, 255 - p.green, 255 - p.blue, p.alpha)
-    end),
+        make-color(255 - p.red, 255 - p.green, 255 - p.blue, p.alpha)
+      end),
     width, height)
 end
 
@@ -2298,12 +2305,12 @@ end
 # input pixels has higher luminance. transparent pixels pass through.
 fun lighter(img1 :: Image, img2 :: Image) -> Image:
   combine-pixels(img1, img2, lam(c1, c2):
-    if c1.alpha == 0: c1
-    else if c2.alpha == 0: c2
-    else if luminance(c1) >= luminance(c2): c1
-    else: c2
-    end
-  end)
+      if c1.alpha == 0: c1
+      else if c2.alpha == 0: c2
+      else if luminance(c1) >= luminance(c2): c1
+      else: c2
+      end
+    end)
 end
 
 # darker :: (Image, Image) -> Image
@@ -2318,7 +2325,7 @@ fun darker(img1 :: Image, img2 :: Image) -> Image:
       end
     end)
 end
-    
+
 # blend-images :: (Image, Image) -> Image
 # averages the RGB and alpha channels of each pair of pixels.
 # transparent pixels in either image show through to the other.
@@ -2328,16 +2335,16 @@ shadow blend-images = lam(imgA :: Image, imgB :: Image) -> Image:
   height = num-max(image-height(imgA), image-height(imgB))
   bg = rectangle(width, height, "solid", "transparent")
   combine-pixels(overlay(imgA, bg), overlay(imgB, bg), lam(c1, c2):
-    if c1.alpha == 0: c2
-    else if c2.alpha == 0: c1
-    else:
-      make-color(
-        num-round((c1.red   + c2.red)   / 2),
-        num-round((c1.green + c2.green) / 2),
-        num-round((c1.blue  + c2.blue)  / 2),
-        num-round((c1.alpha + c2.alpha) / 2))
-    end
-  end)
+      if c1.alpha == 0: c2
+      else if c2.alpha == 0: c1
+      else:
+        make-color(
+          num-round((c1.red   + c2.red)   / 2),
+          num-round((c1.green + c2.green) / 2),
+          num-round((c1.blue  + c2.blue)  / 2),
+          num-round((c1.alpha + c2.alpha) / 2))
+      end
+    end)
 end
 
 ################################################################
@@ -2370,7 +2377,7 @@ fun num-syllables(txt):
 
   fun skip-vowels(lst):
     ask:
-    | L.is-empty(lst) then: syllables([list:])
+      | L.is-empty(lst) then: syllables([list:])
       | vowels.member(lst.get(0)) then: skip-vowels(lst.rest)
       | otherwise: syllables(lst)
     end

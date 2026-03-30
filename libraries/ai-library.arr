@@ -5,6 +5,7 @@ provide *
 
 # re-export every symbol from Core
 import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr") as Core
+import csv as csv
 provide from Core:
     * hiding(
     mean,
@@ -334,18 +335,34 @@ shadow modes  = lam(m :: Model, col): modes(m.t, col) end
 
 shadow row-n  = lam(m :: Model, index): m.t.row-n(index) end
 shadow filter = lam(m :: Model, fn :: (Row -> Boolean)) -> Model:
-  model(filter(m.t, fn))
+  model(filter(m.t, fn), m.pipeline)
 end
 shadow build-column = lam(m :: Model, col :: String, fn :: (Row -> Any)) -> Model:
-  model(build-column(m.t, col, fn))
+  model(build-column(m.t, col, fn), m.pipeline)
 end
 
-shadow split-and-reduce = lam(m :: Model, col1 :: String, col2 :: String, f) -> Model:
-  f_ = {(t, c) block:
-    display(t)
-    f(model(t), c)
-  }
-  model(split-and-reduce(m.t, col1, col2, f_))
+shadow split-and-reduce = lam(
+    m :: Model,
+    col-to-split :: String,
+    col-to-reduce :: String,
+    reducer :: (Table, String -> Any)
+    ) -> Table block:
+  fun wrapped-reducer(r):
+    cases(Eth.Either) run-task(lam():
+            reducer(make-model(r["subtable"]), col-to-reduce)
+          end):
+      | left(v) => v
+      | right(v) => 
+        if Err.is-arity-mismatch(exn-unwrap(v)):
+          raise(Err.message-exception("An error occurred when trying to use your reducer. Are you sure it consumes *only* a valid Model and column name?)"))
+        else:
+          raise(exn-unwrap(v))
+        end
+    end
+  end
+  group(m.t, col-to-split)
+    .build-column("result", wrapped-reducer)
+    .drop("subtable")
 end
 
 
@@ -381,6 +398,17 @@ shadow fit-model = lam(m :: Model, ls :: String, xs :: String, ys :: String, fn)
 end
 
 
+animals-url = "https://docs.google.com/spreadsheets/d/1VeR2_bhpLvnRUZslmCAcSRKfZWs_5RNVujtZgEl6umA/export?format=csv"
+
+testModel = make-model(
+  load-table: name, species, sex, age, fixed, legs, pounds, weeks
+    source: csv.csv-table-url(animals-url, {
+          header-row: true,
+          infer-content: true
+        })
+  end)
+split = group(testModel.t, "species")
+#split-and-reduce(testModel, "species", "pounds", box-plot)
 ###################################################################################
 # Song-Specific Helpers
 
