@@ -474,6 +474,8 @@ fun likes(m):    make-model(m.t.filter({(r): r["RATING"] == "like"    })) end
 fun dislikes(m): make-model(m.t.filter({(r): r["RATING"] == "dislike" })) end
 fun unrated(m):  make-model(m.t.filter({(r): r["RATING"] == "-"       })) end
 
+fun find-by-tag(m, t): filter(m, {(r): string-contains(r["TAGS"], t) }) end
+
 
 # Given a model, find the centroids for likes and dislikes,
 # if they exist. If neither does, raise an error.
@@ -517,9 +519,9 @@ fun match-row(m, row):
 end
 
 # build a centroid for every row w/this tag, then use that to match-row
-fun search-by-tag(m, tag):
-  matching-docs = make-model(
-    m.t.filter({(r): string-split-all(r["TAGS"], ",").member(tag) }))
+fun search-by-tag(m, tag, cutoff):
+  matching-docs = filter(m, 
+    {(r): string-split-all(r["TAGS"], ",").member(tag) })
   centroid = build-centroid(matching-docs, tag)
   match-row(m, centroid)
 end
