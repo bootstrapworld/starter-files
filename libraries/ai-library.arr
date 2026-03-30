@@ -321,8 +321,8 @@ data Model:
       replay-pipeline(make-model(og-table-with-doc), self.pipeline)
     end,
 
-    method normalize-table(self):
-      cols = get-unrestricted-cols(self.t)
+    method normalize(self):
+      cols = get-unrestricted-cols(self.t.row-n(0))
 
       normed-t = 
         for fold(acc from self.t, col from cols):
