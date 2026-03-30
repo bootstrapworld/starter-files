@@ -211,11 +211,11 @@ data Model:
 
     # image methods
     method add-luminance(self):
-      model(self.t.build-column("LUMINANCE", {(r): image-luminance(r["DOC"])}),
+      model(self.t.build-column("luminance", {(r): image-luminance(r["DOC"])}),
         push(self.pipeline, call(add-luminance, "add-luminance",  [list:])))
     end,
     method add-entropy(self):
-      model(self.t.build-column("ENTROPY", {(r): image-entropy(r["DOC"])}),
+      model(self.t.build-column("entropy", {(r): image-entropy(r["DOC"])}),
         push(self.pipeline, call(add-entropy, "add-entropy", [list:])))
     end,
     method add-color-names(self):
@@ -319,6 +319,32 @@ data Model:
         [T.raw-row: {"ID";id}, {"DOC";doc}, {"RATING";rating}, {"TAGS";tags}])
       # replay all the operations
       replay-pipeline(make-model(og-table-with-doc), self.pipeline)
+    end,
+
+    method normalize-table(self):
+      cols = get-unrestricted-cols(self.t)
+
+      normed-t = 
+        for fold(acc from self.t, col from cols):
+          if string-to-lower(col) == col:
+            vals = self.t.column(col)
+            min-val = L.fold(num-min, vals.first, vals.rest)
+            max-val = L.fold(num-max, vals.first, vals.rest)
+            rng = max-val - min-val
+            # rng = 0 means all value identical
+            if rng == 0:
+              acc  
+            else:
+              acc.transform-column(col,
+                {(v): (v - min-val) / rng})
+            end
+          else:
+            acc
+          end
+        end
+      model(
+        normed-t, 
+        push(self.pipeline, call(normalize, "normalize", [list: ])))
     end
 end
 
@@ -330,6 +356,8 @@ fun shrink-images(m):
   model(m.t.transform-column("DOC", shrink-image), m.pipeline)
 end
 
+# a table-normalizing function
+fun normalize(m): m.normalize() end
 
 ########################################################################
 # Wrap DS chart functions
