@@ -170,7 +170,7 @@ fun replay-pipeline(m, pipeline):
     if      args.length() == 0: f(m)
     else if args.length() == 1: f(m, args.get(0))
     else if args.length() == 2: f(m, args.get(0), args.get(1))
-    else: raise(args.length() + " were specified in the pipeline for " + op.name)
+    else: raise(Err.message-exception(args.length() + " were specified in the pipeline for " + op.name))
     end
   end
 end
@@ -353,10 +353,11 @@ shadow split-and-reduce = lam(
           end):
       | left(v) => v
       | right(v) => 
+        base = "An error occurred when trying to use your reducer on one of your subtables: "
         if Err.is-arity-mismatch(exn-unwrap(v)):
-          raise(Err.message-exception("An error occurred when trying to use your reducer. Are you sure it consumes *only* a valid Model and column name?)"))
+          raise(Err.message-exception(base + "Are you sure it consumes *only* a valid Table and column name?)"))
         else:
-          raise(exn-unwrap(v))
+          raise(Err.message-exception(base + to-string(exn-unwrap(v))))
         end
     end
   end
@@ -481,7 +482,7 @@ fun recommend(m :: Model) -> Model block:
 
   # make sure we have some ratings
   when (liked.t.length() + disliked.t.length()) == 0:
-    raise("No recommendations could be computed without at least one RATING")
+    raise(Err.message-exception("No recommendations could be computed without at least one RATING"))
   end
 
   # compute the centroids
@@ -574,7 +575,7 @@ end
 fun simple-similarity(r1 :: Row, r2 :: Row) -> Number block:
   cols = r1.get-column-names()
   when not(member(cols, "DOC")):
-    raise("Simple similarity requires that all rows have a 'DOC' column")
+    raise(Err.message-exception("Simple similarity requires that all rows have a 'DOC' column"))
   end
   if (r1["DOC"] == r2["DOC"]): 1 else: 0 end
 end
@@ -584,7 +585,7 @@ end
 fun bag-similarity(r1 :: Row, r2 :: Row) -> Number block:
   cols = get-unrestricted-cols(r1)
   when cols.length() == 0:
-    raise("Bag similarity ignores certain columns (" + restricted-cols.join-str(", ") + "), but no other columns were found")
+    raise(Err.message-exception("Bag similarity ignores certain columns (" + restricted-cols.join-str(", ") + "), but no other columns were found"))
   end
   sd1 = row-to-dict(cols, r1)
   sd2 = row-to-dict(cols, r2)
@@ -604,7 +605,7 @@ fun sd-cos-sim(sd1 :: SD.StringDict, sd2 :: SD.StringDict) -> Number block:
   # if the magnitude of the products is 0, return 0 with a warning
   magnitude-product = sqrt(dot-product(sd1, sd1)) * sqrt(dot-product(sd2, sd2))
   if num-exact(magnitude-product) == 0:
-    raise("One of the vectors being compared is zero, so I can't calculate its similarity. Does one of your rows have all zero values?")
+    raise(Err.message-exception("One of the vectors being compared is zero, so I can't calculate its similarity. Does one of your rows have all zero values?"))
   else:
     num-exact(num-round-to(dot-product(sd1, sd2) / magnitude-product, 10))
   end
@@ -615,7 +616,7 @@ end
 fun cosine-similarity(r1 :: Row, r2 :: Row) -> Number block:
   cols = get-unrestricted-cols(r1)
   when cols.length() < 2:
-    raise("Cosine and angle similarity require at least 2 quantitative columns.")
+    raise(Err.message-exception("Cosine and angle similarity require at least 2 quantitative columns."))
   end
   # convert each row to a StringDict, and compute cosine similarity
   sd-cos-sim(row-to-dict(cols, r1), row-to-dict(cols, r2))

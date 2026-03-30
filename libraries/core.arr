@@ -853,7 +853,7 @@ r-value:: (t :: Table, xs :: String, ys :: String) -> Number
 fun r-value(t, xs, ys) block:
   check-integrity(t, [list: xs, ys])
   if not(is-number(t.column(xs).get(0)) and is-number(t.column(ys).get(0))):
-    raise("Cannot compute the mean, because the specified columns do not contain numeric data")
+    raise(Err.message-exception("Cannot compute the mean, because the specified columns do not contain numeric data"))
   else:
     fn = Stats.linear-regression(
       ensure-numbers(t.column(xs)),
@@ -1220,7 +1220,9 @@ box-plot-raw :: (t :: Table, vs :: String, low :: Number, high :: Number, horizo
 fun box-plot-raw(t, vs, low, high, horizontal, showOutliers) block:
   l = ensure-numbers(t.column(vs))
   padding = (high - low) / 1000 # pad with 1000th the range
-  if not(is-number(l.get(0))):
+  if l.length() < 2:
+    raise(Err.message-exception("At least two rows are needed to make a box plot"))
+  else if not(is-number(l.get(0))):
     raise(Err.message-exception("Cannot make a box plot, because the 'values' column does not contain numeric data"))
   else if (low > high):
     raise(Err.message-exception("Min value must be lower than Max value"))
@@ -1850,10 +1852,11 @@ fun split-and-reduce(t, col-to-split, col-to-reduce, reducer) block:
           end):
       | left(v) => v
       | right(v) => 
+        base = "An error occurred when trying to use your reducer on one of your subtables: "
         if Err.is-arity-mismatch(exn-unwrap(v)):
-          raise(Err.message-exception("An error occurred when trying to use your reducer. Are you sure it consumes *only* a valid Table and column name?)"))
+          raise(Err.message-exception(base + "Are you sure it consumes *only* a valid Table and column name?)"))
         else:
-          raise(exn-unwrap(v))
+          raise(Err.message-exception(base + to-string(exn-unwrap(v))))
         end
     end
   end
@@ -2558,7 +2561,7 @@ combine-wo-replace :: <A>(items :: L.List<A>, choose :: Number) -> L.List<List<A
 # from https://rosettacode.org/wiki/Combinations#Pyret
 fun combine-wo-replace(items, choose):
   if items.length() < choose:
-    raise("The list must be at least as long as the number of choices")
+    raise(Err.message-exception("The list must be at least as long as the number of choices"))
   else if items.length() == choose: [list: items]
   else if choose == 1: items.map(lam(e): [list: e] end)
   else:
