@@ -1,5 +1,7 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations", "../libraries/core.arr")
 
+flower = overlay(radial-star(21, 12, 160, "solid", "white"),circle(160, "solid", "black"))
+
 cat  = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/cat.png")
 
 tractor  = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/tractor.png")
