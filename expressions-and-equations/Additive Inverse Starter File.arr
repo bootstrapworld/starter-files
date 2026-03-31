@@ -1,16 +1,14 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations", "../libraries/core.arr")
 
-butterfly  = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/butterfly.png")
-butterfly2 = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/butterfly2.png")
-
 cat  = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/cat.png")
-cat2 = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/cat2.png")
+
+tractor  = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/tractor.png")
 
 dove  = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/dove.png")
 dove2 = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/dove2.png")
 
-tractor  = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/tractor.png")
-tractor2 = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/tractor2.png")
+butterfly  = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/butterfly.png")
+butterfly2 = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/butterfly2.png")
 
 imageA = put-image(circle(20, "solid", "white"), 55, 25,rectangle(100,50,"solid","black"))
 imageB = put-image(circle(20, "solid", "black"), 75, 25,rectangle(100,50,"solid","white"))
