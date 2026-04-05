@@ -47,6 +47,19 @@ end
 # we use custom renderers for AI 
 include valueskeleton
 include option
+
+SMALL-IMAGE-WIDTH = 100
+fun shrink-image(img :: Image) -> Image:
+  factor = SMALL-IMAGE-WIDTH / image-width(img)
+  scale(factor, img)
+end
+
+DIGITS = 10
+fun rounded-exact(r):
+  num-exact(num-round-to(r, DIGITS))
+end
+
+
 ########################################################################
 # Some helpers that might eventually make their way into the core library
 
@@ -66,7 +79,7 @@ fun text-grade(txt :: String) -> Number:
   words-per-sentence = total-words / total-sentences
   syllables-per-word = (total-syllables / total-words)
   flesch-kincaid = ((0.39 * words-per-sentence) + (11.8 * syllables-per-word)) - 15.59
-  num-exact(num-round-to(flesch-kincaid, 10))
+  rounded-exact(flesch-kincaid, 10)
 end
 
 fun text-streak(str :: String, target :: String) -> Number:
@@ -87,13 +100,6 @@ where:
   text-streak("sea sea sea", "sea")              is 3
   text-streak("sand sun sea", "cyan")            is 0
   text-streak("sun sun sand sun sun sun", "sun") is 3
-end
-
-
-SMALL-IMAGE-WIDTH = 100
-fun shrink-image(img :: Image) -> Image:
-  factor = SMALL-IMAGE-WIDTH / image-width(img)
-  scale(factor, img)
 end
 
 # 1) massaging the string (lowercase + remove punctuation)
@@ -485,7 +491,7 @@ fun build-centroid(m :: Model, name) -> Row:
           avg = if m.t.get-column(col).length() == 0: 0
           else: Stats.mean(m.t.get-column(col))
           end
-          val = num-round-to(avg, 10)
+          val = rounded-exact(avg)
           add-col-avgs(rest, L.link({col; num-exact(val)}, acc))
         else:
           add-col-avgs(rest, acc)
@@ -651,7 +657,7 @@ fun sd-cos-sim(sd1 :: SD.StringDict, sd2 :: SD.StringDict) -> Number block:
   if num-exact(magnitude-product) == 0:
     raise(Err.message-exception("One of the vectors being compared is zero, so I can't calculate its similarity. Does one of your rows have all zero values?"))
   else:
-    num-exact(num-round-to(dot-product(sd1, sd2) / magnitude-product, 10))
+    rounded-exact(dot-product(sd1, sd2) / magnitude-product)
   end
 end
 
