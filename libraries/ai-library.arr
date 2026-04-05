@@ -79,7 +79,7 @@ fun text-grade(txt :: String) -> Number:
   words-per-sentence = total-words / total-sentences
   syllables-per-word = (total-syllables / total-words)
   flesch-kincaid = ((0.39 * words-per-sentence) + (11.8 * syllables-per-word)) - 15.59
-  rounded-exact(flesch-kincaid, 10)
+  rounded-exact(flesch-kincaid)
 end
 
 fun text-streak(str :: String, target :: String) -> Number:
