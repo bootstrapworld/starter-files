@@ -70,8 +70,8 @@ image-model =
         add-entropy(
           add-horizontal-symmetry(
             add-vertical-symmetry(
-              shrink-images(image-corpus)))),
-        "COLOR-NAMES")))
+              shrink-images(image-corpus)))))),
+        "COLOR-NAMES")
 
 
 ###################################################################
