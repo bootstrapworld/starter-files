@@ -131,6 +131,8 @@ end
 # Wrap model methods as functions
 fun add-luminance(m): m.add-luminance() end
 fun add-entropy(m): m.add-entropy() end
+fun add-vertical-symmetry(m): m.add-vertical-symmetry() end
+fun add-horizontal-symmetry(m): m.add-horizontal-symmetry() end
 fun add-color-names(m): m.add-color-names() end
 
 fun add-word-count(m, col): m.add-word-count(col) end
@@ -217,6 +219,14 @@ data Model:
     method add-entropy(self):
       model(self.t.build-column("entropy", {(r): image-entropy(r["DOC"])}),
         push(self.pipeline, call(add-entropy, "add-entropy", [list:])))
+    end,
+    method add-vertical-symmetry(self):
+      model(self.t.build-column("vertical-symmetry", {(r): image-symmetry-vertical(r["DOC"])}),
+        push(self.pipeline, call(add-vertical-symmetry, "add-vertical-symmetry", [list:])))
+    end,
+    method add-horizontal-symmetry(self):
+      model(self.t.build-column("horizontal-symmetry", {(r): image-symmetry-horizontal(r["DOC"])}),
+        push(self.pipeline, call(add-vertical-symmetry, "add-vertical-symmetry", [list:])))
     end,
     method add-color-names(self):
       model(self.t.build-column("COLOR-NAMES", {(r): image-color-names(r["DOC"])}),

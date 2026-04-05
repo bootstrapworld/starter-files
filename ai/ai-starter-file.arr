@@ -68,8 +68,10 @@ image-model =
     add-color-names(
       add-luminance(
         add-entropy(
-          shrink-images(image-corpus)))),
-    "COLOR-NAMES")
+          add-horizontal-symmetry(
+            add-vertical-symmetry(
+              shrink-images(image-corpus)))),
+        "COLOR-NAMES")))
 
 
 ###################################################################
