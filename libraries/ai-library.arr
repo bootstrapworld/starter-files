@@ -227,11 +227,15 @@ data Model:
         push(self.pipeline, call(add-entropy, "add-entropy", [list:])))
     end,
     method add-vertical-symmetry(self):
-      model(self.t.build-column("vertical-symmetry", {(r): image-symmetry-vertical(r["DOC"])}),
+      model(self.t.build-column("vertical-symmetry", {(r): 
+              rounded-exact(image-symmetry-vertical(r["DOC"]))
+          }),
         push(self.pipeline, call(add-vertical-symmetry, "add-vertical-symmetry", [list:])))
     end,
     method add-horizontal-symmetry(self):
-      model(self.t.build-column("horizontal-symmetry", {(r): image-symmetry-horizontal(r["DOC"])}),
+      model(self.t.build-column("horizontal-symmetry", {(r): 
+            rounded-exact(image-symmetry-horizontal(r["DOC"]))
+          }),
         push(self.pipeline, call(add-vertical-symmetry, "add-vertical-symmetry", [list:])))
     end,
     method add-color-names(self):
