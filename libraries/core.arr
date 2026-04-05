@@ -2350,6 +2350,15 @@ shadow blend-images = lam(imgA :: Image, imgB :: Image) -> Image:
     end)
 end
 
+# compute symmetry along the horizontal and vertical axes
+# 1 = totally symmetric, 0 = not at all symmetric
+fun image-symmetry-vertical(img :: Image) -> Number:
+  1 - ((~0 + images-difference(img, flip-horizontal(img)).v) / 255)
+end
+fun image-symmetry-horizontal(img :: Image) -> Number:
+  1 - ((~0 + images-difference(img, flip-vertical(img)).v) / 255)
+end
+
 ################################################################
 ###################### TEXT TOOLS ##################
 

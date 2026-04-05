@@ -204,6 +204,10 @@ examples:
   image-luminance(square(10, "solid", "white")) is 255
   lighter(square(10, "solid", "black"), square(10, "solid", "white")) is square(10, "solid", "white")
   darker(square(10, "solid", "black"), square(10, "solid", "white")) is square(10, "solid", "black")
+  image-symmetry-vertical(triangle(20, "solid", "red")) is 1
+  image-symmetry-horizontal(triangle(20, "solid", "red")) is-not-roughly 1
+  image-symmetry-vertical(circle(20, "solid", "red")) is 1
+  image-symmetry-horizontal(circle(20, "solid", "red")) is 1
 end
 
 
