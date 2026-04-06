@@ -1385,6 +1385,28 @@ fun image-scatter-plot(t, xs, ys, f) block:
   end
 end
 
+scatter-plot-3d :: (t :: Table, labels :: String, xs :: String, ys :: String, zs :: String) -> Image
+fun scatter-plot-3d(t, labels, xs, ys, zs) block:
+  check-integrity(t, [list: labels, xs, ys, zs])
+  ls = get-labels(t, labels)
+  if not(
+      is-number(t.column(xs).get(0)) and 
+      is-number(t.column(ys).get(0)) and 
+      is-number(t.column(zs).get(0))):
+    raise(Err.message-exception("Cannot make a scatter plot, because the 'xs', 'ys', and 'zs' columns must all contain numeric data"))
+  else:
+    series = from-list.labeled-scatter-plot-3d(ls, ensure-numbers(t.column(xs)), ensure-numbers(t.column(ys)), ensure-numbers(t.column(zs)))
+    chart = render-chart(series).width(600).height(400)
+      .x-axis(xs)
+      .y-axis(ys)
+      .z-axis(zs)
+    img = display-chart(chart)
+    title = make-title([list:"", zs, "vs.", xs, "vs.", ys])
+    above(title, add-margin(img))
+  end
+end
+
+
 fun make-lr-title(fn, r-sqr-num, s-num) :
   r-num = (if  (fn(1) - fn(0)) < 0: -1 else: 1 end) * num-sqrt(r-sqr-num)
   alpha  = fn(2) - fn(1)
