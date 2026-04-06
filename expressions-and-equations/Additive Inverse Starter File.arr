@@ -9,7 +9,8 @@ flag = translate(rotate(90, triangle(200, "solid", "white")), 215, 100, rectangl
 cat  = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/cat.png")
 
 
-### Explore the `blend-images` function with these pairs of images
+### ARE THEY INVERSES?
+# Explore the `blend-images` function with these pairs of images
 
 #blend-image(flower, invert(flower))
 
@@ -20,6 +21,9 @@ butterfly2 = image-url("https://raw.githubusercontent.com/bootstrapworld/starter
 tractor  = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/tractor.png")
 tractor2  = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/tractor2.png")
 # beside(tractor tractor2)
+
+moon = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/moon.png")
+moon2 = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/moon2.png")
 
 imageA = put-image(circle(40, "solid", "white"), 110, 50,rectangle(200,100,"solid","black"))
 imageB = put-image(circle(40, "solid", "black"), 150, 50,rectangle(200,100,"solid","white"))
