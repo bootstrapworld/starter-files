@@ -2329,7 +2329,10 @@ end
 # produces an image where each pixel is whichever of the two
 # input pixels has higher luminance. transparent pixels pass through.
 fun lighter(img1 :: Image, img2 :: Image) -> Image:
-  combine-pixels(img1, img2, lam(c1, c2):
+  width  = num-max(image-width(img1),  image-width(img2))
+  height = num-max(image-height(img1), image-height(img2))
+  bg = rectangle(width, height, "solid", "transparent")
+  combine-pixels(overlay(img1, bg), overlay(img2, bg), lam(c1, c2):
       if c1.alpha == 0: c1
       else if c2.alpha == 0: c2
       else if luminance(c1) >= luminance(c2): c1
@@ -2342,7 +2345,10 @@ end
 # produces an image where each pixel is whichever of the two
 # input pixels has lower luminance. transparent pixels pass through.
 fun darker(img1 :: Image, img2 :: Image) -> Image:
-  combine-pixels(img1, img2, lam(c1, c2):
+  width  = num-max(image-width(img1),  image-width(img2))
+  height = num-max(image-height(img1), image-height(img2))
+  bg = rectangle(width, height, "solid", "transparent")
+  combine-pixels(overlay(img1, bg), overlay(img2, bg), lam(c1, c2):
       if c1.alpha == 0: c2
       else if c2.alpha == 0: c1
       else if luminance(c1) <= luminance(c2): c1
@@ -2355,11 +2361,11 @@ end
 # averages the RGB and alpha channels of each pair of pixels.
 # transparent pixels in either image show through to the other.
 # handles images of different sizes by padding both to the same dimensions.
-shadow blend-images = lam(imgA :: Image, imgB :: Image) -> Image:
-  width  = num-max(image-width(imgA),  image-width(imgB))
-  height = num-max(image-height(imgA), image-height(imgB))
+shadow blend-images = lam(img1 :: Image, img2 :: Image) -> Image:
+  width  = num-max(image-width(img1),  image-width(img2))
+  height = num-max(image-height(img1), image-height(img2))
   bg = rectangle(width, height, "solid", "transparent")
-  combine-pixels(overlay(imgA, bg), overlay(imgB, bg), lam(c1, c2):
+  combine-pixels(overlay(img1, bg), overlay(img2, bg), lam(c1, c2):
       if c1.alpha == 0: c2
       else if c2.alpha == 0: c1
       else:
