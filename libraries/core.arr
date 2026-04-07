@@ -2127,24 +2127,134 @@ fun uneq-variance-t(t, col1, col2) block:
   (mean1 - mean2) / ((dfs-and-sq-vars / df) * num-sqrt((1 / n1) + (1 / n2)))
 end
 
-fun make-noisy-table(fn, min, max, noise-level) block:
-  samples = L.range-by(min, max, Math.max([list: (max - min) / 500]))
-  defined-points = samples.foldr(lam(sample, points): 
-      cases (Option) maybe-get-value(lam(): fn(sample) end):
-        | some(y) => link({sample;y}, points)
-        | none => points
+############################ Optimal Point Calculation for Functions ############
+data Interval:
+  | interval(
+      x0 :: Number, y0 :: Option<Number>, 
+      x1 :: Number, y1 :: Option<Number>, 
+      xMid :: Number, yMid :: Option<Number>, 
+      dx :: Number, score :: Number
+    )
+end
+
+EPSILON = 1e-4
+
+fun adaptive-sample(
+    f :: (Number -> Number), 
+    minX :: Number, maxX :: Number, 
+    minY :: Number, maxY :: Number,
+    numSamples :: Number
+  ) -> List<Point>:
+  doc: "Samples f(x) over [minX, maxX] and [minY, maxY]. Points outside the Y-range are discarded."
+  
+  if numSamples < 2:
+    raise("numSamples must be >= 2")
+  else if minX >= maxX:
+    raise("minX must be < maxX")
+  else:
+    # Safely evaluate initial boundaries
+    y0 = maybe-get-value(f, minX)
+    y1 = maybe-get-value(f, maxX)
+    
+    # Helper to check if a value is within the vertical window
+    fun is-in-view(v :: Number) -> Boolean:
+      (v >= minY) and (v <= maxY)
+    end
+
+    # Helper to only append valid AND visible points to our list
+    fun add-if-visible(p-list :: List<Point>, x-val :: Number, y-opt :: Option<Number>) -> List<Point>:
+      cases (Option) y-opt:
+        | some(vy) => 
+          if is-in-view(vy): link(point(x-val, vy), p-list)
+          else: p-list
+          end
+        | none => p-list
       end
-    end, empty)
-  xs = defined-points.map(lam(t): t.{0} end)
-  fn_ys = defined-points.map(lam(t): t.{1} end)
+    end
+
+    # Scoring helper (same logic: uses dx fallback if points are undefined)
+    fun make-interval(cx0, cy0 :: Option<Number>, cx1, cy1 :: Option<Number>) -> Interval:
+      dx = cx1 - cx0
+      xMid = cx0 + (dx / 2)
+      yMid = maybe-get-value(f, xMid)
+      
+      score = cases (Option) cy0:
+        | some(vy0) => 
+          cases (Option) cy1:
+            | some(vy1) => 
+              cases (Option) yMid:
+                | some(vyMid) => num-abs(vyMid - ((vy0 + vy1) / 2)) * dx
+                | none => dx
+              end
+            | none => dx
+          end
+        | none => dx
+      end
+      
+      interval(cx0, cy0, cx1, cy1, xMid, yMid, dx, score)
+    end
+
+    fun insert-sorted(lst :: List<Interval>, ivl :: Interval) -> List<Interval>:
+      cases (List) lst:
+        | empty => [list: ivl]
+        | link(fst, rst) =>
+          if ivl.score > fst.score: link(ivl, lst)
+          else: link(fst, insert-sorted(rst, ivl))
+          end
+      end
+    end
+
+    initial-queue = if (maxX - minX) > EPSILON:
+      [list: make-interval(minX, y0, maxX, y1)]
+    else:
+      empty
+    end
+    
+    # Start with boundary points (if they are within the Y-window)
+    initial-points = add-if-visible(add-if-visible(empty, maxX, y1), minX, y0)
+    
+    fun process-budget(budget :: Number, queue :: List<Interval>, points :: List<Point>) -> List<Point>:
+      if (budget <= 0) or is-empty(queue):
+        points
+      else:
+        top-ivl = queue.first
+        rest-queue = queue.rest
+        
+        # Midpoint is only added if it's defined AND inside [minY, maxY]
+        new-points = add-if-visible(points, top-ivl.xMid, top-ivl.yMid)
+        new-budget = budget - 1
+        
+        if (new-budget > 0) and ((top-ivl.dx / 2) > EPSILON):
+          left-child = make-interval(top-ivl.x0, top-ivl.y0, top-ivl.xMid, top-ivl.yMid)
+          right-child = make-interval(top-ivl.xMid, top-ivl.yMid, top-ivl.x1, top-ivl.y1)
+          
+          process-budget(new-budget, insert-sorted(insert-sorted(rest-queue, left-child), right-child), new-points)
+        else:
+          process-budget(new-budget, rest-queue, new-points)
+        end
+      end
+    end
+
+    final-points = process-budget(numSamples - 2, initial-queue, initial-points)
+    final-points.sort-by(
+      {(p1, p2): p1.x < p2.x}, 
+      {(p1, p2): num-exact(p1.x) == num-exact(p2.x)})
+  end
+end
+
+fun make-noisy-table(fn, minX, maxX, noise-level) block:
+  defined-points = adaptive-sample(fn, minX, maxX, minX * 10, maxX * 10, 1000)
+  xs = defined-points.map({(p): p.x })
+  fn_ys = defined-points.map({(p): p.y })
   noise = random-normal-distribution(xs.length() + 1)
   ys = map2(lam(x, y): x + ((noise-level * (y - 0.5))) end, fn_ys, noise)
   [T.table-from-columns: {"x"; xs}, {"y"; ys}]
 end
 
-fun make-noisy-scatter-chart(fn, min, max, noise-level) block:
-  xs = L.range-by(min, max, Math.max([list: (max - min) / 500]))
-  fn_ys = xs.map(fn)
+fun make-noisy-scatter-chart(fn, minX, maxX, noise-level) block:
+  defined-points = adaptive-sample(fn, minX, maxX, minX * 10, maxX * 10, 1000)
+  xs = defined-points.map({(p): p.x })
+  fn_ys = defined-points.map({(p): p.y })
   noise = random-normal-distribution(xs.length() + 1)
   ys = map2(lam(x, y): x + ((noise-level * (y - 0.5))) end, fn_ys, noise)
   render-chart(from-list.scatter-plot(xs, ys))
@@ -2152,8 +2262,8 @@ end
 
 ################# UTILITY FUNCTIONS ###########################
 
-fun maybe-get-value(f :: Function):
-  cases (Eth.Either) run-task({(): f()}):
+fun maybe-get-value(f :: Function, x :: Number):
+  cases (Eth.Either) run-task({(): f(x)}):
     | left(v) => some(v)
     | right(v) => none
   end
