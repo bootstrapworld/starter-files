@@ -2134,28 +2134,36 @@ data Interval:
       x1 :: Number, y1 :: Option<Number>, 
       xMid :: Number, yMid :: Option<Number>, 
       dx :: Number, score :: Number
-    )
+      )
 end
 
-EPSILON = 1e-4
+EPSILON = 1e-5
 
 fun adaptive-sample(
     f :: (Number -> Number), 
     minX :: Number, maxX :: Number, 
     minY :: Number, maxY :: Number,
     numSamples :: Number
-  ) -> List<Point>:
+    ) -> List<Point>:
   doc: "Samples f(x) over [minX, maxX] and [minY, maxY]. Points outside the Y-range are discarded."
-  
+
   if numSamples < 2:
     raise("numSamples must be >= 2")
   else if minX >= maxX:
     raise("minX must be < maxX")
   else:
+    # Helper to deal with functions that are undefined at x
+    fun safe-eval(x :: Number):
+      cases (Eth.Either) run-task({(): f(x)}):
+        | left(v) => some(v)
+        | right(v) => none
+      end
+    end
+
     # Safely evaluate initial boundaries
-    y0 = maybe-get-value(f, minX)
-    y1 = maybe-get-value(f, maxX)
-    
+    y0 = safe-eval(minX)
+    y1 = safe-eval(maxX)
+
     # Helper to check if a value is within the vertical window
     fun is-in-view(v :: Number) -> Boolean:
       (v >= minY) and (v <= maxY)
@@ -2173,35 +2181,55 @@ fun adaptive-sample(
     end
 
     # Scoring helper (same logic: uses dx fallback if points are undefined)
-    fun make-interval(cx0, cy0 :: Option<Number>, cx1, cy1 :: Option<Number>) -> Interval:
-      dx = cx1 - cx0
+    fun make-interval(
+        cx0 :: Number, cy0 :: Option<Number>, 
+        cx1 :: Number, cy1 :: Option<Number>) -> Interval:
+      dx   = cx1 - cx0
       xMid = cx0 + (dx / 2)
-      yMid = maybe-get-value(f, xMid)
-      
-      score = cases (Option) cy0:
-        | some(vy0) => 
-          cases (Option) cy1:
-            | some(vy1) => 
-              cases (Option) yMid:
-                | some(vyMid) => num-abs(vyMid - ((vy0 + vy1) / 2)) * dx
-                | none => dx
-              end
-            | none => dx
-          end
-        | none => dx
+      yMid = safe-eval(xMid)
+
+      # Probe at 1/3 and 2/3 for scoring; take the max deviation
+      x-third  = cx0 + (dx / 3)
+      x-two-thirds = cx0 + (2 * (dx / 3))
+      y-third  = safe-eval(x-third)
+      y-two-thirds = safe-eval(x-two-thirds)
+
+      fun deviation-at(xp :: Number, yp-opt :: Option<Number>) -> Number:
+        cases (Option) cy0:
+          | none => dx
+          | some(vy0) =>
+            cases (Option) cy1:
+              | none => dx
+              | some(vy1) =>
+                t = (xp - cx0) / dx              # parametric position in [0,1]
+                y-interp = vy0 + (t * (vy1 - vy0)) # secant value at xp
+                cases (Option) yp-opt:
+                  | none      => dx
+                  | some(vyp) => num-abs(vyp - y-interp)
+                end
+            end
+        end
       end
-      
+
+      score = num-max(
+        deviation-at(x-third, y-third),
+        deviation-at(x-two-thirds, y-two-thirds)
+        ) * dx
+
       interval(cx0, cy0, cx1, cy1, xMid, yMid, dx, score)
     end
 
     fun insert-sorted(lst :: List<Interval>, ivl :: Interval) -> List<Interval>:
-      cases (List) lst:
-        | empty => [list: ivl]
-        | link(fst, rst) =>
-          if ivl.score > fst.score: link(ivl, lst)
-          else: link(fst, insert-sorted(rst, ivl))
-          end
+      fun iter(remaining :: List, acc :: List) -> List<Interval>:
+        cases (List) remaining:
+          | empty      => acc.reverse() + [list: ivl]
+          | link(h, t) =>
+            if ivl.score > h.score: (acc.reverse() + link(ivl, remaining))
+            else: iter(t, link(h, acc))
+            end
+        end
       end
+      iter(lst, empty)
     end
 
     initial-queue = if (maxX - minX) > EPSILON:
@@ -2209,25 +2237,28 @@ fun adaptive-sample(
     else:
       empty
     end
-    
+
     # Start with boundary points (if they are within the Y-window)
-    initial-points = add-if-visible(add-if-visible(empty, maxX, y1), minX, y0)
-    
+    initial-points = add-if-visible(add-if-visible(empty, minX, y0), maxX, y1)
+
     fun process-budget(budget :: Number, queue :: List<Interval>, points :: List<Point>) -> List<Point>:
       if (budget <= 0) or is-empty(queue):
         points
       else:
         top-ivl = queue.first
         rest-queue = queue.rest
-        
+
         # Midpoint is only added if it's defined AND inside [minY, maxY]
         new-points = add-if-visible(points, top-ivl.xMid, top-ivl.yMid)
-        new-budget = budget - 1
-        
+
+        # Only spend budget on visible points
+        was-added = points.length() < new-points.length()
+        new-budget = if was-added: budget - 1 else: budget end
+
         if (new-budget > 0) and ((top-ivl.dx / 2) > EPSILON):
           left-child = make-interval(top-ivl.x0, top-ivl.y0, top-ivl.xMid, top-ivl.yMid)
           right-child = make-interval(top-ivl.xMid, top-ivl.yMid, top-ivl.x1, top-ivl.y1)
-          
+
           process-budget(new-budget, insert-sorted(insert-sorted(rest-queue, left-child), right-child), new-points)
         else:
           process-budget(new-budget, rest-queue, new-points)
@@ -2261,13 +2292,6 @@ fun make-noisy-scatter-chart(fn, minX, maxX, noise-level) block:
 end
 
 ################# UTILITY FUNCTIONS ###########################
-
-fun maybe-get-value(f :: Function, x :: Number):
-  cases (Eth.Either) run-task({(): f(x)}):
-    | left(v) => some(v)
-    | right(v) => none
-  end
-end
 
 # courtesy of Ben Lerner
 # first, we define a data structure that we can run cases on...
