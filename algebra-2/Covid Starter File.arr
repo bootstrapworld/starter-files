@@ -18,7 +18,7 @@ end
 # Define some rows
 
 CA15 = row-n(covid-table, 0)
-MI-64 = row-n(covid-table, 44)
+MI64 = row-n(covid-table, 44)
 
 ######################################################### 
 # Define some helper functions
