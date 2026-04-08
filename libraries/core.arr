@@ -2333,8 +2333,8 @@ fun lighter(img1 :: Image, img2 :: Image) -> Image:
   height = num-max(image-height(img1), image-height(img2))
   bg = rectangle(width, height, "solid", "transparent")
   combine-pixels(overlay(img1, bg), overlay(img2, bg), lam(c1, c2):
-      if c1.alpha == 0: c1
-      else if c2.alpha == 0: c2
+      if c1.alpha == 0: c2
+      else if c2.alpha == 0: c1
       else if luminance(c1) >= luminance(c2): c1
       else: c2
       end
