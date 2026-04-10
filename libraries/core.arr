@@ -2313,26 +2313,33 @@ fun image-entropy(img :: Image) -> Number block:
   num-exact(num-round-to(entropy, 10))
 end
 
-# combine-pixels :: (Image, Image, (Color, Color -> Color)) -> Image
-# merges two same-sized images pixel-by-pixel using the given pick
-# function. transparency handling is the responsibility of the caller.
-fun combine-pixels(img1 :: Image, img2 :: Image, pick :: (C.Color, C.Color -> C.Color)) -> Image:
-  width  = image-width(img1)
-  height = image-height(img1)
-  new-px-list = for map2(c1 from image-to-color-list(img1), c2 from image-to-color-list(img2)):
-    pick(c1, c2)
+# combine-images :: (Image, Image, (Color, Color -> Color)) -> Image
+# 1) Norms the image sizes by overlaying them onto a transparent
+# rectangle drawn from their max width and height
+# 2) Merges two normed images pixel-by-pixel using the given combinator
+fun combine-images(
+    img1 :: Image, 
+    img2 :: Image, 
+    combinator :: (C.Color, C.Color -> C.Color)
+    ) -> Image:
+  width  = num-max(image-width(img1),  image-width(img2))
+  height = num-max(image-height(img1), image-height(img2))
+  bg = rectangle(width, height, "solid", "transparent")
+  normed_img1 = overlay(center-pinhole(img1), bg)
+  normed_img2 = overlay(center-pinhole(img2), bg) 
+  combined-pixels = for map2(
+      c1 from image-to-color-list(normed_img1), 
+      c2 from image-to-color-list(normed_img2)):
+    combinator(c1, c2)
   end
-  pixels-to-image(new-px-list, width, height)
+  pixels-to-image(combined-pixels, width, height)
 end
 
 # lighter :: (Image, Image) -> Image
 # produces an image where each pixel is whichever of the two
 # input pixels has higher luminance. transparent pixels pass through.
 fun lighter(img1 :: Image, img2 :: Image) -> Image:
-  width  = num-max(image-width(img1),  image-width(img2))
-  height = num-max(image-height(img1), image-height(img2))
-  bg = rectangle(width, height, "solid", "transparent")
-  combine-pixels(overlay(img1, bg), overlay(img2, bg), lam(c1, c2):
+  combine-images(img1, img2, lam(c1, c2):
       if c1.alpha == 0: c2
       else if c2.alpha == 0: c1
       else if luminance(c1) >= luminance(c2): c1
@@ -2345,10 +2352,7 @@ end
 # produces an image where each pixel is whichever of the two
 # input pixels has lower luminance. transparent pixels pass through.
 fun darker(img1 :: Image, img2 :: Image) -> Image:
-  width  = num-max(image-width(img1),  image-width(img2))
-  height = num-max(image-height(img1), image-height(img2))
-  bg = rectangle(width, height, "solid", "transparent")
-  combine-pixels(overlay(img1, bg), overlay(img2, bg), lam(c1, c2):
+  combine-images(img1, img2, lam(c1, c2):
       if c1.alpha == 0: c2
       else if c2.alpha == 0: c1
       else if luminance(c1) <= luminance(c2): c1
@@ -2362,10 +2366,7 @@ end
 # transparent pixels in either image show through to the other.
 # handles images of different sizes by padding both to the same dimensions.
 shadow blend-images = lam(img1 :: Image, img2 :: Image) -> Image:
-  width  = num-max(image-width(img1),  image-width(img2))
-  height = num-max(image-height(img1), image-height(img2))
-  bg = rectangle(width, height, "solid", "transparent")
-  combine-pixels(overlay(img1, bg), overlay(img2, bg), lam(c1, c2):
+  combine-images(img1, img2, lam(c1, c2):
       if c1.alpha == 0: c2
       else if c2.alpha == 0: c1
       else:
