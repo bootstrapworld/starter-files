@@ -11,7 +11,8 @@ provide:
   module SD,
   module R,
   module L,
-  module Stats
+  module Stats,
+  module Math
 end
 
 # export every symbol from starter2024 except for those we override
