@@ -969,8 +969,8 @@ data DecisionTree:
         end
       end
 
-      print(vs-value(to-lines(t).join-str("\n")))
-      vs-str("")
+      print(to-lines(t).join-str("\n"))
+      vs-value(circle(1,"solid","transparent"))
     end
 end
 
