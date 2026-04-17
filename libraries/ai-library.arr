@@ -769,3 +769,272 @@ end
    #     farthest away from the disliked ones
    recommend(image-model)
 |#
+
+
+
+fun simple-clustering(d :: List<Number>, n-clusters :: Number) -> List<{Number; Number}>:
+  doc: "Partitions a sorted list into N clusters and returns {min; max} tuples."
+  if (d.length() == 0) or (n-clusters <= 0):
+    [list: ]
+  else:
+    sorted-data = d.sort()
+    len = sorted-data.length()
+
+    # Calculate items per cluster (rounding up to ensure we cover all data)
+    chunk-size = num-ceiling(len / n-clusters)
+
+    # Use range to generate starting indices [0, chunk-size, 2*chunk-size...]
+    indices = L.range(0, n-clusters)
+
+    # For each index, grab the 'chunk-size' elements and find boundaries
+    map(lam(i):
+        start-index = i * chunk-size
+        # Get the sub-segment of the list
+        chunk = sorted-data.take(num-min(len, start-index + chunk-size)).drop(start-index)
+
+        if chunk.length() > 0:
+          { chunk.get(0); chunk.last() }
+        else:
+          # Handle cases where n-clusters is larger than the number of data points
+          none
+        end
+      end, indices).filter(lam(x): not(is-none(x)) end)
+  end
+where:
+  simple-clustering([list: 10, 2, 8, 1, 9, 3], 2) is [list: {1; 3}, {8; 10}]
+  simple-clustering([list: 5, 1, 10], 2) is [list: {1; 5}, {10; 10}]
+end
+
+
+fun k-means-clustering(points :: List<Number>, n-clusters :: Number) -> List<{Number; Number}>:
+  # 1. Initial Guess: Just pick the first N items as starting centers
+  initial-centroids = points.take(n-clusters)
+
+  fun dist(a, b): abs(a - b) end
+
+  # Find the closest centroid for a given value
+  fun find-closest(val, centroids):
+    centroids.rest.foldl(lam(best, current):
+        if dist(val, current) < dist(val, best): current else: best end
+      end, centroids.first)
+  end
+
+  fun run-iterations(centroids, gas):
+    # Group data by closest centroid
+    # (Simplified for 1D: We map each number to its closest centroid)
+    assignments = points.map(lam(v): {val: v, center: find-closest(v, centroids)} end)
+
+    # Calculate new centroids by averaging the groups
+    new-centroids = centroids.map(lam(c):
+        # group = points assigned to this centroid
+        shadow group = assignments.filter(lam(a): a.center == c end).map(lam(a): a.val end)
+        # if we have points, average them to create a new centroid
+        if group.length() > 0:
+          group.foldl(lam(acc, v): acc + v end, 0) / group.length()
+        else:
+          c # Keep old center if no points assigned
+        end
+      end)
+
+    # Stop if centroids stabilized or we hit a step limit (10)
+    if (new-centroids == centroids) or (gas <= 0):
+      centroids
+    else:
+      run-iterations(new-centroids, gas - 1)
+    end
+  end
+
+  # eliminate duplicates
+  all-centers = run-iterations(initial-centroids, 10)
+  final-centers = Sets.list-to-list-set(all-centers).to-list()
+
+  # return a sorted list of intervals
+  final-centers
+    .map(lam(c):
+      # compute the boundaries of the cluster  associated w/this
+      # centroid, and return a tuple representing the interval
+      cluster = points
+        .filter(lam(v): find-closest(v, final-centers) == c end)
+        .sort()
+      { cluster.get(0); cluster.last() }
+    end)
+    .sort-by({(a, b): a.{0} < b.{0}}, {(a,b): a == b})
+
+where:
+  # Logical grouping: 1, 2 are a group; 10, 11 are a group
+  k-means-clustering([list: 1, 10, 2, 11], 2) is [list: {1; 2}, {10; 11}]
+end
+
+# Consumes interval tuples and produces the N-1 split points between them
+fun get-boundary-thresholds(intervals :: List<{Number; Number}>) -> List<Number>:
+  if intervals.length() <= 1: empty
+  else:
+    # Sort clusters by their starting boundary so we process them in order
+    sorted-intervals = intervals.sort-by({(a, b): a.{0} < b.{0}}, {(a,b): a == b})
+
+    # Use a helper to find the 'midpoint' between every adjacent interval
+    fun find-midpoints(curr-intervals):
+      cases(List) curr-intervals:
+        | empty => empty
+        | link(first-int, rest-int) =>
+          if rest-int.length() == 0:
+            empty # No boundary after the last cluster
+          else:
+            next-int = rest-int.get(0)
+            # Boundary is halfway between the end of one and start of the next
+            midpoint = (first-int.{1} + next-int.{0}) / 2
+            link(midpoint, find-midpoints(rest-int))
+          end
+      end
+    end
+
+    find-midpoints(sorted-intervals)
+  end
+where:
+  # Interval 1: {1; 2}, Interval 2: {10; 12}
+  # Boundary is (2 + 10) / 2 = 6
+  get-boundary-thresholds([list: {1; 2}, {10; 12}]) is [list: 6]
+
+  # Three intervals: {1; 2}, {10; 12}, {20; 22}
+  # Boundaries are 6 and 16
+  get-boundary-thresholds([list: {1; 2}, {10; 12}, {20; 22}]) is [list: 6, 16]
+end
+
+fun cluster-by-fn(t :: Table, col :: String, n-clusters :: Number, clustering-fn):
+  values = Sets.list-to-list-set(t.get-column(col)).to-list()
+  intervals = clustering-fn(t.column(col), n-clusters)
+  splits = get-boundary-thresholds(intervals).push(Math.max(values) + 1).sort()
+  var prev-split = Math.min(values)
+  for fold(shadow grouped from table: interval, subtable end, s from splits) block:
+    subtable_ = t.filter-by(col, {(val): (val < s) and (val > prev-split)})
+      .order-by(col, true)
+    label = easy-num-repr(prev-split, 4) + " >= " + col + " < " + easy-num-repr(s, 4)
+    prev-split := s
+    grouped.stack(table: interval, subtable
+        row: label, subtable_
+      end)
+  end
+end
+
+fun simple-cluster-col(t :: Table, col :: String, n-clusters :: Number):
+  cluster-by-fn(t, col, n-clusters, simple-clustering)
+end
+
+fun k-means-cluster-col(t :: Table, col :: String, n-clusters :: Number):
+  cluster-by-fn(t, col, n-clusters, k-means-clustering)
+end
+
+
+data DecisionTree:
+  | leaf(species :: String)
+  | node(
+      col :: String, 
+      threshold :: Number, 
+      less-than :: DecisionTree, 
+      greater-than :: DecisionTree) with:
+    method _output(t) block:
+      fun prefix-lines(lines :: List<String>, first-prefix :: String, cont-prefix :: String) -> List<String>:
+        cases (List) lines:
+          | empty => empty
+          | link(first, rest) =>
+            link(first-prefix + first, rest.map(lam(l): cont-prefix + l end))
+        end
+      end
+
+      fun to-lines(tree :: DecisionTree) -> List<String>:
+        cases (DecisionTree) tree:
+          | leaf(species) =>
+            [list: "→ " + species]
+          | node(col, threshold, less-than, greater-than) =>
+            header    = col + " < " + easy-num-repr(threshold, 8) + "?"
+            yes-lines = prefix-lines(to-lines(less-than),    "├── ", "│   ")
+            no-lines  = prefix-lines(to-lines(greater-than), "└── ", "    ")
+            [list: header] + yes-lines + no-lines
+        end
+      end
+
+      print(vs-value(to-lines(t).join-str("\n")))
+      vs-str("")
+    end
+end
+
+fun get-error-rate(t :: Table, label-col :: String) -> Number:
+  doc: "Calculates how 'mixed' the labels are. 0 is perfect purity."
+  total = t.length()
+  if total == 0: 0
+  else:
+    majority = most-common(t, label-col)
+    # Count how many rows DON'T match the majority prediction
+    wrong-ones = t.filter-by(label-col, lam(s): s <> majority end).length()
+    wrong-ones / total
+  end
+end
+
+
+fun build-tree(t :: Table, label-col :: String, cols :: List<String>) -> DecisionTree:
+  doc: "Builds a tree to predict label-col using the provided quantitative cols."
+
+  # Get unique values in the target column
+  unique-labels = L.distinct(t.get-column(label-col))
+
+  # BASE CASES
+  if (unique-labels.length() <= 1) or (cols.length() == 0):
+    leaf(most-common(t, label-col))
+  else:
+    # Check every column to find the split that reduces error the most
+    best-split-info = L.foldl(lam(best, current-col):
+        data-points = t.get-column(current-col)
+        # Use K-Means logic to find the 'natural' gap
+        thresholds = get-boundary-thresholds(k-means-clustering(data-points, 2))
+
+        if thresholds.length() == 0: best
+        else:
+          split-val = thresholds.get(0)
+          low = t.filter-by(current-col, lam(v): v < split-val end)
+          high = t.filter-by(current-col, lam(v): v >= split-val end)
+
+          # Weight the error by how many samples are in each side
+          error = (get-error-rate(low, label-col) * low.length()) + 
+          (get-error-rate(high, label-col) * high.length())
+
+          if error < best.err:
+            {col: current-col, val: split-val, err: error, low: low, high: high}
+          else: best end
+        end
+      end, {col: "", val: 0, err: 1e9, low: t, high: t}, cols)
+
+    # 2. Check if a valid split was actually found
+    if best-split-info.col == "":
+      leaf(most-common(t, label-col))
+    else:
+      # Build the branches
+      node(best-split-info.col, best-split-info.val,
+        build-tree(best-split-info.low, label-col, cols),
+        build-tree(best-split-info.high, label-col, cols))
+    end
+  end
+end
+
+fun most-common(t :: Table, col :: String) -> String:
+  doc: "Returns the most frequent string in a column to use as a prediction."
+  # Get the list of values
+  vals = t.get-column(col)
+  if vals.length() == 0: "unknown"
+  else:
+    # A simple way to pick the winner: 
+    # Sort them and pick the middle one (median of strings is a decent proxy for mode)
+    vals.sort().get(num-floor(vals.length() / 2))
+  end
+end
+
+fun classify(tree, r :: Row) -> String:
+  cases(DecisionTree) tree:
+    | leaf(s) => s
+    | node(col, threshold, left, right) =>
+      if r[col] < threshold:
+        classify(left, r)
+      else:
+        classify(right, r)
+      end
+  end
+end
