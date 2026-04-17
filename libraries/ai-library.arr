@@ -926,12 +926,28 @@ end
 
 
 data DecisionTree:
-  | leaf(species :: String)
+  | leaf(label :: String) with:
+    method classify(self, r :: Row) -> String:
+      self.label
+    end
   | node(
       col :: String, 
       threshold :: Number, 
       less-than :: DecisionTree, 
       greater-than :: DecisionTree) with:
+    
+    method classify(self, r :: Row) -> String:
+      cases(DecisionTree) self:
+        | leaf(s) => s
+        | node(col, threshold, left, right) =>
+          if r[col] < threshold:
+            left.classify(r)
+          else:
+            right.classify(r)
+          end
+      end
+    end,
+    
     method _output(t) block:
       fun prefix-lines(lines :: List<String>, first-prefix :: String, cont-prefix :: String) -> List<String>:
         cases (List) lines:
@@ -1003,7 +1019,7 @@ fun build-tree(t :: Table, label-col :: String, cols :: List<String>) -> Decisio
         end
       end, {col: "", val: 0, err: 1e9, low: t, high: t}, cols)
 
-    # 2. Check if a valid split was actually found
+    # Check if a valid split was actually found
     if best-split-info.col == "":
       leaf(most-common(t, label-col))
     else:
@@ -1015,26 +1031,52 @@ fun build-tree(t :: Table, label-col :: String, cols :: List<String>) -> Decisio
   end
 end
 
+# Returns the most frequent string in a column to use as a prediction
 fun most-common(t :: Table, col :: String) -> String:
-  doc: "Returns the most frequent string in a column to use as a prediction."
-  # Get the list of values
   vals = t.get-column(col)
   if vals.length() == 0: "unknown"
   else:
-    # A simple way to pick the winner: 
-    # Sort them and pick the middle one (median of strings is a decent proxy for mode)
+    # median of strings is a decent proxy for mode
     vals.sort().get(num-floor(vals.length() / 2))
   end
 end
 
-fun classify(tree, r :: Row) -> String:
-  cases(DecisionTree) tree:
-    | leaf(s) => s
-    | node(col, threshold, left, right) =>
-      if r[col] < threshold:
-        classify(left, r)
-      else:
-        classify(right, r)
-      end
+fun classify(t :: Table, col :: String, classifier :: DecisionTree) block:
+  pred = build-column(t, "predicted " + col, classifier.classify)
+  og = Sets.list-to-list-set(pred.column(col))
+  predicted = Sets.list-to-list-set(pred.column("predicted " + col))
+  
+  # loose checking to make sure the col and classifier output match
+  when predicted.any({(p): not(og.member(p))}):
+    raise(Err.message-exception("The predictions returned from this classifier do not match the values in the '" + col + "' column"))
   end
+  
+  pred
+end
+
+# Produces a 2D table comparing actual values from 'col' to predictions
+fun confusion-matrix(t :: Table, col :: String, classifier) -> Table:
+  
+  labels = L.distinct(t.get-column(col)).sort()
+  # how many rows match BOTH actual and predicted?
+  fun count-match(actual-val, predicted-val):
+    actuals = filter(t, {(r): r[col] == actual-val })
+    filter(actuals, 
+      {(r): 
+        row-actual = r[col]
+        row-predicted = classifier.classify(r)
+        (row-actual == actual-val) and (row-predicted == predicted-val)
+      }).length()
+  end
+
+  # Build the rows for the matrix
+  matrix-rows = labels.map(lam(lbl) block:
+      # Each row starts with the label name, followed by counts for each prediction
+      contents = L.link({col; lbl}, labels.map(lam(pred): 
+            {"predicted-" + pred; count-match(lbl, pred)} 
+          end))
+      T.raw-row.make(raw-array-from-list(contents))
+    end)
+
+  T.table-from-rows.make(raw-array-from-list(matrix-rows))
 end
