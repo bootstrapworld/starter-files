@@ -930,16 +930,16 @@ data DecisionTree:
     method classify(self, r :: Row) -> String:
       self.label
     end
-  | node(
+  | quant-node(
       col :: String, 
       threshold :: Number, 
       less-than :: DecisionTree, 
       greater-than :: DecisionTree) with:
-    
+
     method classify(self, r :: Row) -> String:
       cases(DecisionTree) self:
         | leaf(s) => s
-        | node(col, threshold, left, right) =>
+        | quant-node(col, threshold, left, right) =>
           if r[col] < threshold:
             left.classify(r)
           else:
@@ -947,31 +947,51 @@ data DecisionTree:
           end
       end
     end,
-    
-    method _output(t) block:
-      fun prefix-lines(lines :: List<String>, first-prefix :: String, cont-prefix :: String) -> List<String>:
-        cases (List) lines:
-          | empty => empty
-          | link(first, rest) =>
-            link(first-prefix + first, rest.map(lam(l): cont-prefix + l end))
-        end
-      end
 
-      fun to-lines(tree :: DecisionTree) -> List<String>:
-        cases (DecisionTree) tree:
-          | leaf(species) =>
-            [list: "→ " + species]
-          | node(col, threshold, less-than, greater-than) =>
-            header    = col + " < " + easy-num-repr(threshold, 8) + "?"
-            yes-lines = prefix-lines(to-lines(less-than),    "├── ", "│   ")
-            no-lines  = prefix-lines(to-lines(greater-than), "└── ", "    ")
-            [list: header] + yes-lines + no-lines
-        end
-      end
+  | cat-node(
+      col :: String,
+      val :: String,
+      is-val :: DecisionTree,
+      is-not-val :: DecisionTree) with:
 
-      print(to-lines(t).join-str("\n"))
-      vs-value(circle(1,"solid","transparent"))
-    end
+    method classify(self, r :: Row) -> String:
+      if r[self.col] == self.val:
+        self.is-val.classify(r)
+      else:
+        self.is-not-val.classify(r)
+      end
+    end,
+
+    sharing:
+      method _output(t) block:
+        fun prefix-lines(lines :: List<String>, first-prefix :: String, cont-prefix :: String) -> List<String>:
+          cases (List) lines:
+            | empty => empty
+            | link(first, rest) =>
+              link(first-prefix + first, rest.map(lam(l): cont-prefix + l end))
+          end
+        end
+
+        fun to-lines(tree :: DecisionTree) -> List<String>:
+          cases (DecisionTree) tree:
+            | leaf(value) =>
+              [list: "→ " + value]
+            | quant-node(col, threshold, less-than, greater-than) =>
+              header    = col + " < " + easy-num-repr(threshold, 8) + "?"
+              yes-lines = prefix-lines(to-lines(less-than),    "|  Yes ─ ", "│   ")
+              no-lines  = prefix-lines(to-lines(greater-than), "|  No ── ", "    ")
+              [list: header] + yes-lines + no-lines
+            | cat-node(col, val, is-val, is-not-val) =>
+              header    = col + " == " + val + "?"
+              yes-lines = prefix-lines(to-lines(is-val),     "|  Yes ─ ", "│    ")
+              no-lines  = prefix-lines(to-lines(is-not-val), "|  No ── ", "     ")
+              [list: header] + yes-lines + no-lines
+          end
+        end
+
+        print(to-lines(t).join-str("\n"))
+        vs-value(circle(1,"solid","transparent"))
+      end
 end
 
 fun get-error-rate(t :: Table, label-col :: String) -> Number:
@@ -986,47 +1006,81 @@ fun get-error-rate(t :: Table, label-col :: String) -> Number:
   end
 end
 
-
 fun build-tree(t :: Table, label-col :: String, cols :: List<String>) -> DecisionTree:
-  doc: "Builds a tree to predict label-col using the provided quantitative cols."
+  doc: "Builds a tree with a guard against infinite loops by ensuring progress."
 
-  # Get unique values in the target column
   unique-labels = L.distinct(t.get-column(label-col))
+  # Calculate current error to ensure we actually improve things
+  current-err-total = get-error-rate(t, label-col) * t.length()
 
   # BASE CASES
-  if (unique-labels.length() <= 1) or (cols.length() == 0):
+  if (unique-labels.length() <= 1) or (cols.length() == 0) or (t.length() == 0):
     leaf(most-common(t, label-col))
   else:
-    # Check every column to find the split that reduces error the most
+    # 1. Search for the best split, but initialize 'best' with current error
+    # This ensures we only split if it actually makes the data "purer"
     best-split-info = L.foldl(lam(best, current-col):
-        data-points = t.get-column(current-col)
-        # Use K-Means logic to find the 'natural' gap
-        thresholds = get-boundary-thresholds(k-means-clustering(data-points, 2))
+        first-val = t.row-n(0)[current-col]
 
-        if thresholds.length() == 0: best
+        if is-number(first-val):
+          # --- QUANTITATIVE LOGIC ---
+          thresholds = get-boundary-thresholds(k-means-clustering(t.get-column(current-col), 2))
+          if thresholds.length() == 0: best
+          else:
+            split-val = thresholds.get(0)
+            low = t.filter-by(current-col, lam(v): v < split-val end)
+            high = t.filter-by(current-col, lam(v): v >= split-val end)
+
+            # SAFEGUARD: Ensure the split actually divided the data
+            if (low.length() == 0) or (high.length() == 0): best
+            else:
+              err = (get-error-rate(low, label-col) * low.length()) + (get-error-rate(high, label-col) * high.length())
+              if err < best.err:
+                {col: current-col, kind: "quant", val: split-val, err: err, low: low, high: high}
+              else: best end
+            end
+          end
+
         else:
-          split-val = thresholds.get(0)
-          low = t.filter-by(current-col, lam(v): v < split-val end)
-          high = t.filter-by(current-col, lam(v): v >= split-val end)
+          # --- CATEGORICAL LOGIC ---
+          possible-values = L.distinct(t.get-column(current-col))
+          best-in-col = L.foldl(lam(best-val, v):
+              yes-t = t.filter-by(current-col, lam(val): val == v end)
+              no-t = t.filter-by(current-col, lam(val): val <> v end)
 
-          # Weight the error by how many samples are in each side
-          error = (get-error-rate(low, label-col) * low.length()) + 
-          (get-error-rate(high, label-col) * high.length())
+              # SAFEGUARD: Ensure the split actually divided the data
+              if (yes-t.length() == 0) or (no-t.length() == 0): best-val
+              else:
+                err = (get-error-rate(yes-t, label-col) * yes-t.length()) + (get-error-rate(no-t, label-col) * no-t.length())
+                if err < best-val.err:
+                  {val: v, err: err, yes: yes-t, no: no-t}
+                else: best-val end
+              end
+            end, {val: "", err: 1e9, yes: t, no: t}, possible-values)
 
-          if error < best.err:
-            {col: current-col, val: split-val, err: error, low: low, high: high}
+          if best-in-col.err < best.err:
+            {col: current-col, kind: "cat", val: best-in-col.val, err: best-in-col.err, low: best-in-col.yes, high: best-in-col.no}
           else: best end
         end
-      end, {col: "", val: 0, err: 1e9, low: t, high: t}, cols)
+        # CRITICAL: We start 'best' with the current-err-total. 
+        # If no split is better than doing nothing, we get an empty col string back.
+      end, {col: "", kind: "", val: "", err: current-err-total, low: t, high: t}, cols)
 
-    # Check if a valid split was actually found
-    if best-split-info.col == "":
+    # 2. Finalize
+    if (best-split-info.col == ""):
       leaf(most-common(t, label-col))
     else:
-      # Build the branches
-      node(best-split-info.col, best-split-info.val,
-        build-tree(best-split-info.low, label-col, cols),
-        build-tree(best-split-info.high, label-col, cols))
+      # Optional: To be extra safe with categorical, remove the column if it's a perfect split
+      # or if you're worried about binary categorical columns.
+      if best-split-info.kind == "quant":
+        quant-node(best-split-info.col, best-split-info.val,
+          build-tree(best-split-info.low, label-col, cols),
+          build-tree(best-split-info.high, label-col, cols))
+      else:
+        cat-node(best-split-info.col, to-string(best-split-info.val),
+          build-tree(best-split-info.low, label-col, cols),
+          build-tree(best-split-info.high, label-col, cols))
+      end
     end
   end
 end
@@ -1045,18 +1099,18 @@ fun classify(t :: Table, col :: String, classifier :: DecisionTree) block:
   pred = build-column(t, "predicted " + col, classifier.classify)
   og = Sets.list-to-list-set(pred.column(col))
   predicted = Sets.list-to-list-set(pred.column("predicted " + col))
-  
+
   # loose checking to make sure the col and classifier output match
   when predicted.any({(p): not(og.member(p))}):
     raise(Err.message-exception("The predictions returned from this classifier do not match the values in the '" + col + "' column"))
   end
-  
+
   pred
 end
 
 # Produces a 2D table comparing actual values from 'col' to predictions
 fun confusion-matrix(t :: Table, col :: String, classifier) -> Table:
-  
+
   labels = L.distinct(t.get-column(col)).sort()
   # how many rows match BOTH actual and predicted?
   fun count-match(actual-val, predicted-val):
