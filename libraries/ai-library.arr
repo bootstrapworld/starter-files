@@ -6,6 +6,7 @@ provide *
 # re-export every symbol from Core
 import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr") as Core
 import csv as csv
+include string-dict
 provide from Core:
     * hiding(
     mean,
@@ -772,6 +773,7 @@ end
 
 
 
+
 fun simple-clustering(d :: List<Number>, n-clusters :: Number) -> List<{Number; Number}>:
   doc: "Partitions a sorted list into N clusters and returns {min; max} tuples."
   if (d.length() == 0) or (n-clusters <= 0):
@@ -810,22 +812,22 @@ fun dist(a, b): abs(a - b) end
 
 fun find-closest(val, centroids :: List<Number>) -> Number:
   centroids.rest.foldl(lam(best, current):
-    if dist(val, current) < dist(val, best): current else: best end
-  end, centroids.first)
+      if dist(val, current) < dist(val, best): current else: best end
+    end, centroids.first)
 end
 
-# Given a set of points and a number N of clusters, group them into a list of N intervals
 fun k-means-clustering(points :: List<Number>, n-clusters :: Number) -> List<{Number; Number}>:
+  doc: "Groups points into n-clusters clusters. Returns a sorted list of {min; max} intervals."
   fun run-iterations(centroids, gas):
     assignments = points.map(lam(v): {val: v, center: find-closest(v, centroids)} end)
     new-centroids = centroids.map(lam(c):
         shadow group = assignments.filter(lam(a): a.center == c end).map(lam(a): a.val end)
-      if group.length() > 0:
-        group.foldl(lam(acc, v): acc + v end, 0) / group.length()
-      else:
-        c
-      end
-    end)
+        if group.length() > 0:
+          group.foldl(lam(acc, v): acc + v end, 0) / group.length()
+        else:
+          c
+        end
+      end)
     if (new-centroids == centroids) or (gas <= 0): centroids
     else: run-iterations(new-centroids, gas - 1)
     end
@@ -844,8 +846,8 @@ where:
   k-means-clustering([list: 1, 10, 2, 11], 2) is [list: {1; 2}, {10; 11}]
 end
 
-# Given n intervals, returns the n-1 midpoints between each adjacent pair
 fun get-boundary-thresholds(intervals :: List<{Number; Number}>) -> List<Number>:
+  doc: "Returns the N-1 midpoints between adjacent cluster intervals."
   fun find-midpoints(curr-intervals):
     cases(List) curr-intervals:
       | empty => empty
@@ -866,8 +868,8 @@ where:
   get-boundary-thresholds([list: {1; 2}, {10; 12}, {20; 22}]) is [list: 6, 16]
 end
 
-# Given a table, partition it by clustering col into n-clusters groups
 fun cluster-by-fn(t :: Table, col :: String, n-clusters :: Number, clustering-fn):
+  doc: "Partitions table t by clustering col into n-clusters groups."
   values = Sets.list-to-list-set(t.get-column(col)).to-list()
   intervals = clustering-fn(t.get-column(col), n-clusters)
   splits = get-boundary-thresholds(intervals).push(Math.max(values) + 1).sort()
@@ -878,8 +880,8 @@ fun cluster-by-fn(t :: Table, col :: String, n-clusters :: Number, clustering-fn
     label = easy-num-repr(prev-split, 4) + " >= " + col + " < " + easy-num-repr(s, 4)
     prev-split := s
     grouped.stack(table: interval, subtable
-      row: label, subtable_
-    end)
+        row: label, subtable_
+      end)
   end
 end
 
@@ -891,62 +893,75 @@ fun simple-cluster-col(t :: Table, col :: String, n-clusters :: Number):
   cluster-by-fn(t, col, n-clusters, simple-clustering)
 end
 
+fun prefix-lines(lines, first-prefix, cont-prefix):
+  cases(List) lines:
+    | empty => empty
+    | link(first, rest) =>
+      link(first-prefix + first, rest.map(lam(l): cont-prefix + l end))
+  end
+end
+
 
 data DecisionTree:
-  | leaf(label :: String)
-  | quant-node(
+  | decide(label :: String)
+  | node(
       col :: String,
-      threshold :: Number,
-      less-than :: DecisionTree,
-      greater-than :: DecisionTree)
-  | cat-node(
-      col :: String,
-      val :: String,
-      is-val :: DecisionTree,
-      is-not-val :: DecisionTree)
-  sharing:
-    method classify(self, r :: Row) -> String:
-      cases(DecisionTree) self:
-        | leaf(lbl) => lbl
-        | quant-node(col, threshold, left, right) =>
-          if r[col] < threshold: left.classify(r)
-          else: right.classify(r)
-          end
-        | cat-node(col, v, is-val, is-not-val) =>
-          if r[col] == v: is-val.classify(r)
-          else: is-not-val.classify(r)
-          end
-      end
-    end,
-
-    method _output(self) block:
-      fun prefix-lines(lines, first-prefix, cont-prefix):
-        cases(List) lines:
-          | empty => empty
-          | link(first, rest) =>
-            link(first-prefix + first, rest.map(lam(l): cont-prefix + l end))
+      is-quant :: Boolean,
+      val :: Any,
+      splitter :: (Any -> Boolean),
+      yes :: DecisionTree,
+      no :: DecisionTree)
+      
+sharing:
+  method classify(self, r :: Row) -> String:
+    cases(DecisionTree) self:
+      | decide(lbl) => lbl
+      | node(col, is-quant, val, splitter, yes, no) =>
+        if splitter(r): yes.classify(r)
+        else: no.classify(r)
         end
-      end
-
-      fun to-lines(tree :: DecisionTree) -> List<String>:
-        cases(DecisionTree) tree:
-          | leaf(lbl) => [list: "→ " + lbl]
-          | quant-node(col, threshold, less-than, greater-than) =>
-            header   = col + " < " + easy-num-repr(threshold, 8) + "?"
-            yes-lines = prefix-lines(to-lines(less-than),    "├── ", "│   ")
-            no-lines  = prefix-lines(to-lines(greater-than), "└── ", "    ")
-            [list: header] + yes-lines + no-lines
-          | cat-node(col, v, is-val, is-not-val) =>
-            header    = col + " == " + v + "?"
-            yes-lines = prefix-lines(to-lines(is-val),     "├── ", "│   ")
-            no-lines  = prefix-lines(to-lines(is-not-val), "└── ", "    ")
-            [list: header] + yes-lines + no-lines
-        end
-      end
-
-      print(to-lines(self).join-str("\n"))
-      vs-value(circle(1, "solid", "transparent"))
     end
+  end,
+
+  method _output(self) block:
+    fun to-lines(tree :: DecisionTree) -> List<String>:
+      cases(DecisionTree) tree:
+        | decide(lbl) => [list: "→ " + lbl]
+        | node(col, is-quant, val, splitter, yes, no) =>
+          predicate = if is-quant: " < " else: " == " end
+          v = if is-quant: easy-num-repr(val, 8) else: val end
+          header    = col + predicate + v + "?"
+          yes-lines = prefix-lines(to-lines(yes),     "├── ", "│   ")
+          no-lines  = prefix-lines(to-lines(no), "└── ", "    ")
+          [list: header] + yes-lines + no-lines
+      end
+    end
+
+    print(to-lines(self).join-str("\n"))
+    vs-value(circle(1, "solid", "transparent"))
+  end
+end
+
+
+fun classifier-to-code(c :: DecisionTree) block:
+  fun to-lines(tree :: DecisionTree) -> List<String>:
+    cases(DecisionTree) tree:
+      | decide(lbl) => [list: "\"" + lbl + "\""]
+      | node(col, is-quant, val, splitter, yes, no) =>
+        predicate = if is-quant: " < " else: " == " end
+        v = if is-quant: easy-num-repr(val, 8) else: val end
+        header    = "if (r[\"" + col + "\"]" + predicate + v + "):"
+        yes-lines = prefix-lines(to-lines(yes),     "   ", "   ")
+        no-lines  = prefix-lines(to-lines(no), "else: ", "    ")
+        [list: header] + yes-lines + no-lines + [list: "end"]
+    end
+  end
+
+  classifier-fn-lines = [list: "fun classifier(r):"] +
+  to-lines(c).map({(l): "  " + l}) +
+  [list: "end"]
+  print(classifier-fn-lines.join-str("\n"))
+  circle(1, "solid", "transparent")
 end
 
 # fraction of rows that don't match (0 = perfection)
@@ -959,8 +974,8 @@ fun get-error-rate(t :: Table, label-col :: String) -> Number:
   end
 end
 
-# Total misclassifications across low and high, weighted by table size
 fun weighted-error(low :: Table, high :: Table, label-col :: String) -> Number:
+  doc: "Total misclassifications across two candidate subtables."
   (get-error-rate(low, label-col) * low.length())
     + (get-error-rate(high, label-col) * high.length())
 end
@@ -996,18 +1011,18 @@ end
 fun find-best-cat-split(t :: Table, col :: String, label-col :: String) -> Option<SplitInfo>:
   possible-values = L.distinct(t.get-column(col))
   best = possible-values.foldl(lam(v, best-so-far):
-    yes-t = t.filter-by(col, lam(val): val == v end)
-    no-t  = t.filter-by(col, lam(val): val <> v end)
-    if (yes-t.length() == 0) or (no-t.length() == 0): best-so-far
-    else:
-      err = weighted-error(yes-t, no-t, label-col)
-      candidate = some(cat-split(col, to-string(v), yes-t, no-t, err))
-      cases(Option) best-so-far:
-        | none    => candidate
-        | some(b) => if err < split-err(b): candidate else: best-so-far end
+      yes-t = t.filter-by(col, lam(val): to-string(val) == to-string(v) end)
+      no-t  = t.filter-by(col, lam(val): to-string(val) <> to-string(v) end)
+      if (yes-t.length() == 0) or (no-t.length() == 0): best-so-far
+      else:
+        err = weighted-error(yes-t, no-t, label-col)
+        candidate = some(cat-split(col, to-string(v), yes-t, no-t, err))
+        cases(Option) best-so-far:
+          | none    => candidate
+          | some(b) => if err < split-err(b): candidate else: best-so-far end
+        end
       end
-    end
-  end, none)
+    end, none)
   best
 end
 
@@ -1015,41 +1030,41 @@ end
 fun find-best-split(t :: Table, label-col :: String, cols :: List<String>) -> Option<SplitInfo>:
   current-err = get-error-rate(t, label-col) * t.length()
   cols.foldl(lam(col, best-so-far):
-    first-val = t.row-n(0)[col]
-    candidate =
-      if is-number(first-val): find-best-quant-split(t, col, label-col)
-      else:                    find-best-cat-split(t, col, label-col)
-      end
-    cases(Option) candidate:
-      | none => best-so-far
-      | some(c) =>
-        # Only accept if this split is strictly better than doing nothing
-        if split-err(c) >= current-err: best-so-far
-        else:
-          cases(Option) best-so-far:
-            | none    => candidate
-            | some(b) => if split-err(c) < split-err(b): candidate else: best-so-far end
-          end
+      first-val = t.row-n(0)[col]
+      candidate =
+        if is-number(first-val): find-best-quant-split(t, col, label-col)
+        else:                    find-best-cat-split(t, col, label-col)
         end
-    end
-  end, none)
+      cases(Option) candidate:
+        | none => best-so-far
+        | some(c) =>
+          # Only accept if this split is strictly better than doing nothing
+          if split-err(c) >= current-err: best-so-far
+          else:
+            cases(Option) best-so-far:
+              | none    => candidate
+              | some(b) => if split-err(c) < split-err(b): candidate else: best-so-far end
+            end
+          end
+      end
+    end, none)
 end
 
 fun build-tree(t :: Table, label-col :: String, cols :: List<String>) -> DecisionTree:
   unique-labels = L.distinct(t.get-column(label-col))
   if (unique-labels.length() <= 1) or (cols.length() == 0) or (t.length() == 0):
-    leaf(most-common(t, label-col))
+    decide(most-common(t, label-col))
   else:
     cases(Option) find-best-split(t, label-col, cols):
-      | none => leaf(most-common(t, label-col))
+      | none => decide(most-common(t, label-col))
       | some(s) =>
         cases(SplitInfo) s:
           | quant-split(col, threshold, low, high, _) =>
-            quant-node(col, threshold,
+            node(col, true, threshold, {(r): r[col] < threshold },
               build-tree(low,  label-col, cols),
               build-tree(high, label-col, cols))
           | cat-split(col, v, yes-t, no-t, _) =>
-            cat-node(col, v,
+            node(col, false, v, {(r): r[col] == v },
               build-tree(yes-t, label-col, cols),
               build-tree(no-t,  label-col, cols))
         end
@@ -1063,17 +1078,17 @@ fun most-common(t :: Table, col :: String) -> String:
   if vals.length() == 0: "unknown"
   else:
     counts = vals.foldl(lam(v, acc):
-      key = to-string(v)
-      cases(Option) acc.get(key):
-        | none    => acc.set(key, 1)
-        | some(n) => acc.set(key, n + 1)
-      end
-      end, [SD.string-dict: ])
+        key = to-string(v)
+        cases(Option) acc.get(key):
+          | none    => acc.set(key, 1)
+          | some(n) => acc.set(key, n + 1)
+        end
+      end, [string-dict: ])
     vals.foldl(lam(best, v):
-      if counts.get-value(to-string(v)) > counts.get-value(to-string(best)): v
-      else: best
-      end
-    end, vals.first)
+        if counts.get-value(to-string(v)) > counts.get-value(to-string(best)): v
+        else: best
+        end
+      end, vals.first)
   end
 end
 
@@ -1099,10 +1114,10 @@ fun confusion-matrix(t :: Table, col :: String, classifier :: DecisionTree) -> T
       .length()
   end
   matrix-rows = labels.map(lam(lbl):
-    contents = L.link({col; lbl}, labels.map(lam(pred):
-      {"predicted-" + pred; count-match(lbl, pred)}
-    end))
-    T.raw-row.make(raw-array-from-list(contents))
-  end)
+      contents = L.link({col; lbl}, labels.map(lam(pred):
+            {"predicted-" + pred; count-match(lbl, pred)}
+          end))
+      T.raw-row.make(raw-array-from-list(contents))
+    end)
   T.table-from-rows.make(raw-array-from-list(matrix-rows))
 end
