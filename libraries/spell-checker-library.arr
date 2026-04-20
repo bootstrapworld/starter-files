@@ -1,11 +1,9 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "core.arr")
-
 ################################################################
 # Bootstrap Spell Checker Library, as of Fall 2026
 
 provide *
 
-# export every symbol from starter2024 except for those we override
 import starter2024 as Starter
 provide from Starter:
   * hiding(translate, filter, range, sort, sin, cos, tan)
@@ -36,7 +34,10 @@ fun init-vars() block:
   words-worklist := [SD.mutable-string-dict: ]
 end
 
-fun word-mod(cps :: List<Number>, replace :: (Number -> List<Number>))
+fun word-mod(
+    cps :: List<Number>,
+    replace :: (Number -> List<Number>),
+    distance :: Number)
   -> Nothing:
   mods = for map(i from L.range(0, cps.length())):
     result = split-at(i, cps)
@@ -51,65 +52,78 @@ fun word-mod(cps :: List<Number>, replace :: (Number -> List<Number>))
   mod-words = map(string-from-code-points, mods)
   for each(w from mod-words):
     cases (Starter.Option) all-seen-words.get-now(w):
-      | none => 
-        words-worklist.set-now(w, true)
+      | none =>
+        cases (Starter.Option) words-worklist.get-now(w):
+          | none =>
+            words-worklist.set-now(w, distance)
+          | some(existing-dist) =>
+            when distance < existing-dist:
+              words-worklist.set-now(w, distance)
+            end
+        end
       | some(shadow count) =>
         all-seen-words.set-now(w, 1 + count)
     end
   end
-  #  word-mod(string-to-code-points("hell"), {(_): empty}) is
-  #  [Sets.tree-set: "hel", "hll", "ell"]
 end
 
-all-letters-cps = 
+all-letters-cps =
   map(string-to-code-point, string-explode('abcdefghijklmnopqrstuvwxyz'))
 
-fun edits1(w :: String) -> Nothing block:
+fun edits1(w :: String, distance :: Number) -> Nothing block:
   doc: "All edits that are one edit away from `word`"
   w-cps = string-to-code-points(w)
-  with-dels = word-mod(w-cps, {(_): empty})
+  word-mod(w-cps, {(_): empty}, distance)
 
   # replace
-  each({(l): word-mod(w-cps, {(_): [list: l]})}, all-letters-cps)
+  each({(l): word-mod(w-cps, {(_): [list: l]}, distance)}, all-letters-cps)
   # insert before
-  each({(l): word-mod(w-cps, {(c): [list: l, c]})}, all-letters-cps)
+  each({(l): word-mod(w-cps, {(c): [list: l, c]}, distance)}, all-letters-cps)
   # insert after
-  each({(l): word-mod(w-cps, {(c): [list: c, l]})}, all-letters-cps)
+  each({(l): word-mod(w-cps, {(c): [list: c, l]}, distance)}, all-letters-cps)
 
-  # now `words-worklist` has been populated with all the distance 1 edits
   nothing
-
-  #where:
-  #  edits1("a").size() is 78
-  #  edits1("x").size() is 78
 end
 
 fun edits2(w :: String) -> Nothing block:
-  edits1(w)
+  edits1(w, 1)
   e1l = words-worklist.keys-now().to-list()
-  
+
   for each(e1w from e1l):
     cases (Starter.Option) all-seen-words.get-now(e1w) block:
       | none =>
         all-seen-words.set-now(e1w, 0)
-        edits1(e1w)
+        edits1(e1w, 2)
       | some(shadow count) =>
         all-seen-words.set-now(e1w, 1 + count)
     end
   end
-  # now `words-worklist` has been populated with all distance 1 and 2 edits
 end
 
-fun find-worklist-words(dict :: Sets.Set<String>) -> Sets.Set<String> block:
+data WordResult:
+  | word-result(word :: String, edit-distance :: Number)
+end
+
+fun find-worklist-words(dict :: Sets.Set<String>) -> List<WordResult> block:
   valid-edits = [SD.mutable-string-dict: ]
   e12l = words-worklist.keys-now().to-list()
   for each(e12w from e12l):
     when dict.member(e12w):
-      valid-edits.set-now(e12w, true)
+      dist = words-worklist.get-value-now(e12w)
+      cases (Starter.Option) valid-edits.get-now(e12w):
+        | none =>
+          valid-edits.set-now(e12w, dist)
+        | some(existing-dist) =>
+          when dist < existing-dist:
+            valid-edits.set-now(e12w, dist)
+          end
+      end
     end
   end
-  
-  valid-edits.keys-now()
+
+  for map(w from valid-edits.keys-now().to-list()):
+    word-result(w, valid-edits.get-value-now(w))
+  end
 end
 
 fun time(thk):
@@ -119,41 +133,17 @@ fun time(thk):
   {r; stop - start}
 end
 
-#|
-   fun alt-words(s :: String, dict :: Sets.Set<String>) block:
+fun alt-words(orig-s :: String, dict :: Sets.Set<String>) block:
+  s = string-to-lower(orig-s)
   when string-length(s) > 7:
     raise("The word must be 7 or fewer letters; '" + s + "' has length " + num-to-string(string-length(s)))
   end
   init-vars()
   edits2(s)
-  ws = find-worklist-words(dict).to-list()
-  for each(w from ws):
-    print(w)
-  end
-end
-|#
-
-fun alt-words(orig-s :: String, dict :: Sets.Set<String>) block:s = string-to-lower(orig-s)
-  when string-length(s) > 7:
-    raise("The word must be 7 or fewer letters; '" + s + "' has length " + num-to-string(string-length(s)))
-  end
-  init-vars()
-  edits2(s)
-  ws = find-worklist-words(dict).to-list()
-  wsl = ws.length()
-  ask block:
-    | wsl == 0 then: 
-      print("No matches found")
-      nothing
-    | wsl == 1 then:
-      print("1 match found:")
-      for each(w from ws):
-        print(w)
-      end
-    | wsl > 1 then:
-      print(num-to-string(wsl) + " matches found:")
-      for each(w from ws):
-        print(w)
-      end 
-  end
+  results = find-worklist-words(dict)
+  row-list = results.map({(wr): [
+        T.raw-row: {"word";wr.word}, 
+        {"edit-distance"; wr.edit-distance}
+      ]})
+  row-list.foldl({(r, t): t.add-row(r)}, table: word, edit-distance end)
 end
