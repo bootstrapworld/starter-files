@@ -11,10 +11,6 @@ end
 
 provide from L: * hiding(filter, range, sort), type *, data * end
 
-
-MAX-STRING-LENGTH = 7
-
-
 word-sheet = load-spreadsheet("1RlwxGM1oZd6VfJDwuVNxGIwznB2yGyjwfuKHdXg6Gz8")
 
 fun get-words-from-sheet(sheet-name :: String) -> Sets.Set<String>:
@@ -102,21 +98,15 @@ end
 
 fun alt-words(orig-s :: String, dict :: Sets.Set<String>) block:
   s = string-to-lower(orig-s)
-  when string-length(s) > MAX-STRING-LENGTH:
-    
-    raise("The word must be " + to-string(MAX-STRING-LENGTH) + 
-      " or fewer letters; '" + s + "' has length " + to-string(string-length(s)))
+  when string-length(s) > 7:
+    raise("The word must be 7 or fewer letters; '" + s + "' has length " + num-to-string(string-length(s)))
   end
-  if dict.member(s) block:
-    table: word, edit-distance end
-  else:
-    init-vars()
-    edits2(s, dict)
-    results = find-worklist-words()
-    row-list = results.map({(wr): [
-        T.raw-row: {"word"; wr.word},
-        {"edit-distance"; wr.edit-distance}
-      ]})
-    row-list.foldl({(r, t): t.add-row(r)}, table: word, edit-distance end)
-  end
+  init-vars()
+  edits2(s, dict)
+  results = find-worklist-words()
+  row-list = results.map({(wr): [
+      T.raw-row: {"word"; wr.word},
+      {"edit-distance"; wr.edit-distance}
+    ]})
+  row-list.foldl({(r, t): t.add-row(r)}, table: word, edit-distance end)
 end
