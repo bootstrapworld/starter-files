@@ -2275,6 +2275,8 @@ fun grayscale(img :: Image) -> Image:
     image-height(img))
 end
 
+greyscale = grayscale
+
 # Consumes an image and computes the average luminance
 # round to 10 digits and use exact
 fun image-luminance(img :: Image) -> Number:
