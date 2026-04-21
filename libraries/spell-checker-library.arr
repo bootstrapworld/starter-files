@@ -5,26 +5,32 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 provide *
 
 import starter2024 as Starter
+import csv as csv
 provide from Starter:
-  * hiding(translate, filter, range, sort, sin, cos, tan)
+    * hiding(translate, filter, range, sort, sin, cos, tan)
 end
 
 provide from L: * hiding(filter, range, sort), type *, data * end
 
-word-sheet = load-spreadsheet("1RlwxGM1oZd6VfJDwuVNxGIwznB2yGyjwfuKHdXg6Gz8")
+DICTIONARY-URL = "https://docs.google.com/spreadsheets/d/13vL8Tg4lJ09s9GJwTKTZ9Ne1b6wDa92nj8RUPwgNfBQ/export?format=csv&gid="
+MAX-LENGTH = 11
 
-fun get-words-from-sheet(sheet-name :: String) -> Sets.Set<String>:
+fun get-words-from-sheet(gid :: String) -> Sets.Set<String>:
   Sets.list-to-tree-set(extract all-words from
       load-table: all-words :: String
-        source: word-sheet.sheet-by-name(sheet-name, true)
+        source: csv.csv-table-url(DICTIONARY-URL + gid, {
+              header-row: true,
+              infer-content: false
+            })
       end
     end)
 end
 
-WORDS-ALL  = get-words-from-sheet("All-Words")
-WORDS      = get-words-from-sheet("Words")
-WORDS-1000 = get-words-from-sheet("Words-1000")
-WORDS-100  = get-words-from-sheet("Words-100")
+#WORDS-XL = get-words-from-sheet("355650150")  # 50000 words (takes a long time to load!)
+WORDS-L  = get-words-from-sheet("0")          # 20000 words
+WORDS-M  = get-words-from-sheet("1465800911") # 1000 words
+WORDS-S  = get-words-from-sheet("1712073918") # 500 words
+WORDS-XS = get-words-from-sheet("160808960")  # 100 words
 
 var d1-sources = [SD.mutable-string-dict: ]
 var d1-results = [SD.mutable-string-dict: ]
@@ -98,15 +104,16 @@ end
 
 fun alt-words(orig-s :: String, dict :: Sets.Set<String>) block:
   s = string-to-lower(orig-s)
-  when string-length(s) > 7:
-    raise("The word must be 7 or fewer letters; '" + s + "' has length " + num-to-string(string-length(s)))
+  when string-length(s) > MAX-LENGTH:
+    max-str = to-string(MAX-LENGTH)
+    raise("The word must be " + max-str + " or fewer letters; '" + s + "' has length " + to-string(string-length(s)))
   end
   init-vars()
   edits2(s, dict)
   results = find-worklist-words()
   row-list = results.map({(wr): [
-      T.raw-row: {"word"; wr.word},
-      {"edit-distance"; wr.edit-distance}
-    ]})
+        T.raw-row: {"word"; wr.word},
+        {"edit-distance"; wr.edit-distance}
+      ]})
   row-list.foldl({(r, t): t.add-row(r)}, table: word, edit-distance end)
 end

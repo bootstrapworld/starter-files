@@ -2,11 +2,18 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 
 include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/ai", "../libraries/spell-checker-library.arr")
 
-# In this starter file, you will use the function `alt-words`, which consumes a string and a dictionary, and produces a multi-line string.
+
+# This file has several dictionaries defined, all of different sizes:
+# `WORDS-XS` - 100 words
+# `WORDS-S`  - 500 words
+# `WORDS-M`  - 1000 words
+# `WORDS-L`  - 20000 words
+
+# You can access the dictionaries spreadsheet by visiting: https://docs.google.com/spreadsheets/d/13vL8Tg4lJ09s9GJwTKTZ9Ne1b6wDa92nj8RUPwgNfBQ
+
+
+# To look for alternative words based on a spelling, use the function `alt-words`:
 
 # alt-words :: String, Dictionary --> String
-
-# for example, alt-words("straw", WORDS)
-
-# You can access the dictionaries spreadsheet by visiting: https://docs.google.com/spreadsheets/d/1RlwxGM1oZd6VfJDwuVNxGIwznB2yGyjwfuKHdXg6Gz8/
+# Consumes a string and a dictionary. For example: `alt-words("straw", WORDS-L)`
 
