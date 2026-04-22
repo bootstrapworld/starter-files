@@ -950,10 +950,10 @@ fun classifier-to-code(c :: DecisionTree) block:
       | node(col, is-quant, val, splitter, yes, no) =>
         predicate = if is-quant: " < " else: " == " end
         v = if is-quant: easy-num-repr(val, 8) else: val end
-        header    = "if (r[\"" + col + "\"]" + predicate + v + "):"
-        yes-lines = prefix-lines(to-lines(yes),     "   ", "   ")
-        no-lines  = prefix-lines(to-lines(no), "else: ", "    ")
-        [list: header] + yes-lines + no-lines + [list: "end"]
+        header    = "if (r[\"" + col + "\"]" + predicate + "\"" + v + "\"):"
+        yes-lines = prefix-lines(to-lines(yes), "   ", "   ")
+        no-lines  = prefix-lines(to-lines(no), "   ", "   ")
+        [list: header] + yes-lines + [list: "else:"] + no-lines + [list: "end"]
     end
   end
 
@@ -1050,26 +1050,39 @@ fun find-best-split(t :: Table, label-col :: String, cols :: List<String>) -> Op
     end, none)
 end
 
-fun build-tree(t :: Table, label-col :: String, cols :: List<String>) -> DecisionTree:
-  unique-labels = L.distinct(t.get-column(label-col))
-  if (unique-labels.length() <= 1) or (cols.length() == 0) or (t.length() == 0):
-    decide(most-common(t, label-col))
-  else:
-    cases(Option) find-best-split(t, label-col, cols):
-      | none => decide(most-common(t, label-col))
-      | some(s) =>
-        cases(SplitInfo) s:
-          | quant-split(col, threshold, low, high, _) =>
-            node(col, true, threshold, {(r): r[col] < threshold },
-              build-tree(low,  label-col, cols),
-              build-tree(high, label-col, cols))
-          | cat-split(col, v, yes-t, no-t, _) =>
-            node(col, false, v, {(r): r[col] == v },
-              build-tree(yes-t, label-col, cols),
-              build-tree(no-t,  label-col, cols))
-        end
+
+fun build-tree(t :: Table, label-col :: String, cols :: List<String>, max-depth) -> DecisionTree:
+  
+  MAX_DEPTH = max-depth
+  
+  fun iter(
+      shadow t :: Table, 
+      shadow label-col :: String, 
+      shadow cols :: List<String>, 
+      shadow max-depth :: Number):
+    unique-labels = L.distinct(t.get-column(label-col))
+    current-err-total = get-error-rate(t, label-col) * t.length()
+
+    if (unique-labels.length() <= 1) or (cols.length() == 0) or (max-depth <= 0):
+      decide(most-common(t, label-col))
+    else:
+      cases(Option) find-best-split(t, label-col, cols):
+        | none => decide(most-common(t, label-col))
+        | some(s) =>
+          cases(SplitInfo) s:
+            | quant-split(col, threshold, low, high, _) =>
+              node(col, true, threshold, {(r): r[col] < threshold },
+                iter(low,  label-col, cols, max-depth - 1),
+                iter(high, label-col, cols, max-depth - 1))
+            | cat-split(col, v, yes-t, no-t, _) =>
+              node(col, false, v, {(r): r[col] == v },
+                iter(yes-t, label-col, cols, max-depth - 1),
+                iter(no-t,  label-col, cols, max-depth - 1))
+          end
+      end
     end
   end
+  iter(t, label-col, cols, MAX_DEPTH)
 end
 
 # Returns the most frequently-occuring value in a column to use as a prediction
@@ -1092,17 +1105,8 @@ fun most-common(t :: Table, col :: String) -> String:
   end
 end
 
-fun classify(t :: Table, col :: String, classifier :: DecisionTree) block:
-  pred = build-column(t, "predicted " + col, classifier.classify)
-  og = Sets.list-to-list-set(pred.column(col))
-  predicted = Sets.list-to-list-set(pred.column("predicted " + col))
-
-  # loose checking to make sure the col and classifier output match
-  when predicted.any({(p): not(og.member(p))}):
-    raise(Err.message-exception("The predictions returned from this classifier do not match the values in the '" + col + "' column"))
-  end
-
-  pred
+fun classify(t :: Table, classifier :: DecisionTree) block:
+  build-column(t, "prediction", classifier.classify)
 end
 
 # Produces a table comparing actual values from 'col' to predictions
