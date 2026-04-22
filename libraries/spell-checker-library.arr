@@ -127,4 +127,5 @@ fun alt-words(orig-s :: String, dict :: Sets.Set<String>) block:
         {"edit-distance"; wr.edit-distance}
       ]})
   row-list.foldl({(r, t): t.add-row(r)}, table: word, edit-distance end)
+    .order-by("edit-distance", true)
 end
