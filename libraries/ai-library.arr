@@ -59,8 +59,8 @@ fun add-symmetry-h(t): add-col(t, "symmetry-h", image-symmetry-horizontal) end
 fun add-color-names(t): add-col(t, "color-names", image-color-names) end
 
 fun add-grade(t): add-col(t, "grade", text-grade) end
-fun add-cleaned(t):  
-  add-col(t, "cleaned", lam(doc): text-clean(doc, true) end) 
+fun add-cleaned(t, remove-stops):  
+  add-col(t, "cleaned", lam(doc): text-clean(doc, remove-stops) end) 
 end
 
 # Given a string, produce the grade level according to Flesch-Kincaid:
