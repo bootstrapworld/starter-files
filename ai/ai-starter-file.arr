@@ -8,31 +8,31 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 data-sheet = load-spreadsheet(
   "https://docs.google.com/spreadsheets/d/1e_3op5DNDUOAjInXtlrzQ0fKZSuASd65E9-VEjNyteo/")
 
-image-corpus = make-model(transform-column(
+image-corpus = transform-column(
     load-table: ID, DOC, RATING, TAGS
       source: data-sheet.sheet-by-name("Images", true)
     end,
     "DOC",
-    image-url))
+    image-url)
 
 mystery-image = image-url("https://bootstrapworld.org/materials/fall2025/en-us/lessons/ai-intro/images/small-imgs/mystery.png")
 
-poem-corpus = make-model(load-table: ID, DOC, RATING, TAGS
+poem-corpus = load-table: ID, DOC, RATING, TAGS
     source: data-sheet.sheet-by-name("Poems", true)
-  end)
+  end
 
 mystery-poem = "The sun is big, but the sea is all"
 
-song-corpus = make-model(load-table: ID, DOC, RATING, TAGS
+song-corpus = load-table: ID, DOC, RATING, TAGS
     source: data-sheet.sheet-by-name("Songs", true)
-  end)
+  end
 
 mystery-song = "👏 👏 🫰 🫰 👏 🫰 👏 🫰 🫰 🫰 🫰 🫰 🫰 🫰 👏 👏 🫰"
 
 
-text-corpus = make-model(load-table: ID, DOC, RATING, TAGS
+text-corpus = load-table: ID, DOC, RATING, TAGS
     source: data-sheet.sheet-by-name("Text", true)
-  end)
+  end
 
 ####################################################################
 # 1) Choose one of the corpuses above, and look at it in the
@@ -63,15 +63,13 @@ text-model  = add-bag-cols(add-grade(normed-text, "CLEANED"), "DOC")
 
 # shrink the OG images for performance - how small before losing accuracy?
 # then add all the fun columns, and a BOW set for pixels
-image-model =
+image-model = 
   add-bag-cols(
     add-color-names(
-      add-luminance(
-        add-entropy(
-          add-horizontal-symmetry(
-            add-vertical-symmetry(
-              shrink-images(image-corpus)))))),
-        "COLOR-NAMES")
+        add-symmetry-v(
+          add-entropy(
+          add-luminance(image-corpus)))), 
+    "color-names")
 
 
 ###################################################################
