@@ -1,7 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/ai", "../libraries/core.arr")
-
-include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/ai", "../libraries/spell-checker-library.arr")
-
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/ai", "../libraries/spell-checker-library.arr")
 
 # This file has several dictionaries defined, all of different sizes:
 # `WORDS-XS` - 100 words
@@ -14,6 +11,9 @@ include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files
 
 # To look for alternative words based on a spelling, use the function `alt-words`:
 
-# alt-words :: String, Dictionary --> String
-# Consumes a string and a dictionary. For example: `alt-words("straw", WORDS-L)`
+# alt-words :: String, Dictionary -> Table
+# Consumes a word and a dictionary, and produces a table
+# of alternative words that are 1- or 2-edits away.
 
+# Here's one example of using alt-words to define a new table
+maple-alts = alt-words("maple", WORDS-XS)

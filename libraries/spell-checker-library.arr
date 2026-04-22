@@ -2,15 +2,28 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 ################################################################
 # Bootstrap Spell Checker Library, as of Fall 2026
 
-provide *
-
-import starter2024 as Starter
+# re-export every symbol from Core
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr") as Core
 import csv as csv
+include string-dict
+provide from Core:
+  *,
+  type Posn,
+  module Err,
+  module Sets,
+  module T,
+  module SD,
+  module R,
+  module L,
+  module Stats
+end
+# export every symbol from starter2024 except for those we override
+import starter2024 as Starter
 provide from Starter:
-  * hiding(translate, filter, range, sort, sin, cos, tan)
+    * hiding(translate, filter, range, sort, sin, cos, tan)
 end
 
-provide from L: * hiding(filter, range, sort), type *, data * end
+provide *
 
 DICTIONARY-URL = "https://docs.google.com/spreadsheets/d/13vL8Tg4lJ09s9GJwTKTZ9Ne1b6wDa92nj8RUPwgNfBQ/export?format=csv&gid="
 MAX-LENGTH = 11
