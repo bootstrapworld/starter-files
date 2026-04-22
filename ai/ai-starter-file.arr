@@ -1,5 +1,31 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/", "libraries/ai-library.arr")
 
+
+shelter-sheet = load-spreadsheet("https://docs.google.com/spreadsheets/d/1DjY_8v8VGyacnpuy72Up4oYYIJ64gqvoCKR7_LTf3lI/")
+simple-animals = 
+  load-table: name, species, sex, age, fixed, legs, pounds, weeks
+    source: shelter-sheet.sheet-by-name("simple", true)
+end
+
+# c1 = build-tree(simple-animals, "species", [list: "age", "pounds"], 1)
+# classify(simple-animals, c1)
+# confusion-matrix(simple-animals, "species", c1)
+
+more-animals = 
+  load-table: name, species, sex, age, fixed, legs, pounds, weeks
+    source: shelter-sheet.sheet-by-name("pets", true)
+end
+
+# c2 = build-tree(more-animals, "species", [list: "age", "pounds"], 2)
+# classify(simple-animals, c2)
+# confusion-matrix(simple-animals, "species", c2)
+
+
+
+
+
+
+
 ########################################################################
 # Some examples of models, and how to use them
 
@@ -59,7 +85,7 @@ normed-text  = add-cleaned(text-corpus, true)
 # the song corpus is normalized by default, since it's just emoji
 song-model  = add-bag-cols(song-corpus, "DOC")
 poem-model  = add-bag-cols(normed-poems, "DOC")
-text-model  = add-bag-cols(add-grade(normed-text, "CLEANED"), "DOC")
+text-model  = add-bag-cols(add-grade(normed-text), "cleaned")
 
 # shrink the OG images for performance - how small before losing accuracy?
 # then add all the fun columns, and a BOW set for pixels
@@ -101,26 +127,26 @@ least-fav = row-n(image-model, 1)
 # but how do we measure "closeness" or "similarity"?
 
 # we can check to see if two documents are EXACTLY the same (0 or 1)
-simple-similarity(most-fav, most-fav)
-simple-similarity(most-fav, almost-fav)
-simple-similarity(least-fav, almost-fav)
+#simple-similarity(most-fav, most-fav)
+#simple-similarity(most-fav, almost-fav)
+#simple-similarity(least-fav, almost-fav)
 
 # we can check to see if their BOWs are the same (0 - 1)
-bag-similarity(most-fav, most-fav)
-bag-similarity(most-fav, almost-fav)
-bag-similarity(least-fav, almost-fav)
+#bag-similarity(most-fav, most-fav)
+#bag-similarity(most-fav, almost-fav)
+#bag-similarity(least-fav, almost-fav)
 
 # we can measure the angle, taking every column into account (90 - 0)
-angle-similarity(most-fav, most-fav)
-angle-similarity(most-fav, almost-fav)
-angle-similarity(least-fav, almost-fav)
+#angle-similarity(most-fav, most-fav)
+#angle-similarity(most-fav, almost-fav)
+#angle-similarity(least-fav, almost-fav)
 
 # but it's weird to have 0 mean "most" similar, and it was nice
 # to have everything rated between zero and one! We can take the 
 # cosine of the angle to get us back to (0 - 1)
-cosine-similarity(most-fav, most-fav)
-cosine-similarity(most-fav, almost-fav)
-cosine-similarity(least-fav, almost-fav)
+#cosine-similarity(most-fav, most-fav)
+#cosine-similarity(most-fav, almost-fav)
+#cosine-similarity(least-fav, almost-fav)
 
 
 ###################################################################
