@@ -11,9 +11,10 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 
 # To look for alternative words based on a spelling, use the function `alt-words`:
 
-# alt-words :: String, Dictionary -> Table
-# Consumes a word and a dictionary, and produces a table
-# of alternative words that are 1- or 2-edits away.
+# alt-words :: String, Dictionary, Number -> Table
+# Consumes a word, a dictionary, and the maximum edit distance N
+# produces a table of alternative words that are N or less edits away
 
-# Here's one example of using alt-words to define a new table
-maple-alts = alt-words("maple", WORDS-XS)
+# Here's one example, finding all words that are 1 or 2 edits away
+# from "maple" in the XS dictionary
+maple-alts = alt-words("maple", WORDS-XS, 2)
