@@ -663,6 +663,10 @@ sharing:
         end
     end
   end,
+  
+  method to-fun(self) -> (Row -> String):
+    lam(r): self.classify(r) end
+  end,
 
   method _output(self) block:
     fun to-lines(tree :: DecisionTree) -> List<String>:
@@ -683,15 +687,20 @@ sharing:
   end
 end
 
+# given a DecisionTree, produce the classifier function
+fun dt-fun(tree :: DecisionTree): tree.to-fun() end
 
-fun classifier-to-code(c :: DecisionTree) block:
+# given a DecisionTree, produce copy-and-pastable code for
+# the classifier function
+fun dt-code(c :: DecisionTree) block:
   fun to-lines(tree :: DecisionTree) -> List<String>:
     cases(DecisionTree) tree:
       | decide(lbl) => [list: "\"" + lbl + "\""]
       | node(col, is-quant, val, splitter, yes, no) =>
         predicate = if is-quant: " < " else: " == " end
         v = if is-quant: easy-num-repr(val, 8) else: val end
-        header    = "if (r[\"" + col + "\"]" + predicate + "\"" + v + "\"):"
+        header    = "if (r[\"" + col + "\"]" + predicate +
+        if is-quant: v + "):" else: "\"" + v + "\"):" end
         yes-lines = prefix-lines(to-lines(yes), "   ", "   ")
         no-lines  = prefix-lines(to-lines(no), "   ", "   ")
         [list: header] + yes-lines + [list: "else:"] + no-lines + [list: "end"]
@@ -769,7 +778,6 @@ end
 
 # Try every column, and choose the split that minimizes weighted error
 fun find-best-split(t :: Table, label-col :: String, cols :: List<String>) -> Option<SplitInfo>:
-  current-err = get-error-rate(t, label-col) * t.length()
   cols.foldl(lam(col, best-so-far):
       first-val = t.row-n(0)[col]
       candidate =
@@ -779,13 +787,9 @@ fun find-best-split(t :: Table, label-col :: String, cols :: List<String>) -> Op
       cases(Option) candidate:
         | none => best-so-far
         | some(c) =>
-          # Only accept if this split is strictly better than doing nothing
-          if split-err(c) >= current-err: best-so-far
-          else:
-            cases(Option) best-so-far:
-              | none    => candidate
-              | some(b) => if split-err(c) < split-err(b): candidate else: best-so-far end
-            end
+          cases(Option) best-so-far:
+            | none    => candidate
+            | some(b) => if split-err(c) < split-err(b): candidate else: best-so-far end
           end
       end
     end, none)
@@ -846,23 +850,43 @@ fun most-common(t :: Table, col :: String) -> String:
   end
 end
 
-fun classify(t :: Table, classifier :: DecisionTree) block:
-  build-column(t, "prediction", classifier.classify)
+fun classify(t :: Table, col, classifier :: (Row -> String)) block:
+  new-col = col + " (predicted)"
+  p-table = build-column(t, new-col, classifier)
+  if (t.column-names().member(col)):
+    test-f = {(r): if (r[col] == r[new-col]): "✅" else: "❌" end}
+    new-cols = t.column-names()
+      .filter({(s): s <> col})
+      .append([list: col, new-col, "Correct?"])
+    p-table.build-column("Correct?", test-f)
+      .select-columns(new-cols)
+  else:
+    p-table
+  end
+  
 end
 
 # Produces a table comparing actual values from 'col' to predictions
-fun confusion-matrix(t :: Table, col :: String, classifier :: DecisionTree) -> Table:
+fun confusion-matrix(t :: Table, col :: String, classifier :: (Row -> String)) -> Table:
   labels = L.distinct(t.get-column(col)).sort()
-  fun count-match(actual-val, predicted-val):
+  fun actual-rows(actual-val):
     t.filter-by(col, lam(r): r == actual-val end)
-      .filter(lam(r): classifier.classify(r) == predicted-val end)
-      .length()
+  end
+  fun count-normalized(actual-val, predicted-val):
+    actual = actual-rows(actual-val)
+    total = actual.length()
+    matched = actual.filter(lam(r): classifier(r) == predicted-val end).length()
+    if total == 0: 0.0
+    else: num-exact(num-round-to(matched / total, 3))
+    end
   end
   matrix-rows = labels.map(lam(lbl):
       contents = L.link({col; lbl}, labels.map(lam(pred):
-            {"predicted-" + pred; count-match(lbl, pred)}
+            {"predicted-" + pred; count-normalized(lbl, pred)}
           end))
       T.raw-row.make(raw-array-from-list(contents))
     end)
-  T.table-from-rows.make(raw-array-from-list(matrix-rows))
+  T.table-from-rows
+    .make(raw-array-from-list(matrix-rows))
+    .rename-column(col, "actual-" + col)
 end
