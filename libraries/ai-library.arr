@@ -850,9 +850,10 @@ fun most-common(t :: Table, col :: String) -> String:
   end
 end
 
-fun classify(t :: Table, col, classifier :: (Row -> String)) block:
+fun classify(t :: Table, col, classifier) block:
   new-col = col + " (predicted)"
-  p-table = build-column(t, new-col, classifier)
+  fn = if (is-DecisionTree(classifier)): classifier.classify else: classifier end
+  p-table = build-column(t, new-col, fn)
   if (t.column-names().member(col)):
     test-f = {(r): if (r[col] == r[new-col]): "✅" else: "❌" end}
     new-cols = t.column-names()
@@ -867,7 +868,8 @@ fun classify(t :: Table, col, classifier :: (Row -> String)) block:
 end
 
 # Produces a table comparing actual values from 'col' to predictions
-fun confusion-matrix(t :: Table, col :: String, classifier :: (Row -> String)) -> Table:
+fun confusion-matrix(t :: Table, col :: String, classifier) -> Table:
+  fn = if (is-DecisionTree(classifier)): classifier.classify else: classifier end
   labels = L.distinct(t.get-column(col)).sort()
   fun actual-rows(actual-val):
     t.filter-by(col, lam(r): r == actual-val end)
@@ -875,7 +877,7 @@ fun confusion-matrix(t :: Table, col :: String, classifier :: (Row -> String)) -
   fun count-normalized(actual-val, predicted-val):
     actual = actual-rows(actual-val)
     total = actual.length()
-    matched = actual.filter(lam(r): classifier(r) == predicted-val end).length()
+    matched = actual.filter(lam(r): fn(r) == predicted-val end).length()
     if total == 0: 0.0
     else: num-exact(num-round-to(matched / total, 3))
     end
