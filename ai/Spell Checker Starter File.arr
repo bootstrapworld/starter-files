@@ -2,8 +2,8 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 
 # This file has several dictionaries defined, all of different sizes:
 # `WORDS-XS` - 100 5-letter words
-# `WORDS-S`  - 1,000 most-common words
-# `WORDS-M`  - 5,000 most-common words
+# `WORDS-S`  - 5,000 most-common words
+# `WORDS-M`  - 10,000 most-common words
 # `WORDS-L`  - 50,000 most-common words
 
 # You can access the dictionaries spreadsheet by visiting: https://docs.google.com/spreadsheets/d/13vL8Tg4lJ09s9GJwTKTZ9Ne1b6wDa92nj8RUPwgNfBQ
