@@ -12,6 +12,37 @@ end
 
 provide from L: * hiding(filter, range, sort), type *, data * end
 
+# given two strings, produce the edit-distance between the
+fun levenshtein(s :: String, t :: String) -> Number:
+  t-chars = string-explode(t)
+  t-len = t-chars.length()
+  init-row = L.range(0, t-len + 1)
+
+  fun next-row(prev-row :: List<Number>, row-num :: Number, s-char :: String) -> List<Number>:
+    fun go(pr :: List<Number>, tc-rest :: List<String>, left :: Number, acc-rev :: List<Number>) -> List<Number>:
+      cases (List) tc-rest:
+        | empty => L.reverse(acc-rev)
+        | link(tc, t-suf) =>
+          diag  = pr.first
+          shadow above = pr.rest.first
+          cost  = if s-char == tc: 0 else: 1 end
+          val   = num-min(num-min(left + 1, above + 1), diag + cost)
+          go(pr.rest, t-suf, val, link(val, acc-rev))
+      end
+    end
+    go(prev-row, t-chars, row-num, [list: row-num])
+  end
+
+  fun process-rows(prev-row :: List<Number>, sc-rest :: List<String>, row-num :: Number) -> Number:
+    cases (List) sc-rest:
+      | empty => prev-row.last()
+      | link(sc, s-suf) =>
+        process-rows(next-row(prev-row, row-num, sc), s-suf, row-num + 1)
+    end
+  end
+
+  process-rows(init-row, string-explode(s), 1)
+end
 
 data WordResult:
   | word-result(word :: String, edit-distance :: Number)
@@ -21,6 +52,142 @@ data BKNode:
   | bk-node(word :: String, children :: SD.MutableStringDict)
 end
 
+fun bk-search(node :: BKNode, query :: String, n :: Number) -> List<WordResult>:
+  d = levenshtein(node.word, query)
+  init-acc = if d <= n: [list: word-result(node.word, d)] else: empty end
+  lo = if d < n: 0 else: d - n end
+  hi = d + n
+  for fold(acc from init-acc, dist from L.range(lo, hi + 1)):
+    cases (Starter.Option) node.children.get-now(num-to-string(dist)):
+      | none => acc
+      | some(child) => acc + bk-search(child, query, n)
+    end
+  end
+end
+
+fun sub-letters(word-or-words) -> Table block:
+
+  words = if is-string(word-or-words): [list: word-or-words]
+  else: word-or-words.column("alternate spellings")
+  end
+
+  alphabet = "abcdefghijklmnopqrstuvwxyz"
+  letters = string-explode(alphabet)
+
+  fun transform-word(word :: String) -> List<String>:
+    word-chars = string-explode(word)
+    word-len = word-chars.length()
+
+    fun substitute-at-position(pos :: Number) -> List<String>:
+      current-char = word-chars.get(pos)
+      for fold(substitutions from [list: ], letter from letters):
+        if letter == current-char:
+          substitutions
+        else:
+          new-chars = for fold(chars from [list: ], i from L.range(0, word-len)):
+            if i == pos:
+              link(letter, chars)
+            else:
+              link(word-chars.get(i), chars)
+            end
+          end
+          new-word = L.reverse(new-chars).join-str("")
+          link(new-word, substitutions)
+        end
+      end
+    end
+
+    for fold(all-substitutions from [list: ], pos from L.range(0, word-len)):
+      all-substitutions + substitute-at-position(pos)
+    end
+  end
+
+  acc-dict = [SD.mutable-string-dict: ]
+  for each(word from words):
+    for each(substituted from transform-word(word)):
+      acc-dict.set-now(substituted, true)
+    end
+  end
+
+  res = acc-dict.keys-now().to-list()
+  [T.table-from-columns: {"alternate spellings"; res}]
+    .order-by("alternate spellings", true)
+end
+
+
+fun swap-letters(word-or-words) -> Table block:
+
+  words = if is-string(word-or-words): [list: word-or-words]
+  else: word-or-words.column("alternate spellings")
+  end
+
+  fun transform-word(word :: String) -> List<String>:
+    word-chars = string-explode(word)
+    word-len = word-chars.length()
+
+    fun swap-at-position(pos :: Number) -> String:
+      # Swap character at pos with character at pos + 1
+      swapped-chars = for fold(chars from [list: ], i from L.range(0, word-len)):
+        if i == pos:
+          link(word-chars.get(pos + 1), chars)
+        else if i == (pos + 1):
+          link(word-chars.get(pos), chars)
+        else:
+          link(word-chars.get(i), chars)
+        end
+      end
+      L.reverse(swapped-chars).join-str("")
+    end
+
+    for fold(swapped from [list: ], pos from L.range(0, word-len - 1)):
+      link(swap-at-position(pos), swapped)
+    end
+  end
+
+  acc-set = [SD.mutable-string-dict: ]
+  for each(word from words):
+    for each(swapped from transform-word(word)):
+      acc-set.set-now(swapped, true)
+    end
+  end
+
+  res = acc-set.keys-now().to-list()
+  [T.table-from-columns: {"alternate spellings"; res}]
+    .order-by("alternate spellings", true)
+end
+
+
+fun only-real(word-table :: Table, dictionary :: BKNode) -> Table block:
+  words = word-table.column("alternate spellings")
+
+  acc-dict = [SD.mutable-string-dict: ]
+  for each(word from words):
+    results = bk-search(dictionary, word, 0)
+    if results.length() > 0:
+      acc-dict.set-now(word, true)
+    else:
+      nothing
+    end
+  end
+
+  res = acc-dict.keys-now().to-list()
+  [T.table-from-columns: {"word"; res}]
+    .order-by("word", true)
+end
+
+
+fun alt-words(orig-s :: String, dictionary :: BKNode, n :: Number):
+  s = string-to-lower(orig-s)
+  results = Sets.list-to-set(bk-search(dictionary, s, n)).to-list()
+  row-list = results.map({(wr): [
+        T.raw-row: {"word"; wr.word},
+        {"edit-distance"; wr.edit-distance}
+      ]})
+  row-list.foldl({(r, t): t.add-row(r)}, table: word, edit-distance end)
+    .order-by("word", true)
+    .order-by("edit-distance", true)
+    .filter(lam(r): r["word"] <> orig-s end)
+end
 
 #################### For Authoring ##########################################
 # This spellchecker uses pre-compiled bk-trees for performance!
@@ -104,50 +271,6 @@ end
 
 #########################################################################
 
-fun levenshtein(s :: String, t :: String) -> Number:
-  t-chars = string-explode(t)
-  t-len = t-chars.length()
-  init-row = L.range(0, t-len + 1)
-
-  fun next-row(prev-row :: List<Number>, row-num :: Number, s-char :: String) -> List<Number>:
-    fun go(pr :: List<Number>, tc-rest :: List<String>, left :: Number, acc-rev :: List<Number>) -> List<Number>:
-      cases (List) tc-rest:
-        | empty => L.reverse(acc-rev)
-        | link(tc, t-suf) =>
-          diag  = pr.first
-          shadow above = pr.rest.first
-          cost  = if s-char == tc: 0 else: 1 end
-          val   = num-min(num-min(left + 1, above + 1), diag + cost)
-          go(pr.rest, t-suf, val, link(val, acc-rev))
-      end
-    end
-    go(prev-row, t-chars, row-num, [list: row-num])
-  end
-
-  fun process-rows(prev-row :: List<Number>, sc-rest :: List<String>, row-num :: Number) -> Number:
-    cases (List) sc-rest:
-      | empty => prev-row.last()
-      | link(sc, s-suf) =>
-        process-rows(next-row(prev-row, row-num, sc), s-suf, row-num + 1)
-    end
-  end
-
-  process-rows(init-row, string-explode(s), 1)
-end
-
-fun bk-search(node :: BKNode, query :: String, n :: Number) -> List<WordResult>:
-  d = levenshtein(node.word, query)
-  init-acc = if d <= n: [list: word-result(node.word, d)] else: empty end
-  lo = if d < n: 0 else: d - n end
-  hi = d + n
-  for fold(acc from init-acc, dist from L.range(lo, hi + 1)):
-    cases (Starter.Option) node.children.get-now(num-to-string(dist)):
-      | none => acc
-      | some(child) => acc + bk-search(child, query, n)
-    end
-  end
-end
-
 fun deserialize-tree(s :: String) -> BKNode:
 
   fun parse-children(
@@ -188,17 +311,6 @@ fun deserialize-tree(s :: String) -> BKNode:
   tree
 end
 
-
-
-fun alt-words(orig-s :: String, dictionary :: BKNode, n :: Number):
-  s = string-to-lower(orig-s)
-  results = bk-search(dictionary, s, n)
-  row-list = results.map({(wr): [
-        T.raw-row: {"word"; wr.word},
-        {"edit-distance"; wr.edit-distance}
-      ]})
-  row-list.foldl({(r, t): t.add-row(r)}, table: word, edit-distance end)
-end
 
 ############# Pre-Compiled BK-Trees for various dictionaries ######################
 WORDS-XS-serialized = "aisle,3,3,daisy,3,3,missy,1,4,parse,1,2,poise,0,4,maple,0,5,pique,2,3,siege,0,4,viola,0,4,arena,2,4,aunty,3,3,paint,0,4,awful,1,5,pasta,2,4,penne,0,5,sense,0,5,given,3,3,navel,0,4,price,2,2,tribe,0,3,shine,0,5,stare,0,5,badly,3,3,basil,2,3,gassy,0,5,fully,1,3,mealy,1,3,shyly,0,4,chill,3,3,skull,0,4,nasal,0,5,evade,2,4,fudge,3,2,ledge,0,3,gauge,1,2,mange,0,4,latte,0,5,fussy,3,2,lusty,1,3,mossy,0,3,nosey,1,3,pesky,0,4,piney,0,5,chase,2,4,olive,2,4,untie,0,5,upset,0,5,gusto,2,4,igloo,0,5,lilac,1,4,vinyl,2,3,winch,0,4,wight,0,5,bleed,4,2,clued,0,3,blown,3,3,flood,0,4,fleck,1,3,pleat,0,5,reedy,0,4,boost,3,2,burst,0,4,buddy,2,4,pound,0,5,leant,0,5,clang,2,4,creak,0,5,gamer,4,2,wafer,0,3,newer,1,3,skier,0,4,humid,0,5,wreck,0,5,comic,3,2,cumin,1,4,sonic,0,4,croup,3,3,droit,0,4,donut,1,5,spoil,0,5,foray,2,3,words,0,5,tapir,0,5,daddy,3,3,harry,1,3,nanny,0,4,debug,2,4,rabbi,0,5,entry,2,4,murky,1,4,phony,0,5,macho,0,5,gnash,3,3,graft,2,3,wrath,0,4,gulch,0,4,stank,0,5,primo,2,3,proof,0,4,scion,0"
