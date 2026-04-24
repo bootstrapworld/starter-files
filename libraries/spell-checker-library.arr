@@ -4,8 +4,23 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 
 provide *
 
-import starter2024 as Starter
+# re-export every symbol from Core
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr") as Core
 import csv as csv
+include string-dict
+provide from Core:
+  *,
+  type Posn,
+  module Err,
+  module Sets,
+  module T,
+  module SD,
+  module R,
+  module L,
+  module Stats
+end
+# export every symbol from starter2024 except for those we override
+import starter2024 as Starter
 provide from Starter:
     * hiding(translate, filter, range, sort, sin, cos, tan)
 end
@@ -65,7 +80,25 @@ fun bk-search(node :: BKNode, query :: String, n :: Number) -> List<WordResult>:
   end
 end
 
-fun sub-letters(word-or-words) -> Table block:
+fun apply-transformation(transform-word :: (String -> List<String>), word-or-words) -> Table block:
+  words = if is-string(word-or-words): [list: word-or-words]
+  else: word-or-words.column("alternate spellings")
+  end
+ 
+  acc-dict = [SD.mutable-string-dict: ]
+  for each(word from words):
+    for each(result from transform-word(word)):
+      acc-dict.set-now(result, true)
+    end
+  end
+ 
+  res = acc-dict.keys-now().to-list()
+  [T.table-from-columns: {"alternate spellings"; res}]
+    .order-by("alternate spellings", true)
+end
+
+
+fun subs(word-or-words) -> Table:
 
   words = if is-string(word-or-words): [list: word-or-words]
   else: word-or-words.column("alternate spellings")
@@ -102,20 +135,11 @@ fun sub-letters(word-or-words) -> Table block:
     end
   end
 
-  acc-dict = [SD.mutable-string-dict: ]
-  for each(word from words):
-    for each(substituted from transform-word(word)):
-      acc-dict.set-now(substituted, true)
-    end
-  end
-
-  res = acc-dict.keys-now().to-list()
-  [T.table-from-columns: {"alternate spellings"; res}]
-    .order-by("alternate spellings", true)
+  apply-transformation(transform-word, word-or-words)
 end
 
 
-fun swap-letters(word-or-words) -> Table block:
+fun swaps(word-or-words) -> Table:
 
   words = if is-string(word-or-words): [list: word-or-words]
   else: word-or-words.column("alternate spellings")
@@ -144,18 +168,75 @@ fun swap-letters(word-or-words) -> Table block:
     end
   end
 
-  acc-set = [SD.mutable-string-dict: ]
-  for each(word from words):
-    for each(swapped from transform-word(word)):
-      acc-set.set-now(swapped, true)
-    end
-  end
-
-  res = acc-set.keys-now().to-list()
-  [T.table-from-columns: {"alternate spellings"; res}]
-    .order-by("alternate spellings", true)
+  apply-transformation(transform-word, word-or-words)
 end
 
+fun deletions(word-or-words) -> Table:
+ 
+  words = if is-string(word-or-words): [list: word-or-words]
+  else: word-or-words.column("alternate spellings")
+  end
+ 
+  fun transform-word(word :: String) -> List<String>:
+    word-chars = string-explode(word)
+    word-len = word-chars.length()
+ 
+    fun delete-at-position(pos :: Number) -> String:
+      # Delete character at position pos
+      deleted-chars = for fold(chars from [list: ], i from L.range(0, word-len)):
+        if i == pos:
+          chars
+        else:
+          link(word-chars.get(i), chars)
+        end
+      end
+      L.reverse(deleted-chars).join-str("")
+    end
+ 
+    for fold(all-deletions from [list: ], pos from L.range(0, word-len)):
+      link(delete-at-position(pos), all-deletions)
+    end
+  end
+  
+  apply-transformation(transform-word, word-or-words)
+end
+
+fun insertions(word-or-words) -> Table:
+ 
+  words = if is-string(word-or-words): [list: word-or-words]
+  else: word-or-words.column("alternate spellings")
+  end
+ 
+  alphabet = "abcdefghijklmnopqrstuvwxyz"
+  letters = string-explode(alphabet)
+ 
+  fun transform-word(word :: String) -> List<String>:
+    word-chars = string-explode(word)
+    word-len = word-chars.length()
+ 
+    fun insert-at-position(pos :: Number) -> List<String>:
+      for fold(shadow insertions from [list: ], letter from letters):
+        new-chars = for fold(chars from [list: ], i from L.range(0, word-len + 1)):
+          if i == pos:
+            link(letter, chars)
+          else if i < pos:
+            link(word-chars.get(i), chars)
+          else:
+            link(word-chars.get(i - 1), chars)
+          end
+        end
+        new-word = L.reverse(new-chars).join-str("")
+        link(new-word, insertions)
+      end
+    end
+ 
+    for fold(all-insertions from [list: ], pos from L.range(0, word-len + 1)):
+      all-insertions + insert-at-position(pos)
+    end
+  end
+ 
+  apply-transformation(transform-word, word-or-words)
+end
 
 fun only-real(word-table :: Table, dictionary :: BKNode) -> Table block:
   words = word-table.column("alternate spellings")

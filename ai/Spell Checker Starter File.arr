@@ -8,30 +8,31 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 
 # You can access the dictionaries spreadsheet by visiting: https://docs.google.com/spreadsheets/d/13vL8Tg4lJ09s9GJwTKTZ9Ne1b6wDa92nj8RUPwgNfBQ
 
+# We've also created some special functions for you to explore:
 
-# SUBSTITUTING LETTERS
 # Find all spellings that can be reached by substituting a single letter (1 edit)
-# For example:
-# sub-letters("hello")
+# subs("hello")
 
-# SWAPPING LETTERS
 # Find all spellings that can be reached by swapping adjacent letters (1 edit)
-# For example:
-# swap-letters("hello")
+# swaps("hello")
 
-# REMOVING "JUNK"
-# Only show words that show up in the given dictionary
-# For example:
-# only-real(sub-letters("hello"), WORDS-L)
+# Find all spellings that can be reached by inserting a single letter (1 edit)
+# insertions("hello")
 
-# You can combine these functions, to generate spellings that are more than 1 edit away
-# For example:
+# Find all spellings that can be reached by deleting a single letter (1 edit)
+# deletions("hello")
+
+
+# You can combine these functions to generate spellings that are more than 1 edit away
 # swap-letters(swap-letters("hello"))
-# sub-letters(swap-letters("hello"))
+# deletions(sub-letters(swap-letters("hello")))
+
+# Only show words that show up in the given dictionary
+# only-real(sub-letters("hello"), WORDS-L)
 
 
 # SPELL-CHECKING
-# The function `alt-words` function combines all of the tools above, and more!
+# The function alt-words combines all of the tools above, and more!
 # - you can search for words that are as many edits away as you like
 # - in addition to swapping and subbing, it will also ADD a letter to find alternatives
 # For example:
