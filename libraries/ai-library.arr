@@ -700,7 +700,7 @@ fun dt-code(c :: DecisionTree) block:
         predicate = if is-quant: " < " else: " == " end
         v = if is-quant: easy-num-repr(val, 8) else: val end
         header    = "if (r[\"" + col + "\"]" + predicate +
-        if is-quant: v + "):" else: "\"" + v + "\"):" end
+        if (is-quant or is-boolean(v)): v + "):" else: "\"" + v + "\"):" end
         yes-lines = prefix-lines(to-lines(yes), "   ", "   ")
         no-lines  = prefix-lines(to-lines(no), "   ", "   ")
         [list: header] + yes-lines + [list: "else:"] + no-lines + [list: "end"]
