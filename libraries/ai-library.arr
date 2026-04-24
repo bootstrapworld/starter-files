@@ -674,8 +674,10 @@ sharing:
         | decide(lbl) => [list: "→ " + lbl]
         | node(col, is-quant, val, splitter, yes, no) =>
           predicate = if is-quant: " < " else: " == " end
-          v = if is-quant: easy-num-repr(val, 8) else: val end
-          header    = col + predicate + v + "?"
+          v = if is-quant: easy-num-repr(val, 8) 
+          else if is-boolean(val): val
+          else: "\"" + val + "\"" end
+          header    = col + predicate + to-string(v) + "?"
           yes-lines = prefix-lines(to-lines(yes),     "├── ", "│   ")
           no-lines  = prefix-lines(to-lines(no), "└── ", "    ")
           [list: header] + yes-lines + no-lines
@@ -694,13 +696,13 @@ fun dt-fun(tree :: DecisionTree): tree.to-fun() end
 # the classifier function
 fun dt-code(c :: DecisionTree) block:
   fun to-lines(tree :: DecisionTree) -> List<String>:
-    cases(DecisionTree) tree:
+    cases(DecisionTree) tree block:
       | decide(lbl) => [list: "\"" + lbl + "\""]
       | node(col, is-quant, val, splitter, yes, no) =>
         predicate = if is-quant: " < " else: " == " end
         v = if is-quant: easy-num-repr(val, 8) else: val end
         header    = "if (r[\"" + col + "\"]" + predicate +
-        if (is-quant or is-boolean(v)): v + "):" else: "\"" + v + "\"):" end
+        if (is-quant or is-boolean(v)): to-string(v) + "):" else: "\"" + v + "\"):" end
         yes-lines = prefix-lines(to-lines(yes), "   ", "   ")
         no-lines  = prefix-lines(to-lines(no), "   ", "   ")
         [list: header] + yes-lines + [list: "else:"] + no-lines + [list: "end"]
@@ -732,7 +734,7 @@ end
 
 data SplitInfo:
   | quant-split(col :: String, threshold :: Number, low :: Table, high :: Table, err :: Number)
-  | cat-split(col :: String, val :: String, yes :: Table, no :: Table, err :: Number)
+  | cat-split(col :: String, val, yes :: Table, no :: Table, err :: Number)
 end
 
 fun split-err(s :: SplitInfo) -> Number:
@@ -766,7 +768,7 @@ fun find-best-cat-split(t :: Table, col :: String, label-col :: String) -> Optio
       if (yes-t.length() == 0) or (no-t.length() == 0): best-so-far
       else:
         err = weighted-error(yes-t, no-t, label-col)
-        candidate = some(cat-split(col, to-string(v), yes-t, no-t, err))
+        candidate = some(cat-split(col, v, yes-t, no-t, err))
         cases(Option) best-so-far:
           | none    => candidate
           | some(b) => if err < split-err(b): candidate else: best-so-far end
