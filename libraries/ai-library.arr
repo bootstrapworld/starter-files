@@ -1,4 +1,5 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr")
+
 ################################################################
 # Bootstrap AI Library, as of Fall 2026
 provide *
@@ -745,15 +746,74 @@ end
 
 # find the best quantitative column and threshold on which to split
 fun find-best-quant-split(t :: Table, col :: String, label-col :: String) -> Option<SplitInfo>:
-  thresholds = get-boundary-thresholds(k-means-clustering(t.get-column(col), 2))
-  if thresholds.length() == 0: none
+  doc: "Find the error-minimizing threshold on `col` by sweeping sorted (val, label) pairs."
+  col-vals = t.get-column(col)
+  labels   = t.get-column(label-col)
+  n        = col-vals.length()
+  if n < 2: none
   else:
-    threshold = thresholds.get(0)
-    low  = t.filter-by(col, lam(v): v < threshold end)
-    high = t.filter-by(col, lam(v): v >= threshold end)
-    if (low.length() == 0) or (high.length() == 0): none
-    else:
-      some(quant-split(col, threshold, low, high, weighted-error(low, high, label-col)))
+    # Zip and sort (col-val, label) pairs by col-val ascending.
+    pairs = L.map2(lam(v, l): {v; l} end, col-vals, labels)
+              .sort-by({(a, b): a.{0} < b.{0}}, {(a, b): a.{0} == b.{0}})
+
+    # "right" histogram starts as the overall label counts; "left" starts empty.
+    overall = labels.foldl(lam(l, acc):
+        k = to-string(l)
+        cases(Option) acc.get(k):
+          | none    => acc.set(k, 1)
+          | some(m) => acc.set(k, m + 1)
+        end
+      end, [string-dict:])
+
+    fun max-val(d):
+      d.keys-list().foldl(lam(k, m): num-max(d.get-value(k), m) end, 0)
+    end
+
+    # Sweep through sorted pairs. Between pair[i-1] and pair[i], if their col-vals
+    # differ, midpoint is a legal threshold — score it from the running histograms.
+    fun sweep(rest, prev-val, left-c, right-c, left-n, right-n, best):
+      cases(List) rest:
+        | empty => best
+        | link(cur, more) =>
+          cv = cur.{0}
+          cl = cur.{1}
+          new-best = cases(Option) prev-val:
+            | none    => best
+            | some(pv) =>
+              if cv > pv:
+                err = (left-n - max-val(left-c)) + (right-n - max-val(right-c))
+                thr = (pv + cv) / 2
+                cases(Option) best:
+                  | none    => some({thr: thr, err: err})
+                  | some(b) => if err < b.err: some({thr: thr, err: err}) else: best end
+                end
+              else: best
+              end
+          end
+          # Move cur from right to left.
+          k = to-string(cl)
+          nl = cases(Option) left-c.get(k):
+            | none    => left-c.set(k, 1)
+            | some(m) => left-c.set(k, m + 1)
+          end
+          nr = cases(Option) right-c.get(k):
+            | none    => right-c  # shouldn't happen
+            | some(m) => right-c.set(k, m - 1)
+          end
+          sweep(more, some(cv), nl, nr, left-n + 1, right-n - 1, new-best)
+      end
+    end
+
+    best-split = sweep(pairs, none, [string-dict:], overall, 0, n, none)
+
+    cases(Option) best-split:
+      | none => none
+      | some(b) =>
+        low  = t.filter-by(col, lam(v): v < b.thr end)
+        high = t.filter-by(col, lam(v): v >= b.thr end)
+        if (low.length() == 0) or (high.length() == 0): none
+        else: some(quant-split(col, b.thr, low, high, b.err))
+        end
     end
   end
 end
