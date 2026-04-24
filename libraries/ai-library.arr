@@ -798,7 +798,7 @@ fun find-best-split(t :: Table, label-col :: String, cols :: List<String>) -> Op
 end
 
 
-fun build-tree(t :: Table, label-col :: String, cols :: List<String>, max-depth) -> DecisionTree:
+fun build-tree(t :: Table, cols :: List<String>, label-col :: String, max-depth) -> DecisionTree:
   
   MAX_DEPTH = max-depth
   
