@@ -558,31 +558,30 @@ fun find-closest(val, centroids :: List<Number>) -> Number:
 end
 
 fun k-means-clustering(points :: List<Number>, n-clusters :: Number) -> List<{Number; Number}>:
-  doc: "Groups points into n-clusters clusters. Returns a sorted list of {min; max} intervals."
   fun run-iterations(centroids, gas):
     assignments = points.map(lam(v): {val: v, center: find-closest(v, centroids)} end)
     new-centroids = centroids.map(lam(c):
         shadow group = assignments.filter(lam(a): a.center == c end).map(lam(a): a.val end)
         if group.length() > 0:
           group.foldl(lam(acc, v): acc + v end, 0) / group.length()
-        else:
-          c
+        else: c
         end
       end)
-    if (new-centroids == centroids) or (gas <= 0): centroids
+    if (new-centroids == centroids) or (gas <= 0): assignments  # return assignments, not centroids
     else: run-iterations(new-centroids, gas - 1)
     end
   end
 
-  final-centers = Sets.list-to-list-set(run-iterations(points.take(n-clusters), 10)).to-list()
+  final-assignments = run-iterations(points.take(n-clusters), 10)
+  final-centers = Sets.list-to-list-set(final-assignments.map(lam(a): a.center end)).to-list()
 
+  # Now grouping is a simple filter on already-computed assignments — no find-closest calls
   final-centers
     .map(lam(c):
-      cluster = points.filter(lam(v): find-closest(v, final-centers) == c end).sort()
+      cluster = final-assignments.filter(lam(a): a.center == c end).map(lam(a): a.val end).sort()
       {cluster.get(0); cluster.last()}
     end)
     .sort-by({(a, b): a.{0} < b.{0}}, {(a, b): a == b})
-
 where:
   k-means-clustering([list: 1, 10, 2, 11], 2) is [list: {1; 2}, {10; 11}]
 end
@@ -779,13 +778,11 @@ fun find-best-cat-split(t :: Table, col :: String, label-col :: String) -> Optio
 end
 
 # Try every column, and choose the split that minimizes weighted error
-fun find-best-split(t :: Table, label-col :: String, cols :: List<String>) -> Option<SplitInfo>:
-  cols.foldl(lam(col, best-so-far):
-      first-val = t.row-n(0)[col]
-      candidate =
-        if is-number(first-val): find-best-quant-split(t, col, label-col)
-        else:                    find-best-cat-split(t, col, label-col)
-        end
+fun find-best-split(t :: Table, label-col :: String, quant-cols :: List<String>, cat-cols :: List<String>) -> Option<SplitInfo>:
+  all-candidates = 
+    quant-cols.map(lam(col): find-best-quant-split(t, col, label-col) end)
+    + cat-cols.map(lam(col): find-best-cat-split(t, col, label-col) end)
+  all-candidates.foldl(lam(candidate, best-so-far):
       cases(Option) candidate:
         | none => best-so-far
         | some(c) =>
@@ -799,37 +796,32 @@ end
 
 
 fun build-tree(t :: Table, cols :: List<String>, label-col :: String, max-depth) -> DecisionTree:
-  
-  MAX_DEPTH = max-depth
-  
-  fun iter(
-      shadow t :: Table, 
-      shadow label-col :: String, 
-      shadow cols :: List<String>, 
-      shadow max-depth :: Number):
-    unique-labels = L.distinct(t.get-column(label-col))
-    current-err-total = get-error-rate(t, label-col) * t.length()
+  first-row = t.row-n(0)
+  quant-cols = cols.filter(lam(c): is-number(first-row[c]) end)
+  cat-cols   = cols.filter(lam(c): not(is-number(first-row[c])) end)
 
-    if (unique-labels.length() <= 1) or (cols.length() == 0) or (max-depth <= 0):
+  fun iter(shadow t, shadow label-col, shadow max-depth):  # cols removed from signature
+    unique-labels = L.distinct(t.get-column(label-col))
+    if (unique-labels.length() <= 1) or (max-depth <= 0):
       decide(most-common(t, label-col))
     else:
-      cases(Option) find-best-split(t, label-col, cols):
+      cases(Option) find-best-split(t, label-col, quant-cols, cat-cols):  # pass both lists
         | none => decide(most-common(t, label-col))
         | some(s) =>
           cases(SplitInfo) s:
             | quant-split(col, threshold, low, high, _) =>
               node(col, true, threshold, {(r): r[col] < threshold },
-                iter(low,  label-col, cols, max-depth - 1),
-                iter(high, label-col, cols, max-depth - 1))
+                iter(low,  label-col, max-depth - 1),
+                iter(high, label-col, max-depth - 1))
             | cat-split(col, v, yes-t, no-t, _) =>
               node(col, false, v, {(r): r[col] == v },
-                iter(yes-t, label-col, cols, max-depth - 1),
-                iter(no-t,  label-col, cols, max-depth - 1))
+                iter(yes-t, label-col, max-depth - 1),
+                iter(no-t,  label-col, max-depth - 1))
           end
       end
     end
   end
-  iter(t, label-col, cols, MAX_DEPTH)
+  iter(t, label-col, max-depth)
 end
 
 # Returns the most frequently-occuring value in a column to use as a prediction
@@ -837,18 +829,19 @@ fun most-common(t :: Table, col :: String) -> String:
   vals = t.get-column(col)
   if vals.length() == 0: "unknown"
   else:
-    counts = vals.foldl(lam(v, acc):
+    result = vals.foldl(lam(v, acc):
         key = to-string(v)
-        cases(Option) acc.get(key):
-          | none    => acc.set(key, 1)
-          | some(n) => acc.set(key, n + 1)
+        new-count = cases(Option) acc.counts.get(key):
+          | none    => 1
+          | some(n) => n + 1
         end
-      end, [string-dict: ])
-    vals.foldl(lam(best, v):
-        if counts.get-value(to-string(v)) > counts.get-value(to-string(best)): v
-        else: best
-        end
-      end, vals.first)
+        new-counts = acc.counts.set(key, new-count)
+        new-best = if new-count > acc.best-count: {best: v, best-count: new-count}
+                   else: {best: acc.best, best-count: acc.best-count}
+                   end
+        {counts: new-counts, best: new-best.best, best-count: new-best.best-count}
+      end, {counts: [string-dict:], best: vals.first, best-count: 0})
+    result.best
   end
 end
 
