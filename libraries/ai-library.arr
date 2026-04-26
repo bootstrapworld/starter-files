@@ -97,27 +97,28 @@ where:
   text-streak("sun sun sand sun sun sun", "sun") is 3
 end
 
+fun is-non-punct(c :: String) -> Boolean block:
+  # Code points for 'a' and 'z', used to test if a char is a lowercase ASCII letter
+  lower-case-a-cp = string-to-code-point('a')
+  lower-case-z-cp = string-to-code-point('z')
+  if (c == ' ') or (c == '\n'): true
+  else:
+    c-cp = string-to-code-point(c)
+    (c-cp >= lower-case-a-cp) and (c-cp <= lower-case-z-cp)
+  end
+end
+
+fun massage-string(w :: String) -> String block:
+  lowercase-chars = string-explode(string-to-lower(w))
+  fold({(a, b): a + b }, '', lowercase-chars.filter(is-non-punct))
+end
+
+fun is-non-empty-string(w :: String) -> Boolean:  w <> '' end
+
 # 1) massaging the string (lowercase + remove punctuation)
 # 2) splitting on spaces
 # 3) filtering out any empty strings
 fun text-clean(txt :: String, remove-stops :: Boolean) -> String block:
-  fun is-non-punct(c :: String) -> Boolean block:
-    # Code points for 'a' and 'z', used to test if a char is a lowercase ASCII letter
-    lower-case-a-cp = string-to-code-point('a')
-    lower-case-z-cp = string-to-code-point('z')
-    if (c == ' ') or (c == '\n'): true
-    else:
-      c-cp = string-to-code-point(c)
-      (c-cp >= lower-case-a-cp) and (c-cp <= lower-case-z-cp)
-    end
-  end
-
-  fun massage-string(w :: String) -> String block:
-    lowercase-chars = string-explode(string-to-lower(w))
-    fold({(a, b): a + b }, '', lowercase-chars.filter(is-non-punct))
-  end
-
-  fun is-non-empty-string(w :: String) -> Boolean:  w <> '' end
 
   string-split-all(massage-string(txt), ' ')
     .filter(is-non-empty-string)
@@ -282,10 +283,10 @@ fun build-centroid(t :: Table, name) -> Row:
   restricted = [list:
     {"ID";name + " CENTROID"},
     {"DOC";""}, {"RATING";""},
-      {"TAGS";""}
-    ]
-    T.raw-row.make(raw-array-from-list(L.append(restricted, averages)))
-  end
+    {"TAGS";""}
+  ]
+  T.raw-row.make(raw-array-from-list(L.append(restricted, averages)))
+end
 
 _centroid-test = table: x, y row: 2, 1 row: 4, 5 end
 examples:
@@ -475,7 +476,7 @@ end
   "https://docs.google.com/spreadsheets/d/1e_3op5DNDUOAjInXtlrzQ0fKZSuASd65E9-VEjNyteo/")
 
    images-url = "https://docs.google.com/spreadsheets/d/1e_3op5DNDUOAjInXtlrzQ0fKZSuASd65E9-VEjNyteo/export?format=csv"
-image-table = transform-column(load-table: ID, DOC, RATING, TAGS
+   image-table = transform-column(load-table: ID, DOC, RATING, TAGS
       source: csv.csv-table-url(images-url, {
               header-row: true,
               infer-content: false
@@ -663,7 +664,7 @@ sharing:
         end
     end
   end,
-  
+
   method to-fun(self) -> (Row -> String):
     lam(r): self.classify(r) end
   end,
@@ -754,7 +755,7 @@ fun find-best-quant-split(t :: Table, col :: String, label-col :: String) -> Opt
   else:
     # Zip and sort (col-val, label) pairs by col-val ascending.
     pairs = L.map2(lam(v, l): {v; l} end, col-vals, labels)
-              .sort-by({(a, b): a.{0} < b.{0}}, {(a, b): a.{0} == b.{0}})
+      .sort-by({(a, b): a.{0} < b.{0}}, {(a, b): a.{0} == b.{0}})
 
     # "right" histogram starts as the overall label counts; "left" starts empty.
     overall = labels.foldl(lam(l, acc):
@@ -897,8 +898,8 @@ fun most-common(t :: Table, col :: String) -> String:
         end
         new-counts = acc.counts.set(key, new-count)
         new-best = if new-count > acc.best-count: {best: v, best-count: new-count}
-                   else: {best: acc.best, best-count: acc.best-count}
-                   end
+        else: {best: acc.best, best-count: acc.best-count}
+        end
         {counts: new-counts, best: new-best.best, best-count: new-best.best-count}
       end, {counts: [string-dict:], best: vals.first, best-count: 0})
     result.best
@@ -919,7 +920,7 @@ fun classify(t :: Table, col, classifier) block:
   else:
     p-table
   end
-  
+
 end
 
 # Produces a table comparing actual values from 'col' to predictions
@@ -946,4 +947,117 @@ fun confusion-matrix(t :: Table, col :: String, classifier) -> Table:
   T.table-from-rows
     .make(raw-array-from-list(matrix-rows))
     .rename-column(col, "actual-" + col)
+end
+
+### N-GRAMS ##################################
+MAX-GRAM-SIZE = 5
+
+fun generate-ngram-table(corpus :: String, n :: Number) block:
+  doc: "Consumes a string and N, and produces a list of records with N-grams and their counts."
+
+  when n > MAX-GRAM-SIZE:
+    raise(Err.message-exception("I have been programmed not to make n-grams larger than " + to-string(MAX-GRAM-SIZE)))
+  end
+  
+  # Split the text into a list of individual words
+  words = string-split-all(massage-string(corpus), " ")
+    .filter(is-non-empty-string)
+
+  # Helper: Joins a list of strings into a single space-separated string
+  fun join-words(w-list):
+    for fold(acc from "", w from w-list):
+      if acc == "": 
+        w 
+      else: 
+        acc + " " + w 
+      end
+    end
+  end
+
+  # Helper: Recursively extracts N-grams of length 'n'
+  fun get-ngrams(w-list):
+    if w-list.length() < n:
+      empty
+    else:
+      current-ngram = join-words(w-list.take(n))
+      link(current-ngram, get-ngrams(w-list.rest))
+    end
+  end
+
+  ngrams = get-ngrams(words)
+
+  # Count the frequencies of each N-gram using a String Dictionary
+  counts = for fold(dict from [string-dict:], ngram from ngrams):
+    if dict.has-key(ngram):
+      dict.set(ngram, dict.get-value(ngram) + 1)
+    else:
+      dict.set(ngram, 1)
+    end
+  end
+
+  # Map the dictionary keys and values into a list of records
+  rows = for map(key from counts.keys().to-list()):
+    [T.raw-row: 
+      {"n-gram"; key}, 
+      {"count"; counts.get-value(key) }]
+  end
+
+
+  T.table-from-rows
+    .make(raw-array-from-list(rows))
+    .order-by("count", false)
+end
+
+fun completions(corpus, input) block:
+  input-lst = string-split-all(massage-string(input), " ")
+    .filter(is-non-empty-string)
+
+  input-length = input-lst.length()
+  corpus-length = string-split-all(massage-string(corpus), " ")
+    .filter(is-non-empty-string)
+    .length()
+  max-length = num-min(corpus-length, MAX-GRAM-SIZE)
+
+  # if the input-length is longer than
+  # the corpus just take the end
+  shadow input = if input-length >= max-length:
+    input-lst.reverse()
+      .take(num-min(corpus-length, max-length - 1))
+      .reverse()
+      .join-str(" ")
+  else: input-lst.join-str(" ")
+  end
+
+  gram-size = num-min(string-split-all(input, " ").length() + 1, MAX-GRAM-SIZE)
+
+  n-grams = generate-ngram-table(corpus, gram-size)
+    .filter({(r): string-starts-with(r["n-gram"], input)})
+    .transform-column("n-gram", {(ngram): string-split-all(ngram, " ").reverse().get(0)})
+  n-grams
+end
+
+fun best-completion(corpus, input):
+  choices = completions(corpus, input)
+  row-count = choices.length()
+
+  if row-count == 1:
+    choices.row-n(0)["n-gram"]
+  else:
+    choices.row-n(random(row-count))["n-gram"]
+  end
+end
+
+fun add-next-word(corpus, input): 
+  next-word = best-completion(corpus, input) 
+  input + " " + next-word
+end
+
+fun generate-from(corpus, input):
+  reactor:
+    init: input,
+    on-tick: lam(i): add-next-word(corpus, i) end,
+    seconds-per-tick: 0.3
+  end
+    .interact()
+    .get-value()
 end
