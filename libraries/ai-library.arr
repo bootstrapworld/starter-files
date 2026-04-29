@@ -903,7 +903,7 @@ fun most-common(t :: Table, col :: String) -> String:
         end
         {counts: new-counts, best: new-best.best, best-count: new-best.best-count}
       end, {counts: [string-dict:], best: vals.first, best-count: 0})
-    result.best
+    to-string(result.best)
   end
 end
 
