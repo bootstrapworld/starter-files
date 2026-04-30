@@ -670,21 +670,32 @@ sharing:
   end,
 
   method _output(self) block:
+    fun render-val(x):
+      if is-boolean(x): to-string(x)
+      else if is-number(x): easy-num-repr(x, 8)
+      else: "\"" + to-string(x) + "\""
+      end
+    end
     fun to-lines(tree :: DecisionTree) -> List<String>:
       cases(DecisionTree) tree:
         | decide(lbl) => [list: "→ " + lbl]
         | node(col, is-quant, val, splitter, yes, no) =>
-          predicate = if is-quant: " < " else: " == " end
-          v = if is-quant: easy-num-repr(val, 8) 
-          else if is-boolean(val): val
-          else: "\"" + val + "\"" end
-          header    = col + predicate + to-string(v) + "?"
+          header = if is-quant:
+            col + " < " + easy-num-repr(val, 8) + "?"
+          else if is-link(val):
+            if val.length() == 1:
+              col + " == " + render-val(val.first) + "?"
+            else:
+              col + " in {" + val.map(render-val).join-str(", ") + "}?"
+            end
+          else:
+            col + " == " + render-val(val) + "?"
+          end
           yes-lines = prefix-lines(to-lines(yes),     "├── ", "│   ")
           no-lines  = prefix-lines(to-lines(no), "└── ", "    ")
           [list: header] + yes-lines + no-lines
       end
     end
-
     print(to-lines(self).join-str("\n"))
     vs-value(circle(1, "solid", "transparent"))
   end
@@ -696,21 +707,35 @@ fun dt-fun(tree :: DecisionTree): tree.to-fun() end
 # given a DecisionTree, produce copy-and-pastable code for
 # the classifier function
 fun dt-code(c :: DecisionTree) block:
+  fun render-val(x):
+    if is-boolean(x): to-string(x)
+    else if is-number(x): easy-num-repr(x, 8)
+    else: "\"" + to-string(x) + "\""
+    end
+  end
   fun to-lines(tree :: DecisionTree) -> List<String>:
     cases(DecisionTree) tree block:
       | decide(lbl) => [list: "\"" + lbl + "\""]
       | node(col, is-quant, val, splitter, yes, no) =>
-        predicate = if is-quant: " < " else: " == " end
-        v = if is-quant: easy-num-repr(val, 8) else: val end
-        header = "if r[\"" + col + "\"]" + predicate
-          + if (is-quant or is-boolean(v)): to-string(v) else: "\"" + v + "\"" end
-          + ":"
+        header = if is-quant:
+            "if r[\"" + col + "\"] < " + easy-num-repr(val, 8) + ":"
+        else if is-link(val):
+            if val.length() == 1:
+              "if r[\"" + col + "\"] == " + render-val(val.first) + ":"
+            else:
+              conditions = val.map(lam(x):
+                  "(r[\"" + col + "\"] == " + render-val(x) + ")"
+                end).join-str(" or ")
+              "if " + conditions + ":"
+            end
+          else:
+            "if r[\"" + col + "\"] == " + render-val(val) + ":"
+          end
         yes-lines = prefix-lines(to-lines(yes), "   ", "   ")
         no-lines  = prefix-lines(to-lines(no), "   ", "   ")
         [list: header] + yes-lines + [list: "else:"] + no-lines + [list: "end"]
     end
   end
-
   classifier-fn-lines = [list: "fun classifier(r):"] +
   to-lines(c).map({(l): "  " + l}) +
   [list: "end"]
@@ -718,31 +743,15 @@ fun dt-code(c :: DecisionTree) block:
   circle(1, "solid", "transparent")
 end
 
-# fraction of rows that don't match (0 = perfection)
-fun get-error-rate(t :: Table, label-col :: String) -> Number:
-  total = t.length()
-  if total == 0: 0
-  else:
-    majority = most-common(t, label-col)
-    t.filter-by(label-col, lam(s): s <> majority end).length() / total
-  end
-end
-
-fun weighted-error(low :: Table, high :: Table, label-col :: String) -> Number:
-  doc: "Total misclassifications across two candidate subtables."
-  (get-error-rate(low, label-col) * low.length())
-    + (get-error-rate(high, label-col) * high.length())
-end
-
 data SplitInfo:
   | quant-split(col :: String, threshold :: Number, low :: Table, high :: Table, err :: Number)
-  | cat-split(col :: String, val, yes :: Table, no :: Table, err :: Number)
+  | cat-subset-split(col :: String, vals :: List, yes :: Table, no :: Table, err :: Number)
 end
 
 fun split-err(s :: SplitInfo) -> Number:
   cases(SplitInfo) s:
-    | quant-split(_, _, _, _, e) => e
-    | cat-split(_, _, _, _, e)   => e
+    | quant-split(_, _, _, _, e)      => e
+    | cat-subset-split(_, _, _, _, e) => e
   end
 end
 
@@ -820,23 +829,114 @@ fun find-best-quant-split(t :: Table, col :: String, label-col :: String) -> Opt
   end
 end
 
-# find the best categorical column and value on which to split
+# Find the best categorical subset split via Breiman's prefix sweep.
+# Sorts distinct values by P(reference-class | value), then sweeps prefixes —
+# provably optimal for binary classification, strong heuristic for multi-class.
 fun find-best-cat-split(t :: Table, col :: String, label-col :: String) -> Option<SplitInfo>:
-  possible-values = L.distinct(t.get-column(col))
-  best = possible-values.foldl(lam(v, best-so-far):
-      yes-t = t.filter-by(col, lam(val): to-string(val) == to-string(v) end)
-      no-t  = t.filter-by(col, lam(val): to-string(val) <> to-string(v) end)
-      if (yes-t.length() == 0) or (no-t.length() == 0): best-so-far
-      else:
-        err = weighted-error(yes-t, no-t, label-col)
-        candidate = some(cat-split(col, v, yes-t, no-t, err))
-        cases(Option) best-so-far:
-          | none    => candidate
-          | some(b) => if err < split-err(b): candidate else: best-so-far end
-        end
+  col-vals = t.get-column(col)
+  labels   = t.get-column(label-col)
+  total    = col-vals.length()
+
+  # Single pass: per-value records {orig, total, lbls: label->count} + overall label histogram.
+  stats = L.fold2(lam(acc, c, l):
+      ck = to-string(c)
+      lk = to-string(l)
+      new-overall = cases(Option) acc.overall.get(lk):
+        | none    => acc.overall.set(lk, 1)
+        | some(n) => acc.overall.set(lk, n + 1)
       end
-    end, none)
-  best
+      cur = cases(Option) acc.by-val.get(ck):
+        | none    => {orig: c, total: 0, lbls: [string-dict:]}
+        | some(r) => r
+      end
+      new-lbls = cases(Option) cur.lbls.get(lk):
+        | none    => cur.lbls.set(lk, 1)
+        | some(n) => cur.lbls.set(lk, n + 1)
+      end
+      new-cur = {orig: cur.orig, total: cur.total + 1, lbls: new-lbls}
+      {by-val: acc.by-val.set(ck, new-cur), overall: new-overall}
+    end, {by-val: [string-dict:], overall: [string-dict:]}, col-vals, labels)
+
+  fun max-val(d):
+    d.keys-list().foldl(lam(k, m): num-max(d.get-value(k), m) end, 0)
+  end
+  fun add-counts(hist, lbls):
+    lbls.keys-list().foldl(lam(lk, acc):
+        v = lbls.get-value(lk)
+        cases(Option) acc.get(lk):
+          | none    => acc.set(lk, v)
+          | some(m) => acc.set(lk, m + v)
+        end
+      end, hist)
+  end
+  fun sub-counts(hist, lbls):
+    lbls.keys-list().foldl(lam(lk, acc):
+        v = lbls.get-value(lk)
+        cases(Option) acc.get(lk):
+          | none    => acc
+          | some(m) => acc.set(lk, m - v)
+        end
+      end, hist)
+  end
+
+  distinct-keys = stats.by-val.keys-list()
+  if distinct-keys.length() <= 1: none
+  else:
+    # Reference class = overall majority.
+    overall-keys = stats.overall.keys-list()
+    ref-key = overall-keys.foldl(lam(k, b):
+        if stats.overall.get-value(k) > stats.overall.get-value(b): k else: b end
+      end, overall-keys.first)
+
+    # For each distinct value, compute P(ref | v); sort ascending.
+    keyed-vals = distinct-keys.map(lam(ck):
+        s = stats.by-val.get-value(ck)
+        ref-count = cases(Option) s.lbls.get(ref-key):
+          | none    => 0
+          | some(n) => n
+        end
+        {key: ck, orig: s.orig, total: s.total, lbls: s.lbls, frac: ref-count / s.total}
+      end)
+      .sort-by({(a, b): a.frac < b.frac}, {(a, b): a.frac == b.frac})
+
+    # Sweep prefixes: at each step, the value just moved is added to the "yes" side.
+    fun sweep(rest, left-c, right-c, left-n, right-n, pkeys, porigs, best):
+      cases(List) rest:
+        | empty => best
+        | link(cur, more) =>
+          new-left-c  = add-counts(left-c, cur.lbls)
+          new-right-c = sub-counts(right-c, cur.lbls)
+          new-left-n  = left-n + cur.total
+          new-right-n = right-n - cur.total
+          new-pkeys   = link(cur.key, pkeys)
+          new-porigs  = link(cur.orig, porigs)
+          new-best = cases(List) more:
+            | empty      => best  # nothing left for the right side
+            | link(_, _) =>
+              err = (new-left-n - max-val(new-left-c)) + (new-right-n - max-val(new-right-c))
+              cand = some({err: err, keys: new-pkeys, origs: new-porigs})
+              cases(Option) best:
+                | none    => cand
+                | some(b) => if err < b.err: cand else: best end
+              end
+          end
+          sweep(more, new-left-c, new-right-c, new-left-n, new-right-n, new-pkeys, new-porigs, new-best)
+      end
+    end
+
+    best-prefix = sweep(keyed-vals, [string-dict:], stats.overall, 0, total, empty, empty, none)
+
+    cases(Option) best-prefix:
+      | none => none
+      | some(b) =>
+        yes-keys = b.keys
+        yes-t = t.filter-by(col, lam(val): yes-keys.member(to-string(val)) end)
+        no-t  = t.filter-by(col, lam(val): not(yes-keys.member(to-string(val))) end)
+        if (yes-t.length() == 0) or (no-t.length() == 0): none
+        else: some(cat-subset-split(col, b.origs, yes-t, no-t, b.err))
+        end
+    end
+  end
 end
 
 # Try every column, and choose the split that minimizes weighted error
@@ -862,7 +962,7 @@ fun build-tree(t :: Table, cols :: List<String>, label-col :: String, max-depth)
   quant-cols = cols.filter(lam(c): is-number(first-row[c]) end)
   cat-cols   = cols.filter(lam(c): not(is-number(first-row[c])) end)
 
-  fun iter(shadow t, shadow label-col, shadow max-depth):  # cols removed from signature
+  fun iter(shadow t, shadow max-depth):  # cols removed from signature
     unique-labels = L.distinct(t.get-column(label-col))
     if (unique-labels.length() <= 1) or (max-depth <= 0):
       decide(most-common(t, label-col))
@@ -875,15 +975,17 @@ fun build-tree(t :: Table, cols :: List<String>, label-col :: String, max-depth)
               node(col, true, threshold, {(r): r[col] < threshold },
                 iter(low,  label-col, max-depth - 1),
                 iter(high, label-col, max-depth - 1))
-            | cat-split(col, v, yes-t, no-t, _) =>
-              node(col, false, v, {(r): r[col] == v },
+            | cat-subset-split(col, vals, yes-t, no-t, _) =>
+              vals-keys = vals.map(to-string)
+              node(col, false, vals,
+                {(r): vals-keys.member(to-string(r[col])) },
                 iter(yes-t, label-col, max-depth - 1),
                 iter(no-t,  label-col, max-depth - 1))
           end
       end
     end
   end
-  iter(t, label-col, max-depth)
+  iter(t, max-depth)
 end
 
 # Returns the most frequently-occuring value in a column to use as a prediction
@@ -959,7 +1061,7 @@ fun generate-ngram-table(corpus :: String, n :: Number) block:
   when n > MAX-GRAM-SIZE:
     raise(Err.message-exception("I have been programmed not to make n-grams larger than " + to-string(MAX-GRAM-SIZE)))
   end
-  
+
   # Split the text into a list of individual words
   words = string-split-all(massage-string(corpus), " ")
     .filter(is-non-empty-string)
