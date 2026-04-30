@@ -973,14 +973,14 @@ fun build-tree(t :: Table, cols :: List<String>, label-col :: String, max-depth)
           cases(SplitInfo) s:
             | quant-split(col, threshold, low, high, _) =>
               node(col, true, threshold, {(r): r[col] < threshold },
-                iter(low,  label-col, max-depth - 1),
-                iter(high, label-col, max-depth - 1))
+                iter(low,  max-depth - 1),
+                iter(high, max-depth - 1))
             | cat-subset-split(col, vals, yes-t, no-t, _) =>
               vals-keys = vals.map(to-string)
               node(col, false, vals,
                 {(r): vals-keys.member(to-string(r[col])) },
-                iter(yes-t, label-col, max-depth - 1),
-                iter(no-t,  label-col, max-depth - 1))
+                iter(yes-t, max-depth - 1),
+                iter(no-t,  max-depth - 1))
           end
       end
     end
