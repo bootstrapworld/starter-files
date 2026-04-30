@@ -941,6 +941,13 @@ end
 
 # Try every column, and choose the split that minimizes weighted error
 fun find-best-split(t :: Table, label-col :: String, quant-cols :: List<String>, cat-cols :: List<String>) -> Option<SplitInfo>:
+  cat-pref = 0.01  # 0 = no preference, higher = stronger
+  fun effective-err(s :: SplitInfo) -> Number:
+    cases(SplitInfo) s:
+      | quant-split(_, _, _, _, e)      => e
+      | cat-subset-split(_, _, _, _, e) => e * (1 - cat-pref)
+    end
+  end
   all-candidates = 
     cat-cols.map(lam(col): find-best-cat-split(t, col, label-col) end)
     + quant-cols.map(lam(col): find-best-quant-split(t, col, label-col) end)
@@ -950,7 +957,7 @@ fun find-best-split(t :: Table, label-col :: String, quant-cols :: List<String>,
         | some(c) =>
           cases(Option) best-so-far:
             | none    => candidate
-            | some(b) => if split-err(c) < split-err(b): candidate else: best-so-far end
+            | some(b) => if effective-err(c) < effective-err(b): candidate else: best-so-far end
           end
       end
     end, none)
