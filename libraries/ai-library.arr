@@ -929,9 +929,9 @@ fun find-best-cat-split(t :: Table, col :: String, label-col :: String) -> Optio
     cases(Option) best-prefix:
       | none => none
       | some(b) =>
-        yes-keys = b.keys
-        yes-t = t.filter-by(col, lam(val): yes-keys.member(to-string(val)) end)
-        no-t  = t.filter-by(col, lam(val): not(yes-keys.member(to-string(val))) end)
+        yes-key-set = b.keys.foldl(lam(k, d): d.set(k, true) end, [string-dict:])
+        yes-t = t.filter-by(col, lam(val): yes-key-set.has-key(to-string(val)) end)
+        no-t  = t.filter-by(col, lam(val): not(yes-key-set.has-key(to-string(val))) end)
         if (yes-t.length() == 0) or (no-t.length() == 0): none
         else: some(cat-subset-split(col, b.origs, yes-t, no-t, b.err))
         end
