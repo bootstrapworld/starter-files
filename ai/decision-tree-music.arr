@@ -1,6 +1,8 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/", "libraries/ai-library.arr")
 music-sheet = load-spreadsheet("https://docs.google.com/spreadsheets/d/1iQpfRr3aN4HErX73B66EKszMAMdmquWfamR7q_9cT4c/")
 
+# a function that takes in the name of a sheet, and loads the table
+# from that sheet
 fun load-music-sheet(sheet-name):
   load-table: 
     artist,
@@ -9,20 +11,17 @@ fun load-music-sheet(sheet-name):
     popularity, 
     danceability, 
     energy, 
-    key, 
     loudness, 
-    mode, 
     speechiness, 
     acousticness, 
     liveness, 
-    valence, 
     tempo, 
-    time_signature,
     genre
     source: music-sheet.sheet-by-name(sheet-name, true)  
   end
 end
 
+# load our training and testing datasets
 music-training = load-music-sheet("training")
 music-testing  = load-music-sheet("testing")
 
@@ -30,6 +29,8 @@ music-testing  = load-music-sheet("testing")
 country-img = text("🐴", 20, "black")
 rock-img    = text("🎸", 20, "black")
 rnb-img     = text("🎤", 20, "black")
+reggae      = text("🇯🇲", 20, "black")
+k-pop       = text("🇰🇷", 20, "black")
 
 
 ######################################################################
