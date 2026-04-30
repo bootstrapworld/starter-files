@@ -1081,13 +1081,14 @@ end
 simple-dot-plot :: (t :: Table, vals :: String) -> Image
 fun simple-dot-plot(t, vals) block:
   check-integrity(t, [list: vals])
-  vs = t.column(vals)
-  series = if is-number(vs.get(0)):
+  is-quant = is-number(t.column(vals).get(0))
+  vs = if is-quant: t.column(vals) else: t.column(vals).map(to-string) end
+  series = if is-quant:
     from-list.num-dot-chart(vs)
   else:
-    raise(Err.message-exception("Cannot make a dot-plot, because the '" + vals + "' column does not contain quantitative data"))
+    from-list.dot-chart(vs)
   end
-  chart = render-chart(series.point-size(8)).width(600).height(400)
+  chart = render-chart(series).width(600).height(400)
     .x-axis(vals).y-axis("frequency")
   img = display-chart(chart)
   title = make-title([list:"Dot Plot of", vals])
@@ -1098,10 +1099,12 @@ dot-plot :: (t :: Table, labels :: String, vals :: String) -> Image
 fun dot-plot(t, labels, vals) block:
   check-integrity(t, [list: labels, vals])
   ls = t.column(labels).map(to-repr)
-  series = if is-number(t.column(vals).get(0)):
-    from-list.labeled-num-dot-chart(ls, t.column(vals)).point-size(8)
+  is-quant = is-number(t.column(vals).get(0))
+  vs = if is-quant: t.column(vals) else: t.column(vals).map(to-string) end
+  series = if is-quant:
+    from-list.num-dot-chart(vs)
   else:
-    raise(Err.message-exception("Cannot make a dot-plot, because the '" + vals + "' column does not contain quantitative data"))
+    from-list.dot-chart(vs)
   end
   chart = render-chart(series).width(600).height(400)
     .x-axis(vals)
@@ -1119,12 +1122,14 @@ end
 
 fun image-dot-plot(t, vals, f :: (Row -> Image)) block:
   check-integrity(t, [list: vals])
+  is-quant = is-number(t.column(vals).get(0))
+  vs = if is-quant: t.column(vals) else: t.column(vals).map(to-string) end
   images = t.all-rows().map(f)
   max-height = images.map(image-height).foldl(num-max, 0)
-  series = if is-number(t.column(vals).get(0)):
+  series = if is-quant:
     from-list.image-num-dot-chart(images, t.column(vals)).point-size(max-height)
   else:
-    from-list.dot-chart(t.column(vals))
+    from-list.image-dot-chart(images, t.column(vals)).point-size(max-height)
   end
   chart = render-chart(series).width(600).height(400)
     .x-axis(vals).y-axis("frequency")
