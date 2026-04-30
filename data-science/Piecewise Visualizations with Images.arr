@@ -27,12 +27,12 @@ hermaphrodite-row=row-n(animals-table,  6)
 
 #########################################################
 # Some images to use, scaled to useful sizes
-dog-img    = scale(0.3, image-url("https://www.bootstrapworld.org/clipart/Animals/dog.png"))
-cat-img    = scale(0.3, image-url("https://www.bootstrapworld.org/clipart/Animals/cat.png"))
-rabbit-img = scale(0.3, image-url("https://www.bootstrapworld.org/clipart/Animals/rabbit.png"))
-lizard-img = scale(0.3, image-url("https://www.bootstrapworld.org/clipart/Animals/lizard.png"))
-spider-img = scale(0.3, image-url("https://www.bootstrapworld.org/clipart/Animals/spider.png"))
-snail-img  = scale(0.3, image-url("https://www.bootstrapworld.org/clipart/Animals/snail.png"))
+dog-img      = text("🐶", 20, "black")
+cat-img      = text("😺", 20, "black")
+lizard-img   = text("🦎", 20, "black")
+tarantula-img= text("🕷️", 20, "black")
+snail-img    = text("🐌", 20, "black")
+rabbit-img   = text("🐰", 20, "black")
 
 #########################################################
 # Define some helper functions
