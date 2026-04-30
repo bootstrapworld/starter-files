@@ -755,6 +755,23 @@ fun split-err(s :: SplitInfo) -> Number:
   end
 end
 
+# If both branches resolve to the same decide(label), collapse to that leaf;
+# otherwise return the full node unchanged.
+fun prune-or-node(
+  yes-tree :: DecisionTree,
+  no-tree  :: DecisionTree,
+  full-node :: DecisionTree
+) -> DecisionTree:
+  cases(DecisionTree) yes-tree:
+    | decide(yl) =>
+      cases(DecisionTree) no-tree:
+        | decide(nl) => if yl == nl: yes-tree else: full-node end
+        | else      => full-node
+      end
+    | else => full-node
+  end
+end
+
 # find the best quantitative column and threshold on which to split
 fun find-best-quant-split(t :: Table, col :: String, label-col :: String) -> Option<SplitInfo>:
   doc: "Find the error-minimizing threshold on `col` by sweeping sorted (val, label) pairs."
@@ -979,15 +996,16 @@ fun build-tree(t :: Table, cols :: List<String>, label-col :: String, max-depth)
         | some(s) =>
           cases(SplitInfo) s:
             | quant-split(col, threshold, low, high, _) =>
-              node(col, true, threshold, {(r): r[col] < threshold },
-                iter(low,  max-depth - 1),
-                iter(high, max-depth - 1))
+              yes-tree = iter(low,  max-depth - 1)
+              no-tree  = iter(high, max-depth - 1)
+              full = node(col, true, threshold, {(r): r[col] < threshold}, yes-tree, no-tree)
+              prune-or-node(yes-tree, no-tree, full)
             | cat-subset-split(col, vals, yes-t, no-t, _) =>
               vals-keys = vals.map(to-string)
-              node(col, false, vals,
-                {(r): vals-keys.member(to-string(r[col])) },
-                iter(yes-t, max-depth - 1),
-                iter(no-t,  max-depth - 1))
+              yes-tree = iter(yes-t, max-depth - 1)
+              no-tree  = iter(no-t,  max-depth - 1)
+              full = node(col, false, vals, {(r): vals-keys.member(to-string(r[col]))}, yes-tree, no-tree)
+              prune-or-node(yes-tree, no-tree, full)
           end
       end
     end
