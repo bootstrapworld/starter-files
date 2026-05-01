@@ -21,6 +21,7 @@ provide from Core:
 end
 # export every symbol from starter2024 except for those we override
 import starter2024 as Starter
+
 provide from Starter:
     * hiding(translate, filter, range, sort, sin, cos, tan)
 end
@@ -28,6 +29,8 @@ end
 # we use custom renderers for AI 
 include valueskeleton
 include option
+include matrices
+
 
 SMALL-IMAGE-WIDTH = 100
 fun shrink-image(img :: Image) -> Image:
@@ -1189,3 +1192,198 @@ fun generate-from(corpus, input):
     .interact()
     .get-value()
 end
+
+
+
+####################################################################
+#  pca.arr
+#
+#  Principal Component Analysis over a Pyret table, written on top
+#  of the standard `matrices` library.
+#
+#  Public entry point:
+#      pca(t :: Table, cols :: List<String>) -> PCAResult
+#
+#  The result is a `pca-result` value with two interesting methods:
+#
+#    .fn()       -> a function (List<Number> -> List<Number>) that
+#                   projects a row (in `cols` order) onto the
+#                   principal components.
+#
+#    ._output()  -> prints the equivalent Pyret source code for a
+#                   projection function over Rows, suitable for
+#                   building a new table of pc1, pc2, ... columns.
+####################################################################
+
+# ------------------------------------------------------------------
+#  Column validation
+# ------------------------------------------------------------------
+fun check-columns(t :: Table, cols :: List<String>) -> Nothing block:
+  when cols.length() == 0:
+    raise("pca: must request at least one column")
+  end
+  table-cols = t.column-names()
+  for each(c from cols) block:
+    when not(table-cols.member(c)):
+      raise("pca: column not found in table: " + c)
+    end
+    col-data = t.get-column(c)
+    when not(col-data.all(is-number)):
+      raise("pca: column is not numeric: " + c)
+    end
+  end
+end
+
+# ------------------------------------------------------------------
+#  Eigendecomposition of a symmetric matrix via the (unshifted)
+#  QR algorithm.  Iterates  A_{k+1} = R_k Q_k  where  Q_k R_k = A_k
+#  and accumulates  Q_total = Q_0 Q_1 ... Q_{n-1}.  For symmetric
+#  positive-semidefinite matrices (like a covariance matrix) this
+#  converges to a diagonal of eigenvalues, with the eigenvectors
+#  showing up as the columns of Q_total.
+# ------------------------------------------------------------------
+fun symmetric-eig(a :: Matrix, iters :: Number)
+  -> { evals :: List<Number>, evecs :: Matrix }:
+  start = { cur: a, q-total: identity-matrix(a.rows) }
+  final = for fold(state from start, _ from range(0, iters)):
+    qr = state.cur.qr-decomposition()
+    { cur: qr.R * qr.Q, q-total: state.q-total * qr.Q }
+  end
+  evals = for map(i from range(0, a.rows)):
+    final.cur.get(i, i)
+  end
+  { evals: evals, evecs: final.q-total }
+end
+
+# Pair eigenvalues with their eigenvectors (pulled out of evecs as
+# columns) and sort them in descending order of eigenvalue.
+# Returns a matrix whose ROWS are the sorted eigenvectors -- exactly
+# the layout that the projection multiply  comp-matrix * centered_x
+# wants, and the same layout `_output` walks one row at a time.
+fun sort-by-eigenvalue(evals :: List<Number>, evecs :: Matrix)
+  -> { evals :: List<Number>, vecs :: Matrix }:
+  pairs = for map_n(i from 0, ev from evals):
+    { ev: ev, vec: evecs.col(i).to-list() }
+  end
+  sorted = pairs.sort-by(
+    lam(p1, p2): p1.ev > p2.ev end,
+    lam(p1, p2): roughly-equal(p1.ev, p2.ev) end)
+  { evals: sorted.map(lam(p): p.ev end),
+    vecs:  lists-to-matrix(sorted.map(lam(p): p.vec end)) }
+end
+
+# ------------------------------------------------------------------
+#  Helper for printing roughnums in the source-code output
+# ------------------------------------------------------------------
+fun num-string(n :: Number) -> String:
+  num-to-string(num-to-roughnum(n))
+end
+
+# ------------------------------------------------------------------
+#  The result data type
+# ------------------------------------------------------------------
+data PCAResult:
+  | pca-result(
+      cols        :: List<String>,
+      means       :: List<Number>,
+      eigenvalues :: List<Number>,
+      components  :: Matrix) with:
+
+    # Pretty-prints as the Pyret source code for the projection
+    # function.  Useful for copy/paste into a student's program.
+    method _output(self) block:
+      components = self.components.to-lists()
+      param-list = self.cols
+        .map(lam(c): c + " :: Number" end)
+        .join-str(", ")
+      centered-bindings = for map2(c from self.cols, m from self.means):
+        "  centered-" + c + " = r[\"" + c + "\"] - " + num-string(m)
+      end
+      pc-fields = for map_n(i from 1, comp from components):
+        terms = for map2(coef from comp, c from self.cols):
+          "(" + num-string(coef) + " * centered-" + c + ")"
+        end
+        "    {\"pc" + num-to-string(i) + "\"; " + terms.join-str(" + ") + "}"
+      end
+      source =
+        [list:
+          "fun project(r :: Row) -> Object:",
+          centered-bindings.join-str("\n"),
+          "T.raw-row.make(raw-array-from-list([list: ",
+          pc-fields.join-str(",\n"),
+          "]))",
+          "end"
+        ]
+      print(source.join-str("\n"))
+      vs-value(circle(1, "solid", "transparent"))
+    end,
+
+    # Hands back the actual projection function.
+    # Input:  a row of numbers in the same order as `cols`.
+    # Output: that row's coordinates on each principal component.
+    method project-row(self, r :: Row) -> Row block:
+      # Pull the requested columns out of the row, in `cols` order.
+      centered = list-to-col-matrix(
+        for map2(c from self.cols, m from self.means):
+          r[c] - m
+        end)
+      pc-values = (self.components * centered).to-list()
+      pc-pairs  = for map_n(i from 1, v from pc-values):
+        {"pc" + num-to-string(i); v}
+      end
+      T.raw-row.make(raw-array-from-list(pc-pairs))
+    end,
+    
+    method project-table(self, t :: Table) -> Table:
+      T.table-from-rows
+        .make(raw-array-from-list(t.all-rows().map(self.project-row)))
+    end
+end
+
+# ------------------------------------------------------------------
+#  Public entry point
+# ------------------------------------------------------------------
+fun pca(t :: Table, cols :: List<String>) -> PCAResult block:
+  check-columns(t, cols)
+
+  # Pull the requested columns and compute the per-column means.
+  raw-cols = cols.map(lam(c): t.get-column(c) end)
+  n        = raw-cols.first.length()
+  when n < 2:
+    raise("pca: need at least 2 rows to compute a covariance")
+  end
+  means    = raw-cols.map(
+    lam(col): col.foldl(lam(a, b): a + b end, 0) / col.length() end)
+
+  # Build the centered data matrix X (n rows by p columns), with each
+  # variable laid out as a column via vectors-to-matrix.
+  centered-vecs = for map2(col from raw-cols, m from means):
+    list-to-vector(col.map(lam(x): x - m end))
+  end
+  x = vectors-to-matrix(centered-vecs)        # n x p
+
+  # Sample covariance: C = X^T X / (n - 1)   (p x p, symmetric PSD)
+  cov = (x.transpose() * x).scale(1 / (n - 1))
+
+  # Eigendecomposition, then sort components by eigenvalue (desc).
+  eig    = symmetric-eig(cov, 200)
+  sorted = sort-by-eigenvalue(eig.evals, eig.evecs)
+
+  pca-result(cols, means, sorted.evals, sorted.vecs)
+end
+
+#|
+  Example use:
+    my-table = table: x :: Number, y :: Number, z :: Number
+      row: 2.5, 2.4, 0.5
+      row: 0.5, 0.7, 1.1
+      row: 2.2, 2.9, 0.3
+      row: 1.9, 2.2, 0.8
+      row: 3.1, 3.0, 0.1
+      row: 2.3, 2.7, 0.6
+    end
+    result = pca(my-table, [list: "x", "y", "z"])
+    result                    # _output prints the projection source
+    project = result.fn()     # the live projection function
+    project([list: 2.5, 2.4, 0.5])
+|#
