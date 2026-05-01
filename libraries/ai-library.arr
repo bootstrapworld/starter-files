@@ -1005,10 +1005,18 @@ fun build-tree(t :: Table, cols :: List<String>, label-col :: String, max-depth)
               full = node(col, true, threshold, {(r): r[col] < threshold}, yes-tree, no-tree)
               prune-or-node(yes-tree, no-tree, full)
             | cat-subset-split(col, vals, yes-t, no-t, _) =>
-              vals-keys = vals.map(to-string)
-              yes-tree = iter(yes-t, max-depth - 1)
-              no-tree  = iter(no-t,  max-depth - 1)
-              full = node(col, false, vals, {(r): vals-keys.member(to-string(r[col]))}, yes-tree, no-tree)
+              # For boolean columns, always use true as the predicate value.
+              # The split is symmetric, so flipping just reorders the branches.
+              flip       = ((vals.length() == 1) 
+                and is-boolean(vals.first) 
+                and (vals.first == false))
+              norm-vals  = if flip: [list: true] else: vals  end
+              norm-yes-t = if flip: no-t         else: yes-t end
+              norm-no-t  = if flip: yes-t        else: no-t  end
+              vals-keys = norm-vals.map(to-string)
+              yes-tree = iter(norm-yes-t, max-depth - 1)
+              no-tree  = iter(norm-no-t,  max-depth - 1)
+              full = node(col, false, norm-vals, {(r): vals-keys.member(to-string(r[col]))}, yes-tree, no-tree)
               prune-or-node(yes-tree, no-tree, full)
           end
       end
