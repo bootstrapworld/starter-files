@@ -1127,9 +1127,9 @@ fun image-dot-plot(t, vals, f :: (Row -> Image)) block:
   images = t.all-rows().map(f)
   max-height = images.map(image-height).foldl(num-max, 0)
   series = if is-quant:
-    from-list.image-num-dot-chart(images, t.column(vals)).point-size(max-height)
+    from-list.image-num-dot-chart(images, vs).point-size(max-height)
   else:
-    from-list.image-dot-chart(images, t.column(vals)).point-size(max-height)
+    from-list.image-dot-chart(images, vs).point-size(max-height)
   end
   chart = render-chart(series).width(600).height(400)
     .x-axis(vals).y-axis("frequency")
