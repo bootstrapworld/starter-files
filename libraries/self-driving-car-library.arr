@@ -37,6 +37,7 @@ provide from L: * hiding(filter, range, sort), type *, data * end
 # (in that order) and the return value is the steering-wheel
 # angle in degrees (positive = right).
 # ============================================================
+
 # Display Constants
 WIDTH           = 800
 HEIGHT          = 600
@@ -44,13 +45,26 @@ ROAD-HALF-WIDTH =  45       # pixels from centerline to road edge
 CAR-LENGTH      =  26
 CAR-WIDTH       =  14
 TEXT-SPACING    =   2
+
 # Driving Constants
-CAR-SPEED       = 3.5       # px / tick — also fed as the `speed` input
+CAR-SPEED       = 3.5       # initial speed; varies between MIN-SPEED and MAX-SPEED at runtime
 STEERING-FACTOR = 0.035     # converts model degrees -> rad/tick of yaw
 LOOKAHEAD       = 0.08      # parameter step for measuring track curvature
 MAX-STEER       = 90        # max |steering angle| (degrees) the wheel can reach
 STEER-RATE      = 8         # how fast the wheel ramps toward its target each tick
 MAX-SHARPNESS   = 6.0       # max |dθ/dt| allowed at any point on the track
+
+# Speed dynamics — speed creeps up toward MAX-SPEED while the wheel
+# is within ±STEER-DEAD-BAND of centre, and creeps back down toward
+# MIN-SPEED whenever the wheel is turned more sharply than that.
+# This both gives the regression a varying `speed` column to work
+# with (a constant column makes the matrix solver singular) and
+# matches how a real driver lifts off the throttle in a turn.
+MIN-SPEED       = 3.0
+MAX-SPEED       = 4.0
+SPEED-STEP      = 0.05      # how much speed changes per tick
+STEER-DEAD-BAND = 15        # |steering| < this counts as "near-straight"
+
 # Closest-t search constants
 CLOSEST-T-STEPS  = 480      # samples around the loop
 CLOSEST-T-WINDOW =  10      # ± window for the per-tick incremental search
@@ -286,6 +300,10 @@ end
 # Returns a tick function whose only variable behaviour is how
 # the steering angle is obtained.
 # get-steering :: (CarState, sharpness :: Number, offset :: Number) -> Number
+#
+# Speed update: each tick the speed creeps toward MAX-SPEED when
+# the wheel is within STEER-DEAD-BAND of centre, and toward
+# MIN-SPEED otherwise.  Same dynamics in drive and train.
 fun make-tick(trk :: TrackParams, get-steering):
   lam(s :: CarState) -> CarState:
     if not(s.alive):
@@ -297,16 +315,22 @@ fun make-tick(trk :: TrackParams, get-steering):
       sharpness = sharpness-at-t(trk, t)
       if num-abs(offset) >= ROAD-HALF-WIDTH:
         car(s.x, s.y, s.heading, false,
-            CAR-SPEED, sharpness, offset, s.steer-val,
+            s.speed-val, sharpness, offset, s.steer-val,
             s.key-left, s.key-right, t-i)
       else:
         steering-deg = get-steering(s, sharpness, offset)
+        new-speed =
+          if num-abs(steering-deg) < STEER-DEAD-BAND:
+            num-min(s.speed-val + SPEED-STEP, MAX-SPEED)
+          else:
+            num-max(s.speed-val - SPEED-STEP, MIN-SPEED)
+          end
         delta-h      = (steering-deg * (PI / 180)) * STEERING-FACTOR
         new-h        = s.heading + delta-h
-        new-x        = s.x + (CAR-SPEED * num-cos(new-h))
-        new-y        = s.y + (CAR-SPEED * num-sin(new-h))
+        new-x        = s.x + (new-speed * num-cos(new-h))
+        new-y        = s.y + (new-speed * num-sin(new-h))
         car(new-x, new-y, new-h, true,
-            CAR-SPEED, sharpness, offset, steering-deg,
+            new-speed, sharpness, offset, steering-deg,
             s.key-left, s.key-right, t-i)
       end
     end
@@ -368,7 +392,7 @@ fun drive(predictor, frames-per-second):
                  true, CAR-SPEED, 0, 0, 0,
                  false, false, 0)
   fun get-steering(s, sharpness, offset):
-    r = [Tables.raw-row: {"speed";CAR-SPEED}, {"curve-sharpness";sharpness}, {"offset";offset}]
+    r = [Tables.raw-row: {"speed";s.speed-val}, {"curve-sharpness";sharpness}, {"offset";offset}]
     predictor(r)
   end
   fun draw(s): draw-car(s, "red", "darkred", empty-image, "CRASHED", road-img) end
