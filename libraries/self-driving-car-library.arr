@@ -36,26 +36,18 @@ provide from L: * hiding(filter, range, sort), type *, data * end
 #     (Row -> Number)
 #
 # where the row has columns [speed, curve-sharpness, offset]
-# (in that order, matching your training table) and the return
-# value is the steering-wheel angle in degrees (positive = right).
-#
-# Usage:
-#     my-reactor = make-reactor(my-trained-function)
-#     interact(my-reactor)
-#
-# A tiny hand-coded "stub" controller is included at the bottom
-# so you can sanity-check the harness before plugging in a real
-# trained model.
+# (in that order) and the return value is the steering-wheel 
+# angle in degrees (positive = right).
 # ============================================================
 
-# ---- Display ---------------------------------------------------
+# Display Constants
 WIDTH           = 800
 HEIGHT          = 600
 ROAD-HALF-WIDTH = 45        # pixels from centerline to road edge
 CAR-LENGTH      = 26
 CAR-WIDTH       = 14
 
-# ---- Driving model --------------------------------------------
+# Driving Constants
 CAR-SPEED       = 3.5       # px / tick — also fed as the `speed` input
 STEERING-FACTOR = 0.035     # converts model degrees -> rad/tick of yaw
 LOOKAHEAD       = 0.08      # parameter step for measuring track curvature
@@ -249,29 +241,32 @@ end
 # ============================================================
 # REACTOR FACTORY
 # ============================================================
-fun drive(predictor):
+fun drive(predictor, seconds-per-frame):
   fun get-steering(s, sharpness, offset):
+    #    r = [T.raw-row: {"speed";CAR-SPEED}, {"curve-sharpness";sharpness},{"offset";offset}]
+    #    predictor(r)
     input-tab = table: speed, curve-sharpness, offset
       row: CAR-SPEED, sharpness, offset
     end
     predictor(input-tab.row-n(0))
   end
   fun draw(s): draw-car(s, "red", "darkred", empty-image, "CRASHED") end
-  reactor:
+  r = reactor:
     init:             INITIAL-STATE,
     on-tick:          make-tick(get-steering),
-    seconds-per-tick: 0.033,
+    seconds-per-tick: seconds-per-frame,
     to-draw:          draw,
     stop-when:        car-done,
     title:            "ML-driven car"
   end
+  r.interact()
 end
 
 
 # ============================================================
 # TRAINING REACTOR FACTORY
 # ============================================================
-fun train():
+fun train(seconds-per-frame):
   fun handle-raw-key(s :: CarState, event) -> CarState:
     left  = event.key == "left"
     right = event.key == "right"
@@ -290,9 +285,9 @@ fun train():
   end
   fun draw(s):
     steer-label = ask:
-      | s.steer-val < 0 then: text("◄  STEERING LEFT",  13, "cyan")
-      | s.steer-val > 0 then: text("STEERING RIGHT  ►", 13, "cyan")
-      | otherwise:             text("●  STRAIGHT",       13, "white")
+      | s.steer-val < 0 then: text("◄  TURNING LEFT",  13, "cyan")
+      | s.steer-val > 0 then: text("TURNING RIGHT  ►", 13, "cyan")
+      | otherwise:            text("●  STRAIGHT",       13, "white")
     end
     draw-car(s, "royalblue", "darkblue",
       above(text("TRAINING MODE  ←  →", 13, "lime"), steer-label),
@@ -302,7 +297,7 @@ fun train():
     init:             INITIAL-STATE,
     on-tick:          make-tick(lam(s, _sh, _off): s.steer-val end),
     on-raw-key:       handle-raw-key,
-    seconds-per-tick: 0.033,
+    seconds-per-tick: seconds-per-frame,
     to-draw:          draw,
     stop-when:        car-done,
     title:            "Training mode — hold ← or → to steer"
@@ -336,9 +331,7 @@ fun stub-trained(r) -> Number:
 end
 
 # Uncomment to try it out:
-#
-example-reactor = drive(stub-trained)
-example-reactor.interact()
+drive(stub-trained, 0.1)
 
 
 
@@ -347,6 +340,7 @@ example-reactor.interact()
 # for testing purposes
 # import the data, perform multiple regression, and 
 # generate a real, trained model
+#|
 _training-url = "https://docs.google.com/spreadsheets/d/1G6zAS1QS7OTRLaLMCm3yO_ug45VJJNxAK8_uTyY1sYo/export?format=csv"
 
 _training = 
@@ -365,3 +359,4 @@ test = table: speed, curve-sharpness, offset
   row: 3.5, 0, 10
   row: 3.5,-5, 10
 end
+|#
