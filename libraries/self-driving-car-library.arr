@@ -7,6 +7,7 @@ provide *
 # re-export every symbol from Core
 import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr") as Core
 import csv as csv
+import tables as Tables
 include string-dict
 provide from Core:
   *,
@@ -243,12 +244,8 @@ end
 # ============================================================
 fun drive(predictor, seconds-per-frame):
   fun get-steering(s, sharpness, offset):
-    #    r = [T.raw-row: {"speed";CAR-SPEED}, {"curve-sharpness";sharpness},{"offset";offset}]
-    #    predictor(r)
-    input-tab = table: speed, curve-sharpness, offset
-      row: CAR-SPEED, sharpness, offset
-    end
-    predictor(input-tab.row-n(0))
+    r = [Tables.raw-row: {"speed";CAR-SPEED}, {"curve-sharpness";sharpness},{"offset";offset}]
+    predictor(r)
   end
   fun draw(s): draw-car(s, "red", "darkred", empty-image, "CRASHED") end
   r = reactor:
@@ -304,8 +301,11 @@ fun train(seconds-per-frame):
   end
   
   states = r.interact-trace()
-  alive = L.filter({(s): s.alive }, states)
-  [T.table-from-columns: 
+  alive = states
+    .all-rows()
+    .map({(row): row["state"]})
+    .filter({(row): row.alive})
+  [Tables.table-from-columns: 
     {"speed";           alive.map({(s): s.speed-val     })}, 
     {"curve-sharpness"; alive.map({(s): s.sharpness-val })},
     {"offset";          alive.map({(s): s.offset-val    })},
