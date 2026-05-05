@@ -803,6 +803,11 @@ fun find-by-id(t :: Table, id):
   row-n(filter(t, lam(r): r[id-col] == id end), 0)
 end
 
+fun stack-table(t1 :: Table, t2 :: Table): t1.stack(t2) end
+
+fun stack-tables(ts :: List<Table>): 
+  L.fold({(base, t): base.stack(t)}, ts.first(), ts.rest())
+end
 
 ## CENTER AND SPREAD #############################################
 mean :: (t :: Table, col :: String) -> Number
@@ -1954,12 +1959,6 @@ fun group-and-subgroup(t :: Table, col :: String, subcol :: String) block:
     end)
   # sort groups alphabetically
   sort(tab, "group", true)
-end
-
-
-# stack-tables :: Table, Table -> Table
-fun stack-tables(t1 :: Table, t2 :: Table) -> Table:
-  t1.stack(t2)
 end
 
 
