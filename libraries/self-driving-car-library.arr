@@ -59,6 +59,7 @@ CAR-WIDTH       = 14
 CAR-SPEED       = 3.5       # px / tick — also fed as the `speed` input
 STEERING-FACTOR = 0.035     # converts model degrees -> rad/tick of yaw
 LOOKAHEAD       = 0.08      # parameter step for measuring track curvature
+MANUAL-STEER    = 90        # degrees applied while a direction key is held
 
 # ============================================================
 # TRACK CENTERLINE
@@ -185,91 +186,135 @@ end
 
 INITIAL-STATE = car(track-cx(0), track-cy(0), track-heading(0), true, CAR-SPEED, 0, 0, 0)
 # ============================================================
-# REACTOR FACTORY
-# Pass in your trained function and get back a runnable reactor.
+# SHARED REACTOR HELPERS
 # ============================================================
 
-fun make-reactor(trained):
+fun car-done(s :: CarState) -> Boolean:
+  not(s.alive)
+end
 
-  # --- per-tick update ----------------------------------------
-  fun tick(s :: CarState) -> CarState:
+# Returns a tick function whose only variable behaviour is how
+# the steering angle is obtained.
+# get-steering :: (CarState, sharpness :: Number, offset :: Number) -> Number
+fun make-tick(get-steering):
+  lam(s :: CarState) -> CarState:
     if not(s.alive):
       s
     else:
-      # 1. Sense.
-      offset    = compute-offset(s.x, s.y)
-      sharpness = compute-sharpness(s.x, s.y)
-
-      # 2. Build a one-row table whose schema matches the training
-      #    data, pull the row out, and call the trained model.
-      input-tab = table: speed, curve-sharpness, offset
-        row: CAR-SPEED, sharpness, offset
-      end
-      steering-deg = trained(input-tab.row-n(0))
-
-      # 3. Apply the steering output to the car's heading,
-      #    then move forward at the chosen speed.
-      delta-h = (steering-deg * (PI / 180)) * STEERING-FACTOR
-      new-h   = s.heading + delta-h
-      new-x   = s.x + (CAR-SPEED * num-cos(new-h))
-      new-y   = s.y + (CAR-SPEED * num-sin(new-h))
-
-      # 4. Crash check: are we off the road?
-      still-alive = num-abs(compute-offset(new-x, new-y)) < ROAD-HALF-WIDTH
-
+      offset       = compute-offset(s.x, s.y)
+      sharpness    = compute-sharpness(s.x, s.y)
+      steering-deg = get-steering(s, sharpness, offset)
+      delta-h      = (steering-deg * (PI / 180)) * STEERING-FACTOR
+      new-h        = s.heading + delta-h
+      new-x        = s.x + (CAR-SPEED * num-cos(new-h))
+      new-y        = s.y + (CAR-SPEED * num-sin(new-h))
+      still-alive  = num-abs(compute-offset(new-x, new-y)) < ROAD-HALF-WIDTH
       car(new-x, new-y, new-h, still-alive, CAR-SPEED, sharpness, offset, steering-deg)
     end
   end
+end
 
-  # --- render -------------------------------------------------
-  fun draw(s :: CarState):
-    body = if s.alive:
-      overlay(rectangle(CAR-LENGTH * 0.4, CAR-WIDTH, "solid", "black"),
-              rectangle(CAR-LENGTH, CAR-WIDTH, "solid", "red"))
-    else:
-      rectangle(CAR-LENGTH, CAR-WIDTH, "solid", "darkred")
-    end
-    rotated = rotate(0 - (s.heading * (180 / PI)), body)
-    scene = place-image(rotated, s.x, s.y, ROAD-IMAGE)
-
-    # HUD — show sensor inputs and model output
-    fmt = lam(v): easy-num-repr(v, 6) end
-    hud = above(
-      text("speed:           " + fmt(s.speed-val),    13, "white"),
+# Full draw pass.  hud-top is an Image placed above the four
+# sensor lines — pass empty-image when nothing extra is needed.
+fun draw-car(s :: CarState, alive-color, crashed-color, hud-top, crash-msg):
+  body = if s.alive:
+    overlay(rectangle(CAR-LENGTH * 0.4, CAR-WIDTH, "solid", "black"),
+            rectangle(CAR-LENGTH,        CAR-WIDTH, "solid", alive-color))
+  else:
+    rectangle(CAR-LENGTH, CAR-WIDTH, "solid", crashed-color)
+  end
+  rotated = rotate(0 - (s.heading * (180 / PI)), body)
+  scene   = place-image(rotated, s.x, s.y, ROAD-IMAGE)
+  fmt     = lam(v): easy-num-repr(v, 6) end
+  sensor-lines = above(
+    text("speed:           " + fmt(s.speed-val),       13, "white"),
+    above(
+      text("curve-sharpness: " + fmt(s.sharpness-val), 13, "white"),
       above(
-        text("curve-sharpness: " + fmt(s.sharpness-val), 13, "white"),
-        above(
-          text("offset:          " + fmt(s.offset-val),  13, "white"),
-          text("steering-angle:  " + fmt(s.steer-val),   13, "yellow")
-        )
+        text("offset:          " + fmt(s.offset-val),  13, "white"),
+        text("steering-angle:  " + fmt(s.steer-val),   13, "yellow")
       )
     )
-    scene2 = place-image(hud, 100, 36, scene)
-
-    if s.alive:
-      scene2
-    else:
-      banner = text("CRASHED", 36, "yellow")
-      place-image(banner, WIDTH / 2, HEIGHT / 2, scene2)
-    end
-  end
-
-  fun done(s :: CarState) -> Boolean:
-    not(s.alive)
-  end
-
-  reactor:
-    init: INITIAL-STATE,
-    on-tick: tick,
-    seconds-per-tick: 0.033,
-    to-draw: draw,
-    stop-when: done,
-    title: "ML-driven car"
+  )
+  hud    = above(hud-top, sensor-lines)
+  # place-image centres on (x,y); put the top edge 8px from screen top.
+  scene2 = place-image(hud, 104, 8 + (image-height(hud) / 2), scene)
+  if s.alive:
+    scene2
+  else:
+    place-image(text(crash-msg, 28, "yellow"), WIDTH / 2, HEIGHT / 2, scene2)
   end
 end
 
+# ============================================================
+# REACTOR FACTORY
+# ============================================================
 fun drive(predictor):
-  make-reactor(predictor).interact()
+  fun get-steering(s, sharpness, offset):
+    input-tab = table: speed, curve-sharpness, offset
+      row: CAR-SPEED, sharpness, offset
+    end
+    predictor(input-tab.row-n(0))
+  end
+  fun draw(s): draw-car(s, "red", "darkred", empty-image, "CRASHED") end
+  reactor:
+    init:             INITIAL-STATE,
+    on-tick:          make-tick(get-steering),
+    seconds-per-tick: 0.033,
+    to-draw:          draw,
+    stop-when:        car-done,
+    title:            "ML-driven car"
+  end
+end
+
+
+# ============================================================
+# TRAINING REACTOR FACTORY
+# ============================================================
+fun train():
+  fun handle-raw-key(s :: CarState, event) -> CarState:
+    left  = event.key == "left"
+    right = event.key == "right"
+    ask:
+      | (event.action == "keydown") and left  then:
+        car(s.x, s.y, s.heading, s.alive,
+            s.speed-val, s.sharpness-val, s.offset-val, 0 - MANUAL-STEER)
+      | (event.action == "keydown") and right then:
+        car(s.x, s.y, s.heading, s.alive,
+            s.speed-val, s.sharpness-val, s.offset-val, MANUAL-STEER)
+      | (event.action == "keyup") and (left or right) then:
+        car(s.x, s.y, s.heading, s.alive,
+            s.speed-val, s.sharpness-val, s.offset-val, 0)
+      | otherwise: s
+    end
+  end
+  fun draw(s):
+    steer-label = ask:
+      | s.steer-val < 0 then: text("◄  STEERING LEFT",  13, "cyan")
+      | s.steer-val > 0 then: text("STEERING RIGHT  ►", 13, "cyan")
+      | otherwise:             text("●  STRAIGHT",       13, "white")
+    end
+    draw-car(s, "royalblue", "darkblue",
+      above(text("TRAINING MODE  ←  →", 13, "lime"), steer-label),
+      "CRASHED — close to save data")
+  end
+  r = reactor:
+    init:             INITIAL-STATE,
+    on-tick:          make-tick(lam(s, _sh, _off): s.steer-val end),
+    on-raw-key:       handle-raw-key,
+    seconds-per-tick: 0.033,
+    to-draw:          draw,
+    stop-when:        car-done,
+    title:            "Training mode — hold ← or → to steer"
+  end
+  
+  states = r.interact-trace()
+  alive = L.filter({(s): s.alive }, states)
+  [T.table-from-columns: 
+    {"speed";           alive.map({(s): s.speed-val     })}, 
+    {"curve-sharpness"; alive.map({(s): s.sharpness-val })},
+    {"offset";          alive.map({(s): s.offset-val    })},
+    {"steering-angle";  alive.map({(s): s.steer-val     })}]  
 end
 
 
@@ -292,8 +337,11 @@ end
 
 # Uncomment to try it out:
 #
-example-reactor = make-reactor(stub-trained)
+example-reactor = drive(stub-trained)
 example-reactor.interact()
+
+
+
 
 ###########################################################
 # for testing purposes
