@@ -6,6 +6,7 @@ provide *
 import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr") as Core
 import csv as csv
 import tables as Tables
+import statistics as Statistics
 include string-dict
 provide from Core:
   *,
@@ -36,7 +37,6 @@ provide from L: * hiding(filter, range, sort), type *, data * end
 # (in that order) and the return value is the steering-wheel
 # angle in degrees (positive = right).
 # ============================================================
-
 # Display Constants
 WIDTH           = 800
 HEIGHT          = 600
@@ -44,18 +44,16 @@ ROAD-HALF-WIDTH =  45       # pixels from centerline to road edge
 CAR-LENGTH      =  26
 CAR-WIDTH       =  14
 TEXT-SPACING    =   2
-
 # Driving Constants
 CAR-SPEED       = 3.5       # px / tick — also fed as the `speed` input
 STEERING-FACTOR = 0.035     # converts model degrees -> rad/tick of yaw
 LOOKAHEAD       = 0.08      # parameter step for measuring track curvature
-MANUAL-STEER    = 90        # degrees applied while a direction key is held
+MAX-STEER       = 90        # max |steering angle| (degrees) the wheel can reach
+STEER-RATE      = 8         # how fast the wheel ramps toward its target each tick
 MAX-SHARPNESS   = 6.0       # max |dθ/dt| allowed at any point on the track
-
 # Closest-t search constants
 CLOSEST-T-STEPS  = 480      # samples around the loop
 CLOSEST-T-WINDOW =  10      # ± window for the per-tick incremental search
-
 # ============================================================
 # TRACK PARAMETERS
 # Randomised once per reactor call so every run uses a fresh track.
@@ -68,7 +66,6 @@ data TrackParams:
       qx :: Number,                 # extra phase of x third-harmonic (0-2π)
       qy :: Number)                 # extra phase of y second-harmonic (0-2π)
 end
-
 # Returns true when no point on the track has |sharpness| > MAX-SHARPNESS.
 # Samples 120 evenly-spaced parameter values — fine enough to catch
 # any tight bend without being slow.
@@ -90,7 +87,6 @@ fun check-track(trk :: TrackParams) -> Boolean block:
   end
   verify(0)
 end
-
 # Produces a fresh randomised track each call, retrying until the
 # sharpness constraint is satisfied.
 fun random-track() -> TrackParams:
@@ -106,7 +102,6 @@ fun random-track() -> TrackParams:
   else: random-track()
   end
 end
-
 # ============================================================
 # TRACK CENTERLINE
 # A closed parametric curve. Mixing sinusoids of different
@@ -128,7 +123,6 @@ end
 fun track-heading(trk :: TrackParams, t :: Number) -> Number:
   num-atan2(track-dy(trk, t), track-dx(trk, t))
 end
-
 # Normalise an angle delta into [-PI, PI].
 fun wrap-angle(a :: Number) -> Number:
   ask:
@@ -137,7 +131,15 @@ fun wrap-angle(a :: Number) -> Number:
     | otherwise:   a
   end
 end
-
+# Move `current` toward `target` by at most `max-step`.  Used by the
+# steering-ramp model below.
+fun approach(current :: Number, target :: Number, max-step :: Number) -> Number:
+  diff = target - current
+  if num-abs(diff) <= max-step: target
+  else if diff > 0: current + max-step
+  else: current - max-step
+  end
+end
 # ============================================================
 # CLOSEST-T SEARCH
 #
@@ -168,10 +170,6 @@ fun closest-t(trk :: TrackParams, px :: Number, py :: Number) -> Number:
   end
   search(0, 0, 1.0e10)
 end
-
-# Incremental search.  Returns the *sample index* (0..CLOSEST-T-STEPS-1)
-# of the closest centerline point.  Convert to a t-value with
-# (i / CLOSEST-T-STEPS) * 2 * PI when needed.
 fun closest-t-near(trk :: TrackParams, px :: Number, py :: Number,
                    hint-i :: Number) -> Number:
   fun search(k :: Number, best-i :: Number, best-d2 :: Number) -> Number:
@@ -197,45 +195,27 @@ fun closest-t-near(trk :: TrackParams, px :: Number, py :: Number,
   end
   search(0, hint-i, 1.0e10)
 end
-
 # ============================================================
 # SENSORS — what the car "sees"
 # ============================================================
-# Variants that take a *precomputed* t.  These are what the tick
-# function calls; sharing one closest-t across the offset and
-# sharpness reads avoids doing the same expensive search twice.
-
-# Signed offset: + means car is to the RIGHT of the centerline (in
-# the driver's frame), - means to the LEFT.
 fun offset-at-t(trk :: TrackParams, px :: Number, py :: Number,
                 t :: Number) -> Number:
   h = track-heading(trk, t)
   ((py - track-cy(trk, t)) * num-cos(h)) - ((px - track-cx(trk, t)) * num-sin(h))
 end
-
-# Curve sharpness: how fast the track's heading is changing just ahead.
-# + means the track is bending right (driver's view), - means left.
 fun sharpness-at-t(trk :: TrackParams, t :: Number) -> Number:
   wrap-angle(track-heading(trk, t + LOOKAHEAD) - track-heading(trk, t)) / LOOKAHEAD
 end
-
-# Convenience wrappers for non-tick code (do their own brute-force search).
 fun compute-offset(trk :: TrackParams, px :: Number, py :: Number) -> Number:
   offset-at-t(trk, px, py, closest-t(trk, px, py))
 end
 fun compute-sharpness(trk :: TrackParams, px :: Number, py :: Number) -> Number:
   sharpness-at-t(trk, closest-t(trk, px, py))
 end
-
 # ============================================================
 # ROAD IMAGE
-# Built once per reactor call by stamping circles along the
-# centerline; the car is overlaid on top each frame.  The step
-# sizes below were thinned (0.012 → 0.02 for asphalt, 0.045 →
-# 0.06 for stripes) — visually identical, ~40 % fewer stamps.
 # ============================================================
 GRASS = rectangle(WIDTH, HEIGHT, "solid", "darkgreen")
-
 fun stamp-road(trk :: TrackParams, t :: Number, scene):
   if t >= (2 * PI):
     scene
@@ -245,7 +225,6 @@ fun stamp-road(trk :: TrackParams, t :: Number, scene):
       place-image(asphalt, track-cx(trk, t), track-cy(trk, t), scene))
   end
 end
-
 fun stamp-stripe(trk :: TrackParams, t :: Number, scene):
   if t >= (2 * PI):
     scene
@@ -255,11 +234,9 @@ fun stamp-stripe(trk :: TrackParams, t :: Number, scene):
       place-image(dot, track-cx(trk, t), track-cy(trk, t), scene))
   end
 end
-
 fun make-road-image(trk :: TrackParams):
   stamp-stripe(trk, 0, stamp-road(trk, 0, GRASS))
 end
-
 # ============================================================
 # HUD — pre-built static labels (reused every frame)
 # ============================================================
@@ -272,17 +249,19 @@ HUD-LABELS = above-list(
     text("offset:          ", 13, "white"),
     square(TEXT-SPACING, "solid", "transparent"),
     text("steering-angle:  ", 13, "yellow")])
-
-# Top-level helper, no closure allocation per draw.
 fun fmt(v :: Number) -> String:
   easy-num-repr(v, 6)
 end
-
 # ============================================================
 # CAR STATE
-# `t-prev` caches the previous tick's closest-sample index so the
-# next tick's closest-t-near search can start from a tight window
-# around it instead of re-scanning the whole loop.
+# `t-prev`               caches the previous tick's closest-sample
+#                        index for the incremental closest-t search.
+# `key-left` / `key-right` track which arrow keys are currently
+#                        held down in training mode.  The wheel's
+#                        actual angle (`steer-val`) ramps smoothly
+#                        toward its target each tick, so the
+#                        recorded steering values span the full
+#                        continuous range.
 # ============================================================
 data CarState:
   | car(
@@ -294,26 +273,19 @@ data CarState:
       sharpness-val :: Number,
       offset-val    :: Number,
       steer-val     :: Number,
+      key-left      :: Boolean,
+      key-right     :: Boolean,
       t-prev        :: Number)
 end
-
 # ============================================================
 # SHARED REACTOR HELPERS
 # ============================================================
 fun car-done(s :: CarState) -> Boolean:
   not(s.alive)
 end
-
 # Returns a tick function whose only variable behaviour is how
 # the steering angle is obtained.
 # get-steering :: (CarState, sharpness :: Number, offset :: Number) -> Number
-#
-# This used to call closest-t three times per tick (once for
-# offset, once for sharpness, once to crash-check the new
-# position).  Now it does one incremental closest-t-near call per
-# tick and judges liveness from that same offset — so a crash
-# registers one frame later than before, which is invisible at
-# 30 fps but ~50× cheaper.
 fun make-tick(trk :: TrackParams, get-steering):
   lam(s :: CarState) -> CarState:
     if not(s.alive):
@@ -325,7 +297,8 @@ fun make-tick(trk :: TrackParams, get-steering):
       sharpness = sharpness-at-t(trk, t)
       if num-abs(offset) >= ROAD-HALF-WIDTH:
         car(s.x, s.y, s.heading, false,
-            CAR-SPEED, sharpness, offset, s.steer-val, t-i)
+            CAR-SPEED, sharpness, offset, s.steer-val,
+            s.key-left, s.key-right, t-i)
       else:
         steering-deg = get-steering(s, sharpness, offset)
         delta-h      = (steering-deg * (PI / 180)) * STEERING-FACTOR
@@ -333,12 +306,26 @@ fun make-tick(trk :: TrackParams, get-steering):
         new-x        = s.x + (CAR-SPEED * num-cos(new-h))
         new-y        = s.y + (CAR-SPEED * num-sin(new-h))
         car(new-x, new-y, new-h, true,
-            CAR-SPEED, sharpness, offset, steering-deg, t-i)
+            CAR-SPEED, sharpness, offset, steering-deg,
+            s.key-left, s.key-right, t-i)
       end
     end
   end
 end
-
+# Steering rule used by training mode: ramp the wheel toward
+# (-MAX-STEER, 0, +MAX-STEER) depending on which keys are held.
+# When neither is held, the wheel self-centres back to 0 at the
+# same rate.  This is what produces continuous, time-correlated
+# steering values in the recorded data.
+fun ramp-steering(s :: CarState, _sharp :: Number, _off :: Number) -> Number:
+  target =
+    ask:
+      | s.key-left  and not(s.key-right) then: 0 - MAX-STEER
+      | s.key-right and not(s.key-left)  then: MAX-STEER
+      | otherwise:                            0
+    end
+  approach(s.steer-val, target, STEER-RATE)
+end
 # Full draw pass.  hud-top is an Image placed above the four
 # sensor lines — pass empty-image when nothing extra is needed.
 fun draw-car(s :: CarState, alive-color, crashed-color, hud-top, crash-msg, road-img):
@@ -369,17 +356,17 @@ fun draw-car(s :: CarState, alive-color, crashed-color, hud-top, crash-msg, road
     place-image(text(crash-msg, 28, "yellow"), WIDTH / 2, HEIGHT / 2, scene2)
   end
 end
-
 # ============================================================
 # REACTOR FACTORY
-# `seconds-per-frame` is your knob for slow machines: 0.033 ≈ 30
-# fps, 0.05 ≈ 20 fps (a third less CPU and barely visible).
+# `frames-per-second` is your knob for slow machines: recommend
+# 20fps on fast machines, and 12fps on slow ones
 # ============================================================
-fun drive(predictor, seconds-per-frame):
+fun drive(predictor, frames-per-second):
   trk      = random-track()
   road-img = make-road-image(trk)
   initial  = car(track-cx(trk, 0), track-cy(trk, 0), track-heading(trk, 0),
-                 true, CAR-SPEED, 0, 0, 0, 0)
+                 true, CAR-SPEED, 0, 0, 0,
+                 false, false, 0)
   fun get-steering(s, sharpness, offset):
     r = [Tables.raw-row: {"speed";CAR-SPEED}, {"curve-sharpness";sharpness}, {"offset";offset}]
     predictor(r)
@@ -388,47 +375,57 @@ fun drive(predictor, seconds-per-frame):
   r = reactor:
     init:             initial,
     on-tick:          make-tick(trk, get-steering),
-    seconds-per-tick: seconds-per-frame,
+    seconds-per-tick: 1 / frames-per-second,
     to-draw:          draw,
     stop-when:        car-done,
     title:            "ML-driven car"
   end
   r.interact()
 end
-
 # ============================================================
 # TRAINING REACTOR FACTORY
+#
+# The arrow keys flip `key-left` / `key-right` in the car state.
+# Every tick, `ramp-steering` looks at those flags and the wheel's
+# current angle and produces the next angle by stepping toward the
+# corresponding target (-MAX-STEER, +MAX-STEER, or 0 when nothing
+# is held).  That smooth ramp is what fills the recorded
+# steering-angle column with realistic continuous values.
 # ============================================================
-fun train(seconds-per-frame):
+fun train(frames-per-second):
   trk      = random-track()
   road-img = make-road-image(trk)
   initial  = car(track-cx(trk, 0), track-cy(trk, 0), track-heading(trk, 0),
-                 true, CAR-SPEED, 0, 0, 0, 0)
+                 true, CAR-SPEED, 0, 0, 0,
+                 false, false, 0)
   fun handle-raw-key(s :: CarState, event) -> CarState:
-    left  = event.key == "left"
-    right = event.key == "right"
-    ask:
-      | (event.action == "keydown") and left  then:
-        car(s.x, s.y, s.heading, s.alive,
-            s.speed-val, s.sharpness-val, s.offset-val, 0 - MANUAL-STEER, s.t-prev)
-      | (event.action == "keydown") and right then:
-        car(s.x, s.y, s.heading, s.alive,
-            s.speed-val, s.sharpness-val, s.offset-val, MANUAL-STEER, s.t-prev)
-      | (event.action == "keyup") and (left or right) then:
-        car(s.x, s.y, s.heading, s.alive,
-            s.speed-val, s.sharpness-val, s.offset-val, 0, s.t-prev)
-      | otherwise: s
-    end
+    is-down = event.action == "keydown"
+    is-up   = event.action == "keyup"
+    new-left =
+      ask:
+        | (event.key == "left")  and is-down then: true
+        | (event.key == "left")  and is-up   then: false
+        | otherwise:                              s.key-left
+      end
+    new-right =
+      ask:
+        | (event.key == "right") and is-down then: true
+        | (event.key == "right") and is-up   then: false
+        | otherwise:                              s.key-right
+      end
+    car(s.x, s.y, s.heading, s.alive,
+        s.speed-val, s.sharpness-val, s.offset-val, s.steer-val,
+        new-left, new-right, s.t-prev)
   end
   fun draw(s):
     steer-label = ask:
-      | s.steer-val < 0 then: text("◄  TURNING LEFT",  13, "cyan")
-      | s.steer-val > 0 then: text("TURNING RIGHT  ►", 13, "cyan")
-      | otherwise:            text("●  STRAIGHT",       13, "white")
+      | s.steer-val < (0 - 1) then: text("◄  TURNING LEFT",  13, "cyan")
+      | s.steer-val > 1       then: text("TURNING RIGHT  ►", 13, "cyan")
+      | otherwise:                  text("●  STRAIGHT",      13, "white")
     end
     draw-car(s, "royalblue", "darkblue",
       above-list([list:
-          text("TRAINING MODE  ←  →", 13, "lime"), 
+          text("TRAINING MODE  ←  →", 13, "lime"),
           square(TEXT-SPACING, "solid", "transparent"),
           steer-label,
           square(TEXT-SPACING, "solid", "transparent")
@@ -438,25 +435,22 @@ fun train(seconds-per-frame):
   end
   r = reactor:
     init:             initial,
-    on-tick:          make-tick(trk, lam(s, _sh, _off): s.steer-val end),
+    on-tick:          make-tick(trk, ramp-steering),
     on-raw-key:       handle-raw-key,
-    seconds-per-tick: seconds-per-frame,
+    seconds-per-tick: 1 / frames-per-second,
     to-draw:          draw,
     stop-when:        car-done,
     title:            "Training mode — hold ← or → to steer"
   end
-  states = r.interact-trace()
-  alive = states
-    .all-rows()
-    .map({(row): row["state"]})
-    .filter({(row): row.alive})
+  alive = r.interact-trace().filter({(row): row["state"].alive})
+  states = alive.all-rows().map({(row): row["state"]})
   [Tables.table-from-columns:
-    {"speed";           alive.map({(s): s.speed-val     })},
-    {"curve-sharpness"; alive.map({(s): s.sharpness-val })},
-    {"offset";          alive.map({(s): s.offset-val    })},
-    {"steering-angle";  alive.map({(s): s.steer-val     })}]
+    {"id";              alive.column("tick")},
+    {"speed";           states.map({(s): s.speed-val     })},
+    {"curve-sharpness"; states.map({(s): s.sharpness-val })},
+    {"offset";          states.map({(s): s.offset-val    })},
+    {"steering-angle";  states.map({(s): s.steer-val     })}]
 end
-
 #|
 # ============================================================
 # OPTIONAL stub controller — *not* a learned model. It's a
