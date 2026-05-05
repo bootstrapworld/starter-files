@@ -172,11 +172,18 @@ ROAD-IMAGE = stamp-stripe(0, stamp-road(0, GRASS))
 # ============================================================
 
 data CarState:
-  | car(x :: Number, y :: Number, heading :: Number, alive :: Boolean)
+  | car(
+      x :: Number, 
+      y :: Number, 
+      heading :: Number, 
+      alive :: Boolean,
+      speed-val :: Number, 
+      sharpness-val :: Number, 
+      offset-val :: Number, 
+      steer-val :: Number)
 end
 
-INITIAL-STATE = car(track-cx(0), track-cy(0), track-heading(0), true)
-
+INITIAL-STATE = car(track-cx(0), track-cy(0), track-heading(0), true, CAR-SPEED, 0, 0, 0)
 # ============================================================
 # REACTOR FACTORY
 # Pass in your trained function and get back a runnable reactor.
@@ -210,26 +217,40 @@ fun make-reactor(trained):
       # 4. Crash check: are we off the road?
       still-alive = num-abs(compute-offset(new-x, new-y)) < ROAD-HALF-WIDTH
 
-      car(new-x, new-y, new-h, still-alive)
+      car(new-x, new-y, new-h, still-alive, CAR-SPEED, sharpness, offset, steering-deg)
     end
   end
 
   # --- render -------------------------------------------------
   fun draw(s :: CarState):
-    body =
-      if s.alive:
-        overlay(rectangle(CAR-LENGTH * 0.4, CAR-WIDTH, "solid", "black"),
-                rectangle(CAR-LENGTH, CAR-WIDTH, "solid", "red"))
-      else:
-        rectangle(CAR-LENGTH, CAR-WIDTH, "solid", "darkred")
-      end
+    body = if s.alive:
+      overlay(rectangle(CAR-LENGTH * 0.4, CAR-WIDTH, "solid", "black"),
+              rectangle(CAR-LENGTH, CAR-WIDTH, "solid", "red"))
+    else:
+      rectangle(CAR-LENGTH, CAR-WIDTH, "solid", "darkred")
+    end
     rotated = rotate(0 - (s.heading * (180 / PI)), body)
-    scene   = place-image(rotated, s.x, s.y, ROAD-IMAGE)
+    scene = place-image(rotated, s.x, s.y, ROAD-IMAGE)
+
+    # HUD — show sensor inputs and model output
+    fmt = lam(v): easy-num-repr(v, 6) end
+    hud = above(
+      text("speed:           " + fmt(s.speed-val),    13, "white"),
+      above(
+        text("curve-sharpness: " + fmt(s.sharpness-val), 13, "white"),
+        above(
+          text("offset:          " + fmt(s.offset-val),  13, "white"),
+          text("steering-angle:  " + fmt(s.steer-val),   13, "yellow")
+        )
+      )
+    )
+    scene2 = place-image(hud, 100, 36, scene)
+
     if s.alive:
-      scene
+      scene2
     else:
       banner = text("CRASHED", 36, "yellow")
-      place-image(banner, WIDTH / 2, HEIGHT / 2, scene)
+      place-image(banner, WIDTH / 2, HEIGHT / 2, scene2)
     end
   end
 
