@@ -806,7 +806,7 @@ end
 fun stack-table(t1 :: Table, t2 :: Table): t1.stack(t2) end
 
 fun stack-tables(ts :: List<Table>): 
-  L.fold({(base, t): base.stack(t)}, ts.first(), ts.rest())
+  L.fold({(base, t): base.stack(t)}, ts.first, ts.rest)
 end
 
 ## CENTER AND SPREAD #############################################
