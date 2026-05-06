@@ -1060,7 +1060,6 @@ fun classify(t :: Table, col, classifier) block:
   else:
     p-table
   end
-
 end
 
 # Produces a table comparing actual values from 'col' to predictions
@@ -1200,6 +1199,24 @@ fun generate-from(corpus, input):
   end
     .interact()
     .get-value()
+end
+
+##################################################################
+# Regression
+
+fun predict(t :: Table, col, predictor) block:
+  new-col = col + " (predicted)"
+  p-table = build-column(t, new-col, fn)
+  if (t.column-names().member(col)):
+    test-f = {(r): r[new-col] - r[col] }
+    new-cols = t.column-names()
+      .filter({(s): s <> col})
+      .append([list: col, new-col, "Error"])
+    p-table.build-column("Error", test-f)
+      .select-columns(new-cols)
+  else:
+    p-table
+  end
 end
 
 

@@ -1509,9 +1509,8 @@ fun image-lr-plot(t, xs, ys, f) block:
   end
 end
 
-
-mr-fun :: (t :: Table, params :: List<String>, response :: String) -> (Row -> Number)
-fun mr-fun(t, params, response) block:
+mr-coeffs :: (t :: Table, params :: List<String>, response :: String) -> Table
+fun mr-coeffs(t, params, response) block:
   all-cols = link(response, params)
   check-integrity(t, all-cols)
   # check to make sure the cols exist
@@ -1524,21 +1523,50 @@ fun mr-fun(t, params, response) block:
   else if params.length() > (t.length() + 1):
     raise(Err.message-exception("Cannot perform regression on these parameters on this table, because a model with " + params.length() + " parameters requires a table with at least " + (params.length() + 1) + " rows"))
   else:
-    # generate the raw function, which expects a list of values
-    fn = Stats.multiple-regression-fun(t, params, response)
-    # return a wrapped function, which consumes a row of the 
-    # table, extracts the values in explanation-order, and 
-    # passes them to the raw function
-    lam(r :: Row) block: 
-      fun row-missing-col(n): is-none(r.get(n)) end
-      when params.any(row-missing-col):
-        raise(Err.message-exception("One or more of the columns needed by this model (" + params.join-str(", ") + " and " + response + ") was not found in the table. Are you sure you are fitting the right model to the right data?"))
-      end
-      fn(params.map(lam(col): r[col] end)) 
-    end
+    # generate the coefficients table
+    Stats.multiple-regression-table(t, params, response)
   end
 end
 
+mr-fun :: (t :: Table, params :: List<String>, response :: String) -> (Row -> Number)
+fun mr-fun(t, params, response) block:
+  # generate the coefficients table
+  coeffs = mr-coeffs(t, params, response)
+  # return a wrapped function, which consumes a row of the 
+  # table, extracts the values in explanation-order, and 
+  # passes them to the raw function
+  lam(r :: Row) block: 
+    fun row-missing-col(n): is-none(r.get(n)) end
+    when params.any(row-missing-col):
+      raise(Err.message-exception("One or more of the columns needed by this model (" + params.join-str(", ") + " and " + response + ") was not found in the table. Are you sure you are fitting the right model to the right data?"))
+    end
+    
+    fun fold-coeffs(acc, row): 
+      if row["coefficient-name"] == "constant": acc + row["coefficient-value"]
+      else: acc + (r[row["coefficient-name"]] * row["coefficient-value"])
+      end
+    end
+    L.foldr(fold-coeffs, 0, coeffs.all-rows())
+  end
+end
+
+mr-code :: (t :: Table, params :: List<String>, response :: String) -> Nothing
+fun mr-code(t, params, response) block:
+  # generate the coefficients table
+  coeffs = mr-coeffs(t, params, response)
+  # return a wrapped function, which consumes a row of the 
+  # table, extracts the values in explanation-order, and 
+  # passes them to the raw function
+  fun fold-code(acc, row): 
+    if row["coefficient-name"] == "constant": acc + easy-num-repr(row["coefficient-value"], 6)
+    else: 
+      acc + "(r[\"" + row["coefficient-name"] + "\"] * " 
+        + easy-num-repr(row["coefficient-value"], 6) + ") + "
+      end
+  end
+  print("fun predictor(r):\n  " + L.foldr(fold-code, "", coeffs.all-rows()) + "\nend")
+  nothing
+end
 
 lr-fun :: (t :: Table, param :: String, response :: String) ->  (Row -> Number)
 # just a special-case wrapper for multiple-regression-fun, which produces
