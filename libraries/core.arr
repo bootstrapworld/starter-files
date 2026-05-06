@@ -1570,12 +1570,35 @@ end
 
 lr-fun :: (t :: Table, param :: String, response :: String) ->  (Row -> Number)
 # just a special-case wrapper for multiple-regression-fun, which produces
-# a wrapped function that constructs a dummy row containing only the col that we need
+# a function consuming a row and producing a number
 fun lr-fun(t, param, response):
-  row-to-predictor = mr-fun(t, [list: param], response)
-  fun f(x): row-to-predictor([T.raw-row: {param; x}]) end
-  f
+  mr-fun(t, [list: param], response)
 end
+
+lr-code :: (t :: Table, param :: String, response :: String) ->  (Row -> Number)
+# just a special-case wrapper for multiple-regression-fun, which produces
+# a function consuming a row and producing a number
+fun lr-code(t, param, response):
+  mr-code(t, [list: param], response)
+end
+
+predict-col :: (t :: Table, target-col :: String, predictor :: (Row -> Number)) -> Table
+# Move the target column to the end of the table, alongside new 'predicted' and 'error' columns
+fun predict-col(t, target-col, predictor) block:
+  new-col = target-col + " (predicted)"
+  p-table = build-column(t, new-col, predictor)
+  if (t.column-names().member(target-col)):
+    test-f = {(r): r[new-col] - r[target-col] }
+    new-cols = t.column-names()
+      .filter({(s): s <> target-col})
+      .append([list: target-col, new-col, "Error"])
+    p-table.build-column("Error", test-f)
+      .select-columns(new-cols)
+  else:
+    p-table
+  end
+end
+
 
 mr-residuals :: (t :: Table, explanations :: List<String>, response :: String, model :: (Row -> Number)) -> List<Number>
 fun mr-residuals(t, explanations, response, model) block:
