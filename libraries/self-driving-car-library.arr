@@ -4,13 +4,11 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 provide *
 # re-export every symbol from Core
 import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr") as Core
-
 # private module imports
 import csv as csv
 import tables as Tables
 import statistics as Statistics
 import lists as Lists
-
 include string-dict
 provide from Core:
   *,
@@ -29,8 +27,6 @@ provide from Starter:
     * hiding(translate, filter, range, sort, sin, cos, tan)
 end
 provide from L: * hiding(filter, range, sort), type *, data * end
-
-
 # ============================================================
 # ML-DRIVEN CAR REACTOR
 #
@@ -39,8 +35,8 @@ provide from L: * hiding(filter, range, sort), type *, data * end
 #
 #     (Row -> Number)
 #
-# where the row has columns [speed, curve-sharpness, offset]
-# (in that order) and the return value is the steering-wheel
+# where the row has columns [speed, curve-sharpness, offset,
+# heading-error] and the return value is the steering-wheel
 # angle in degrees (positive = right).
 # ============================================================
 # Display Constants
@@ -58,12 +54,18 @@ MAX-STEER       = 90        # max |steering angle| (degrees) the wheel can reach
 STEER-RATE      = 8         # how fast the wheel ramps toward its target each tick
 MAX-SHARPNESS   = 6.0       # max |dθ/dt| allowed at any point on the track
 
+# Training-mode auto-assist gains.  When neither arrow key is held,
+# the wheel targets a corrective angle computed from the current
+# sensors using these coefficients (same shape as the hand-tuned
+# stub controller).  Set them all to 0 to turn the assist off and
+# go back to "wheel just centres when keys are released."
+ASSIST-K-SHARP   = 1.001     # feedforward on track curvature
+ASSIST-K-OFFSET  = 0.05      # pull toward the centerline
+ASSIST-K-HEADING = 0.001     # rotate back into alignment with the track
+
 # Speed dynamics — speed creeps up toward MAX-SPEED while the wheel
 # is within ±STEER-DEAD-BAND of centre, and creeps back down toward
 # MIN-SPEED whenever the wheel is turned more sharply than that.
-# This both gives the regression a varying `speed` column to work
-# with (a constant column makes the matrix solver singular) and
-# matches how a real driver lifts off the throttle in a turn.
 CAR-SPEED       = 2.0       # initial speed; varies between MIN-SPEED and MAX-SPEED at runtime
 MIN-SPEED       = 2.0
 MAX-SPEED       = 3.0
@@ -71,31 +73,29 @@ SPEED-STEP      = 0.05      # how much speed changes per tick
 STEER-DEAD-BAND = 15        # |steering| < this counts as "near-straight"
 
 # Closest-t search constants
-CLOSEST-T-STEPS  = 480      # samples around the loop
-CLOSEST-T-WINDOW =  10      # ± window for the per-tick incremental search
+CLOSEST-T-STEPS  = 480
+CLOSEST-T-WINDOW =  10
 
 # POV (driver's view) rendering constants
-POV-HORIZON-Y   = 250       # screen y of the horizon line
-POV-FOCAL       = 280       # perspective focal length
-POV-CAM-HEIGHT  =  60       # camera height above the road plane
-POV-LOOKAHEAD   =  60       # number of road samples to project ahead
-POV-STEP        = 0.05      # t-step between samples
-POV-NEAR-D      =  15       # don't render samples closer than this (world px)
+POV-HORIZON-Y   = 250
+POV-FOCAL       = 280
+POV-CAM-HEIGHT  =  60
+POV-LOOKAHEAD   =  60
+POV-STEP        = 0.05
+POV-NEAR-D      =  15
+# Lap counter — banner counts down from this; track regenerates at 0
+LAPS-PER-TRACK  =   2
 # ============================================================
 # TRACK PARAMETERS
-# Randomised once per reactor call so every run uses a fresh track.
 # ============================================================
 data TrackParams:
   | track-params(
-      a1 :: Number, a2 :: Number,   # x amplitudes (harmonics 1, 3)
-      b1 :: Number, b2 :: Number,   # y amplitudes (harmonics 1, 2)
-      ph :: Number,                 # phase of both fundamentals (0-2π)
-      qx :: Number,                 # extra phase of x third-harmonic (0-2π)
-      qy :: Number)                 # extra phase of y second-harmonic (0-2π)
+      a1 :: Number, a2 :: Number,
+      b1 :: Number, b2 :: Number,
+      ph :: Number,
+      qx :: Number,
+      qy :: Number)
 end
-# Returns true when no point on the track has |sharpness| > MAX-SHARPNESS.
-# Samples 120 evenly-spaced parameter values — fine enough to catch
-# any tight bend without being slow.
 fun check-track(trk :: TrackParams) -> Boolean block:
   SAMPLES = 120
   fun verify(i :: Number) -> Boolean:
@@ -114,26 +114,21 @@ fun check-track(trk :: TrackParams) -> Boolean block:
   end
   verify(0)
 end
-# Produces a fresh randomised track each call, retrying until the
-# sharpness constraint is satisfied.
 fun random-track() -> TrackParams:
   trk = track-params(
-    150 + num-random(101),  # a1: main x-amplitude       (150-250)
-    20 + num-random(51),   # a2: x third-harmonic        (20-70)
-    100 + num-random(81),   # b1: main y-amplitude       (100-180)
-    15 + num-random(46),   # b2: y second-harmonic       (15-60)
-    num-random(629) / 100,  # ph: fundamental phase       (0-2π)
-    num-random(629) / 100,  # qx: x sub-harmonic phase    (0-2π)
-    num-random(629) / 100)  # qy: y sub-harmonic phase    (0-2π)
+    150 + num-random(101),
+     20 + num-random(51),
+    100 + num-random(81),
+     15 + num-random(46),
+    num-random(629) / 100,
+    num-random(629) / 100,
+    num-random(629) / 100)
   if check-track(trk): trk
   else: random-track()
   end
 end
 # ============================================================
 # TRACK CENTERLINE
-# A closed parametric curve. Mixing sinusoids of different
-# frequencies gives a track with both gentle and sharp turns,
-# in both directions — much better practice than a circle.
 # ============================================================
 fun track-cx(trk :: TrackParams, t :: Number) -> Number:
   (WIDTH / 2) + (trk.a1 * num-cos(t + trk.ph)) + (trk.a2 * num-cos((3 * t) + trk.qx))
@@ -150,7 +145,6 @@ end
 fun track-heading(trk :: TrackParams, t :: Number) -> Number:
   num-atan2(track-dy(trk, t), track-dx(trk, t))
 end
-# Normalise an angle delta into [-PI, PI].
 fun wrap-angle(a :: Number) -> Number:
   ask:
     | a > PI       then: a - (2 * PI)
@@ -158,8 +152,6 @@ fun wrap-angle(a :: Number) -> Number:
     | otherwise:   a
   end
 end
-# Move `current` toward `target` by at most `max-step`.  Used by the
-# steering-ramp model below.
 fun approach(current :: Number, target :: Number, max-step :: Number) -> Number:
   diff = target - current
   if num-abs(diff) <= max-step: target
@@ -169,15 +161,6 @@ fun approach(current :: Number, target :: Number, max-step :: Number) -> Number:
 end
 # ============================================================
 # CLOSEST-T SEARCH
-#
-# closest-t          — full 480-sample brute-force (kept available
-#                      for general use; not on the per-tick path).
-# closest-t-near     — incremental ±WINDOW search starting from a
-#                      hint index.  The car only travels ~3.5 px
-#                      per tick (less than 2 sample-spacings on a
-#                      ~1200 px loop), so a small window can never
-#                      miss the true closest sample.  This is the
-#                      version called every tick.
 # ============================================================
 fun closest-t(trk :: TrackParams, px :: Number, py :: Number) -> Number:
   fun search(i :: Number, best-t :: Number, best-d2 :: Number) -> Number:
@@ -198,7 +181,7 @@ fun closest-t(trk :: TrackParams, px :: Number, py :: Number) -> Number:
   search(0, 0, 1.0e10)
 end
 fun closest-t-near(trk :: TrackParams, px :: Number, py :: Number,
-    hint-i :: Number) -> Number:
+                   hint-i :: Number) -> Number:
   fun search(k :: Number, best-i :: Number, best-d2 :: Number) -> Number:
     if k > (2 * CLOSEST-T-WINDOW):
       best-i
@@ -223,26 +206,18 @@ fun closest-t-near(trk :: TrackParams, px :: Number, py :: Number,
   search(0, hint-i, 1.0e10)
 end
 # ============================================================
-# SENSORS — what the car "sees"
+# SENSORS
 # ============================================================
 fun offset-at-t(trk :: TrackParams, px :: Number, py :: Number,
-    t :: Number) -> Number:
+                t :: Number) -> Number:
   h = track-heading(trk, t)
   ((py - track-cy(trk, t)) * num-cos(h)) - ((px - track-cx(trk, t)) * num-sin(h))
 end
 fun sharpness-at-t(trk :: TrackParams, t :: Number) -> Number:
   wrap-angle(track-heading(trk, t + LOOKAHEAD) - track-heading(trk, t)) / LOOKAHEAD
 end
-# Signed angle (in degrees) between the car's heading and the
-# track's tangent at parameter t.  Positive = the car is rotated
-# clockwise relative to the road (pointing further "right" than
-# the road goes); negative = rotated counter-clockwise.  Without
-# this feature the model can't tell "I'm 0px off-centre, pointed
-# along the road" apart from "I'm 0px off-centre, pointed
-# perpendicular off the road" — both project to the same point
-# in (offset, sharpness, speed) space.
 fun heading-error-at-t(trk :: TrackParams, t :: Number,
-    car-h :: Number) -> Number:
+                       car-h :: Number) -> Number:
   wrap-angle(car-h - track-heading(trk, t)) * (180 / PI)
 end
 fun compute-offset(trk :: TrackParams, px :: Number, py :: Number) -> Number:
@@ -277,7 +252,7 @@ fun make-road-image(trk :: TrackParams):
   stamp-stripe(trk, 0, stamp-road(trk, 0, GRASS))
 end
 # ============================================================
-# HUD — pre-built static labels (reused every frame)
+# HUD
 # ============================================================
 HUD-LABELS = above-list(
   [list:
@@ -291,25 +266,67 @@ HUD-LABELS = above-list(
     square(TEXT-SPACING, "solid", "transparent"),
     text("steering-angle:  ", 13, "yellow")])
 fun fmt(v :: Number) -> String:
-  easy-num-repr(v, 6)
+  num-to-string-digits(v, 6)
+end
+# ============================================================
+# BANNER
+# A yellow rectangle showing the current laps-left number, drawn
+# at the start of the track (parameter t=0).  The same banner is
+# rendered in both views — birds-eye places it at world coords;
+# POV projects it through the same pinhole-camera math the road
+# uses, so it shrinks with distance.
+# ============================================================
+fun make-banner(n :: Number):
+  bg     = rectangle(80, 30, "solid", "yellow")
+  number = text(num-to-string(n), 24, "black")
+  overlay(number, bg)
+end
+fun make-banner-sized(n :: Number, w :: Number, h :: Number):
+  text-size = num-min(num-max(8, num-floor(h * 0.6)), 255)
+  bg        = rectangle(w, h, "solid", "yellow")
+  number    = text(num-to-string(n), text-size, "black")
+  overlay(number, bg)
+end
+# Place the banner at the track's start point, rotated so its long
+# axis spans the road perpendicular to the track tangent.
+fun add-banner-birds-eye(scene, trk :: TrackParams,
+                         laps-left :: Number):
+  bnr     = make-banner(laps-left)
+  th-deg  = track-heading(trk, 0) * (180 / PI)
+  rotated = rotate(90 - th-deg, bnr)
+  place-image(rotated, track-cx(trk, 0), track-cy(trk, 0), scene)
+end
+# Project the start-line position into screen space and place a
+# perspective-scaled banner hovering above the projected road.
+fun add-banner-pov(scene, s, trk :: TrackParams,
+                   laps-left :: Number):
+  fx = num-cos(s.heading)
+  fy = num-sin(s.heading)
+  bx = track-cx(trk, 0)
+  by_ = track-cy(trk, 0)
+  vx = bx - s.x
+  vy = by_ - s.y
+  d-f = (vx * fx) + (vy * fy)
+  if d-f < POV-NEAR-D:
+    scene
+  else:
+    d-r       = (vy * fx) - (vx * fy)
+    bnr-scale = POV-FOCAL / d-f
+    sx        = (WIDTH / 2) + (d-r * bnr-scale)
+    bnr-h     = num-max(14, num-floor(35 * bnr-scale))
+    bnr-w     = num-max(50, num-floor((3 * ROAD-HALF-WIDTH) * bnr-scale))
+    sy-road   = POV-HORIZON-Y + (POV-CAM-HEIGHT * bnr-scale)
+    sy-banner = sy-road - (60 * bnr-scale)
+    if (bnr-w > (3 * WIDTH)) or (sy-banner < (0 - bnr-h)):
+      scene
+    else:
+      bnr = make-banner-sized(laps-left, bnr-w, bnr-h)
+      place-image(bnr, sx, sy-banner, scene)
+    end
+  end
 end
 # ============================================================
 # CAR STATE
-# `t-prev`                 caches the previous tick's closest-
-#                          sample index for the incremental
-#                          closest-t search.
-# `heading-error-val`      signed angle (deg) between the car's
-#                          heading and the track tangent.  Lets
-#                          the model learn to recover when it's
-#                          pointed the wrong way — without this
-#                          feature the car sails perpendicularly
-#                          off the road with no corrective signal.
-# `key-left` / `key-right` track which arrow keys are currently
-#                          held down in training mode.  The wheel's
-#                          actual angle (`steer-val`) ramps smoothly
-#                          toward its target each tick, so the
-#                          recorded steering values span the full
-#                          continuous range.
 # ============================================================
 data CarState:
   | car(
@@ -327,40 +344,61 @@ data CarState:
       t-prev            :: Number)
 end
 # ============================================================
+# GAME STATE
+# Wraps a CarState with the world it lives in: the current track,
+# its precomputed road image, and how many laps remain on this
+# track before regeneration.
+# ============================================================
+data Game:
+  | game(
+      car       :: CarState,
+      trk       :: TrackParams,
+      road-img,
+      laps-left :: Number)
+end
+fun fresh-game() -> Game:
+  trk      = random-track()
+  road-img = make-road-image(trk)
+  c = car(track-cx(trk, 0), track-cy(trk, 0), track-heading(trk, 0),
+          true, CAR-SPEED, 0, 0, 0, 0,
+          false, false, 0)
+  game(c, trk, road-img, LAPS-PER-TRACK)
+end
+# ============================================================
 # SHARED REACTOR HELPERS
 # ============================================================
 fun car-done(s :: CarState) -> Boolean:
   not(s.alive)
 end
-# Snap the car back into the lane when it has gone off the road.
-# Used by training mode (survival = true) so that a single misstep
-# doesn't erase the whole run.  The car is placed at
-# ±0.6 * ROAD-HALF-WIDTH on the side it left, and its heading is
-# reset to the track's tangent so the next tick doesn't push it
-# straight back off the road.
+fun game-done(g :: Game) -> Boolean:
+  not(g.car.alive)
+end
+# Detect a forward crossing of the start line.  As the car loops,
+# `t-prev` (the closest-sample index) increases monotonically and
+# wraps from CLOSEST-T-STEPS-1 back to ~0.  A wrap is the only way
+# the previous index can be larger than the new one by half the
+# loop or more, so this is a clean detector.
+fun crossed-start(old-t :: Number, new-t :: Number) -> Boolean:
+  (old-t > new-t) and ((old-t - new-t) > (CLOSEST-T-STEPS / 2))
+end
 fun snap-back(trk :: TrackParams, t-i :: Number, s :: CarState,
-    sharpness :: Number, offset :: Number) -> CarState:
+              sharpness :: Number, offset :: Number) -> CarState:
   t           = (t-i / CLOSEST-T-STEPS) * 2 * PI
   cx          = track-cx(trk, t)
   cy          = track-cy(trk, t)
   h           = track-heading(trk, t)
   signed-snap = if offset >= 0: ROAD-HALF-WIDTH * 0.6
-  else:           0 - (ROAD-HALF-WIDTH * 0.6)
-  end
+                else:           0 - (ROAD-HALF-WIDTH * 0.6)
+                end
   new-x       = cx - (signed-snap * num-sin(h))
   new-y       = cy + (signed-snap * num-cos(h))
-  # heading reset to track tangent ⇒ heading-error = 0
   car(new-x, new-y, h, true,
     s.speed-val, sharpness, signed-snap, 0, s.steer-val,
     s.key-left, s.key-right, t-i)
 end
-# Returns a tick function whose only variable behaviour is how
-# the steering angle is obtained.
-# get-steering :: (CarState, sharpness :: Number, offset :: Number) -> Number
-#
-# Speed update: each tick the speed creeps toward MAX-SPEED when
-# the wheel is within STEER-DEAD-BAND of centre, and toward
-# MIN-SPEED otherwise.  Same dynamics in drive and train.
+# Per-tick CarState update.  Identical to the previous version —
+# game-step calls this and then handles lap-counting and track-
+# regeneration on top.
 fun make-tick(trk :: TrackParams, get-steering, survival :: Boolean):
   lam(s :: CarState) -> CarState:
     if not(s.alive):
@@ -398,23 +436,58 @@ fun make-tick(trk :: TrackParams, get-steering, survival :: Boolean):
     end
   end
 end
-# Steering rule used by training mode: ramp the wheel toward
-# (-MAX-STEER, 0, +MAX-STEER) depending on which keys are held.
-# When neither is held, the wheel self-centres back to 0 at the
-# same rate.  This is what produces continuous, time-correlated
-# steering values in the recorded data.
-fun ramp-steering(s :: CarState, _sharp :: Number, _off :: Number,
-    _he :: Number) -> Number:
+# Per-tick Game update.  Runs the underlying car-state update,
+# then:
+#   - if the car just crossed the start line, decrement laps-left;
+#   - if laps-left would drop to 0 (or below), regenerate the
+#     track, place the car at the new start, and reset the counter.
+# The student's `key-left` / `key-right` flags carry across the
+# regeneration so they don't have to release-and-re-press keys.
+fun game-step(g :: Game, get-steering, survival :: Boolean) -> Game:
+  if not(g.car.alive):
+    g
+  else:
+    new-car = make-tick(g.trk, get-steering, survival)(g.car)
+    if new-car.alive and crossed-start(g.car.t-prev, new-car.t-prev):
+      new-laps = g.laps-left - 1
+      if new-laps <= 0:
+        new-trk      = random-track()
+        new-road-img = make-road-image(new-trk)
+        fresh-car = car(
+          track-cx(new-trk, 0), track-cy(new-trk, 0), track-heading(new-trk, 0),
+          true, CAR-SPEED, 0, 0, 0, 0,
+          new-car.key-left, new-car.key-right, 0)
+        game(fresh-car, new-trk, new-road-img, LAPS-PER-TRACK)
+      else:
+        game(new-car, g.trk, g.road-img, new-laps)
+      end
+    else:
+      game(new-car, g.trk, g.road-img, g.laps-left)
+    end
+  end
+end
+fun ramp-steering(s :: CarState, sharp :: Number, off :: Number,
+                  he :: Number) -> Number:
+  # When a key is held the wheel ramps toward ±MAX-STEER as before.
+  # When no key is held, instead of just centring the wheel, target
+  # a corrective angle: feed-forward on curvature plus pull-back on
+  # offset and heading-error.  Net effect: the car gently rights
+  # itself when the student lets go, but holding a key still
+  # overrides everything.
   target =
     ask:
       | s.key-left  and not(s.key-right) then: 0 - MAX-STEER
       | s.key-right and not(s.key-left)  then: MAX-STEER
-      | otherwise:                            0
+      | otherwise:
+          (sharp * ASSIST-K-SHARP)
+            - (off * ASSIST-K-OFFSET)
+            - (he  * ASSIST-K-HEADING)
     end
   approach(s.steer-val, target, STEER-RATE)
 end
-# Full draw pass.  hud-top is an Image placed above the four
-# sensor lines — pass empty-image when nothing extra is needed.
+# ============================================================
+# DRAW
+# ============================================================
 fun draw-car(s :: CarState, alive-color, crashed-color, hud-top, crash-msg, road-img):
   body =
     if s.alive:
@@ -445,16 +518,9 @@ fun draw-car(s :: CarState, alive-color, crashed-color, hud-top, crash-msg, road
     place-image(text(crash-msg, 28, "yellow"), WIDTH / 2, HEIGHT / 2, scene2)
   end
 end
-# Pre-built sky+ground background for the POV view (built once).
 POV-BACKGROUND = above(
   rectangle(WIDTH, POV-HORIZON-Y,             "solid", "skyblue"),
   rectangle(WIDTH, HEIGHT - POV-HORIZON-Y,    "solid", "darkgreen"))
-# Driver's-view draw pass.  Renders the road as a perspective
-# projection of road-centerline samples taken ahead of the car —
-# each sample becomes a horizontal slice whose width and screen
-# position come from a pinhole-camera formula.  When the road
-# curves, the slices march sideways across the screen, which makes
-# left vs. right intuitive without a birds-eye reference frame.
 fun draw-pov(s :: CarState, trk :: TrackParams, hud-top, crash-msg):
   current-t = (s.t-prev / CLOSEST-T-STEPS) * 2 * PI
   fx        = num-cos(s.heading)
@@ -522,11 +588,7 @@ end
 # 20fps on fast machines, and 12fps on slow ones
 # ============================================================
 fun drive(predictor, frames-per-second):
-  trk      = random-track()
-  road-img = make-road-image(trk)
-  initial  = car(track-cx(trk, 0), track-cy(trk, 0), track-heading(trk, 0),
-    true, CAR-SPEED, 0, 0, 0, 0,
-    false, false, 0)
+  initial = fresh-game()
   fun get-steering(s, sharpness, offset, heading-err):
     r = [Tables.raw-row:
       {"speed";           s.speed-val},
@@ -535,35 +597,27 @@ fun drive(predictor, frames-per-second):
       {"heading-error";   heading-err}]
     predictor(r)
   end
-  fun draw(s): draw-car(s, "red", "darkred", empty-image, "CRASHED", road-img) end
+  fun tick-fn(g): game-step(g, get-steering, false) end
+  fun draw-fn(g):
+    base = draw-car(g.car, "red", "darkred", empty-image, "CRASHED", g.road-img)
+    add-banner-birds-eye(base, g.trk, g.laps-left)
+  end
   r = reactor:
     init:             initial,
-    on-tick:          make-tick(trk, get-steering, false),
+    on-tick:          tick-fn,
     seconds-per-tick: 1 / frames-per-second,
-    to-draw:          draw,
-    stop-when:        car-done,
+    to-draw:          draw-fn,
+    stop-when:        game-done,
     title:            "ML-driven car"
   end
   r.interact()
 end
 # ============================================================
 # TRAINING REACTOR FACTORIES
-#
-# `train` (birds-eye) and `train-pov` (driver's view) share
-# everything except their draw function.  Both: arrow keys flip
-# `key-left` / `key-right`; every tick `ramp-steering` reads those
-# flags and nudges the wheel toward (-MAX-STEER, +MAX-STEER, or 0).
-# The continuous-valued `steer-val` that comes out is what gets
-# logged into `steering-angle` for the regression to learn from.
-# Esc ends the session and `interact-trace` returns the table.
 # ============================================================
-# Keyboard handler shared by both training variants.
 fun handle-train-key(s :: CarState, event) -> CarState:
   is-down = event.action == "keydown"
   is-up   = event.action == "keyup"
-  # Esc ends the session.  In survival mode the car never crashes
-  # on its own, so without an explicit "stop" key the student
-  # would have to close the reactor window manually.
   if (event.key == "escape") and is-down:
     car(s.x, s.y, s.heading, false,
       s.speed-val, s.sharpness-val, s.offset-val,
@@ -588,9 +642,10 @@ fun handle-train-key(s :: CarState, event) -> CarState:
       new-left, new-right, s.t-prev)
   end
 end
-# Builds the "TRAINING MODE" banner with the live LEFT/RIGHT/
-# STRAIGHT indicator.  Result is passed as the `hud-top` argument
-# to whichever draw function the caller picked.
+# Lift the CarState handler to operate on the surrounding Game.
+fun handle-train-key-game(g :: Game, event) -> Game:
+  game(handle-train-key(g.car, event), g.trk, g.road-img, g.laps-left)
+end
 fun training-hud-top(s :: CarState):
   steer-label = ask:
     | s.steer-val < (0 - 1) then: text("◄  TURNING LEFT",  13, "cyan")
@@ -605,28 +660,22 @@ fun training-hud-top(s :: CarState):
     ])
 end
 # Runs a training session and returns the recorded data table.
-# `make-draw` is a builder
-#     (TrackParams -> (CarState -> Image))
-# so each train variant can precompute track-dependent state
-# (e.g. the birds-eye road image) exactly once before the reactor
-# starts, instead of every frame.
-fun run-training(frames-per-second, make-draw):
-  trk     = random-track()
-  initial = car(track-cx(trk, 0), track-cy(trk, 0), track-heading(trk, 0),
-    true, CAR-SPEED, 0, 0, 0, 0,
-    false, false, 0)
-  draw    = make-draw(trk)
+# `draw-fn` is a (Game -> Image) — each train variant supplies its
+# own to pick the rendering style and overlay the banner.
+fun run-training(frames-per-second, draw-fn):
+  initial = fresh-game()
+  fun tick-fn(g): game-step(g, ramp-steering, true) end
   r = reactor:
     init:             initial,
-    on-tick:          make-tick(trk, ramp-steering, true),
-    on-raw-key:       handle-train-key,
+    on-tick:          tick-fn,
+    on-raw-key:       handle-train-key-game,
     seconds-per-tick: 1 / frames-per-second,
-    to-draw:          draw,
-    stop-when:        car-done,
+    to-draw:          draw-fn,
+    stop-when:        game-done,
     title:            "Training mode — hold ← or → to steer"
   end
-  alive  = r.interact-trace().filter({(row): row["state"].alive})
-  states = alive.all-rows().map({(row): row["state"]})
+  alive  = r.interact-trace().filter({(row): row["state"].car.alive})
+  states = alive.all-rows().map({(row): row["state"].car})
   [Tables.table-from-columns:
     {"id";              alive.column("tick")},
     {"speed";           states.map({(s): s.speed-val         })},
@@ -635,42 +684,30 @@ fun run-training(frames-per-second, make-draw):
     {"heading-error";   states.map({(s): s.heading-error-val })},
     {"steering-angle";  states.map({(s): s.steer-val         })}]
 end
-# Birds-eye training: track viewed from above.  Better for
-# spatial intuition, but harder for kids to react to curves.
+# Birds-eye training: track viewed from above.
 fun train(frames-per-second):
-  run-training(frames-per-second,
-    lam(trk):
-      road-img = make-road-image(trk)
-      lam(s :: CarState):
-        draw-car(s, "royalblue", "darkblue",
-          training-hud-top(s),
-          "Training session ended — data saved",
-          road-img)
-      end
-    end)
+  fun draw-fn(g):
+    base = draw-car(g.car, "royalblue", "darkblue",
+      training-hud-top(g.car),
+      "Training session ended — data saved",
+      g.road-img)
+    add-banner-birds-eye(base, g.trk, g.laps-left)
+  end
+  run-training(frames-per-second, draw-fn)
 end
 # Driver's-view training: road viewed from inside the car.
-# Curves visibly bend left/right ahead of the driver, which makes
-# the right reaction obvious without spatial reasoning.
 fun train-pov(frames-per-second):
-  run-training(frames-per-second,
-    lam(trk):
-      lam(s :: CarState):
-        draw-pov(s, trk,
-          training-hud-top(s),
-          "Training session ended — data saved")
-      end
-    end)
+  fun draw-fn(g):
+    base = draw-pov(g.car, g.trk,
+      training-hud-top(g.car),
+      "Training session ended — data saved")
+    add-banner-pov(base, g.car, g.trk, g.laps-left)
+  end
+  run-training(frames-per-second, draw-fn)
 end
 # ============================================================
 # DATA POST-PROCESSING
 # ============================================================
-# Returns a new list the same length as `xs`, where each element
-# is the mean of up to `window` elements centred on it.  At the
-# ends of the list the window is clipped (rather than dropped),
-# so the first element averages the first `(window+1)/2` values,
-# the second averages `(window+1)/2 + 1` values, etc.  Length is
-# preserved.
 fun moving-average(xs, window):
   n    = xs.length()
   half = num-floor((window - 1) / 2)
@@ -682,21 +719,6 @@ fun moving-average(xs, window):
   end
   Lists.range(0, n).map(avg-at)
 end
-# Smooths the `steering-angle` column of a training-data table
-# with a 5-sample centred moving average; the other columns pass
-# through unchanged.  Most of the flutter and overshoot in
-# human-collected data lives in `steering-angle`, and a small
-# centred average filters it out without changing the overall
-# shape of the signal.  Use it before fitting to compare:
-#
-#     # raw
-#     model-a = mr-fun(my-data,
-#                      [list: "speed", "curve-sharpness", "offset"],
-#                      "steering-angle")
-#     # smoothed
-#     model-b = mr-fun(smooth(my-data),
-#                      [list: "speed", "curve-sharpness", "offset"],
-#                      "steering-angle")
 fun smooth(t):
   [Tables.table-from-columns:
     {"id";              t.column("id")},
@@ -706,27 +728,18 @@ fun smooth(t):
     {"heading-error";   t.column("heading-error")},
     {"steering-angle";  moving-average(t.column("steering-angle"), 5)}]
 end
-
-
-
 # ============================================================
 # Load some really good, pre-trained data
 # ============================================================
 fun get-awesome-data():
   url = "https://docs.google.com/spreadsheets/d/1G6zAS1QS7OTRLaLMCm3yO_ug45VJJNxAK8_uTyY1sYo/export?format=csv"
-
   load-table: id, curve-sharpness, speed, offset, heading-error, steering-angle
     source: csv.csv-table-url(url, {
           header-row: true,
           infer-content: true
         })
-  end  
+  end
 end
-
-
-
-
-
 #|
    # ============================================================
    # OPTIONAL stub controller — *not* a learned model. It's a
@@ -734,12 +747,14 @@ end
    # harness works before you swap in your real trained function.
    # ============================================================
    fun stub-trained(r) -> Number:
-  off   = r["offset"]
-  sharp = r["curve-sharpness"]
-  # Steer toward the centerline + feed-forward on track curvature.
-  # Gains 20 / -2.5 were chosen by an offline grid search and
-  # complete laps with peak deviation ~26 px on a 45 px-wide road.
-  (sharp * 20) - (off * 2.5)
+     off   = r["offset"]
+     sharp = r["curve-sharpness"]
+     he    = r["heading-error"]
+     # Steer toward the centerline + feed-forward on track curvature
+     # + drift-angle correction.  Gains 22 / -3.0 / -2.5 from offline
+     # grid search; complete laps with peak deviation ~27 px on a
+     # 45 px-wide road across multiple track shapes.
+     (sharp * 22) - (off * 3.0) - (he * 2.5)
    end
    # Uncomment to try it out:
    # drive(stub-trained, 0.1)
