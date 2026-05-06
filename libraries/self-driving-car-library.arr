@@ -7,6 +7,7 @@ import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/
 import csv as csv
 import tables as Tables
 import statistics as Statistics
+import lists as Lists
 include string-dict
 provide from Core:
   *,
@@ -37,7 +38,6 @@ provide from L: * hiding(filter, range, sort), type *, data * end
 # (in that order) and the return value is the steering-wheel
 # angle in degrees (positive = right).
 # ============================================================
-
 # Display Constants
 WIDTH           = 800
 HEIGHT          = 600
@@ -45,7 +45,6 @@ ROAD-HALF-WIDTH =  45       # pixels from centerline to road edge
 CAR-LENGTH      =  26
 CAR-WIDTH       =  14
 TEXT-SPACING    =   2
-
 # Driving Constants
 CAR-SPEED       = 3.5       # initial speed; varies between MIN-SPEED and MAX-SPEED at runtime
 STEERING-FACTOR = 0.035     # converts model degrees -> rad/tick of yaw
@@ -53,7 +52,6 @@ LOOKAHEAD       = 0.08      # parameter step for measuring track curvature
 MAX-STEER       = 90        # max |steering angle| (degrees) the wheel can reach
 STEER-RATE      = 8         # how fast the wheel ramps toward its target each tick
 MAX-SHARPNESS   = 6.0       # max |dθ/dt| allowed at any point on the track
-
 # Speed dynamics — speed creeps up toward MAX-SPEED while the wheel
 # is within ±STEER-DEAD-BAND of centre, and creeps back down toward
 # MIN-SPEED whenever the wheel is turned more sharply than that.
@@ -64,7 +62,6 @@ MIN-SPEED       = 3.0
 MAX-SPEED       = 4.0
 SPEED-STEP      = 0.05      # how much speed changes per tick
 STEER-DEAD-BAND = 15        # |steering| < this counts as "near-straight"
-
 # Closest-t search constants
 CLOSEST-T-STEPS  = 480      # samples around the loop
 CLOSEST-T-WINDOW =  10      # ± window for the per-tick incremental search
@@ -297,6 +294,27 @@ end
 fun car-done(s :: CarState) -> Boolean:
   not(s.alive)
 end
+# Snap the car back into the lane when it has gone off the road.
+# Used by training mode (survival = true) so that a single misstep
+# doesn't erase the whole run.  The car is placed at
+# ±0.6 * ROAD-HALF-WIDTH on the side it left, and its heading is
+# reset to the track's tangent so the next tick doesn't push it
+# straight back off the road.
+fun snap-back(trk :: TrackParams, t-i :: Number, s :: CarState,
+              sharpness :: Number, offset :: Number) -> CarState:
+  t           = (t-i / CLOSEST-T-STEPS) * 2 * PI
+  cx          = track-cx(trk, t)
+  cy          = track-cy(trk, t)
+  h           = track-heading(trk, t)
+  signed-snap = if offset >= 0: ROAD-HALF-WIDTH * 0.6
+                else:           0 - (ROAD-HALF-WIDTH * 0.6)
+                end
+  new-x       = cx - (signed-snap * num-sin(h))
+  new-y       = cy + (signed-snap * num-cos(h))
+  car(new-x, new-y, h, true,
+      s.speed-val, sharpness, signed-snap, s.steer-val,
+      s.key-left, s.key-right, t-i)
+end
 # Returns a tick function whose only variable behaviour is how
 # the steering angle is obtained.
 # get-steering :: (CarState, sharpness :: Number, offset :: Number) -> Number
@@ -304,7 +322,7 @@ end
 # Speed update: each tick the speed creeps toward MAX-SPEED when
 # the wheel is within STEER-DEAD-BAND of centre, and toward
 # MIN-SPEED otherwise.  Same dynamics in drive and train.
-fun make-tick(trk :: TrackParams, get-steering):
+fun make-tick(trk :: TrackParams, get-steering, survival :: Boolean):
   lam(s :: CarState) -> CarState:
     if not(s.alive):
       s
@@ -314,9 +332,13 @@ fun make-tick(trk :: TrackParams, get-steering):
       offset    = offset-at-t(trk, s.x, s.y, t)
       sharpness = sharpness-at-t(trk, t)
       if num-abs(offset) >= ROAD-HALF-WIDTH:
-        car(s.x, s.y, s.heading, false,
-            s.speed-val, sharpness, offset, s.steer-val,
-            s.key-left, s.key-right, t-i)
+        if survival:
+          snap-back(trk, t-i, s, sharpness, offset)
+        else:
+          car(s.x, s.y, s.heading, false,
+              s.speed-val, sharpness, offset, s.steer-val,
+              s.key-left, s.key-right, t-i)
+        end
       else:
         steering-deg = get-steering(s, sharpness, offset)
         new-speed =
@@ -398,7 +420,7 @@ fun drive(predictor, frames-per-second):
   fun draw(s): draw-car(s, "red", "darkred", empty-image, "CRASHED", road-img) end
   r = reactor:
     init:             initial,
-    on-tick:          make-tick(trk, get-steering),
+    on-tick:          make-tick(trk, get-steering, false),
     seconds-per-tick: 1 / frames-per-second,
     to-draw:          draw,
     stop-when:        car-done,
@@ -425,21 +447,30 @@ fun train(frames-per-second):
   fun handle-raw-key(s :: CarState, event) -> CarState:
     is-down = event.action == "keydown"
     is-up   = event.action == "keyup"
-    new-left =
-      ask:
-        | (event.key == "left")  and is-down then: true
-        | (event.key == "left")  and is-up   then: false
-        | otherwise:                              s.key-left
-      end
-    new-right =
-      ask:
-        | (event.key == "right") and is-down then: true
-        | (event.key == "right") and is-up   then: false
-        | otherwise:                              s.key-right
-      end
-    car(s.x, s.y, s.heading, s.alive,
-        s.speed-val, s.sharpness-val, s.offset-val, s.steer-val,
-        new-left, new-right, s.t-prev)
+    # Esc ends the session.  In survival mode the car never crashes
+    # on its own, so without an explicit "stop" key the student
+    # would have to close the reactor window manually.
+    if (event.key == "escape") and is-down:
+      car(s.x, s.y, s.heading, false,
+          s.speed-val, s.sharpness-val, s.offset-val, s.steer-val,
+          s.key-left, s.key-right, s.t-prev)
+    else:
+      new-left =
+        ask:
+          | (event.key == "left")  and is-down then: true
+          | (event.key == "left")  and is-up   then: false
+          | otherwise:                              s.key-left
+        end
+      new-right =
+        ask:
+          | (event.key == "right") and is-down then: true
+          | (event.key == "right") and is-up   then: false
+          | otherwise:                              s.key-right
+        end
+      car(s.x, s.y, s.heading, s.alive,
+          s.speed-val, s.sharpness-val, s.offset-val, s.steer-val,
+          new-left, new-right, s.t-prev)
+    end
   end
   fun draw(s):
     steer-label = ask:
@@ -449,17 +480,17 @@ fun train(frames-per-second):
     end
     draw-car(s, "royalblue", "darkblue",
       above-list([list:
-          text("TRAINING MODE  ←  →", 13, "lime"),
+          text("TRAINING MODE  ←  →   Esc to save", 13, "lime"),
           square(TEXT-SPACING, "solid", "transparent"),
           steer-label,
           square(TEXT-SPACING, "solid", "transparent")
         ]),
-      "CRASHED — close to save data",
+      "Training session ended — data saved",
       road-img)
   end
   r = reactor:
     init:             initial,
-    on-tick:          make-tick(trk, ramp-steering),
+    on-tick:          make-tick(trk, ramp-steering, true),
     on-raw-key:       handle-raw-key,
     seconds-per-tick: 1 / frames-per-second,
     to-draw:          draw,
@@ -474,6 +505,49 @@ fun train(frames-per-second):
     {"curve-sharpness"; states.map({(s): s.sharpness-val })},
     {"offset";          states.map({(s): s.offset-val    })},
     {"steering-angle";  states.map({(s): s.steer-val     })}]
+end
+# ============================================================
+# DATA POST-PROCESSING
+# ============================================================
+# Returns a new list the same length as `xs`, where each element
+# is the mean of up to `window` elements centred on it.  At the
+# ends of the list the window is clipped (rather than dropped),
+# so the first element averages the first `(window+1)/2` values,
+# the second averages `(window+1)/2 + 1` values, etc.  Length is
+# preserved.
+fun moving-average(xs, window):
+  n    = xs.length()
+  half = num-floor((window - 1) / 2)
+  fun avg-at(i):
+    lo  = num-max(0, i - half)
+    hi  = num-min(n - 1, i + half)
+    sub = xs.drop(lo).take((hi - lo) + 1)
+    sub.foldl(lam(acc, x): acc + x end, 0) / sub.length()
+  end
+  Lists.range(0, n).map(avg-at)
+end
+# Smooths the `steering-angle` column of a training-data table
+# with a 5-sample centred moving average; the other columns pass
+# through unchanged.  Most of the flutter and overshoot in
+# human-collected data lives in `steering-angle`, and a small
+# centred average filters it out without changing the overall
+# shape of the signal.  Use it before fitting to compare:
+#
+#     # raw
+#     model-a = mr-fun(my-data,
+#                      [list: "speed", "curve-sharpness", "offset"],
+#                      "steering-angle")
+#     # smoothed
+#     model-b = mr-fun(smooth(my-data),
+#                      [list: "speed", "curve-sharpness", "offset"],
+#                      "steering-angle")
+fun smooth(t):
+  [Tables.table-from-columns:
+    {"id";              t.column("id")},
+    {"speed";           t.column("speed")},
+    {"curve-sharpness"; t.column("curve-sharpness")},
+    {"offset";          t.column("offset")},
+    {"steering-angle";  moving-average(t.column("steering-angle"), 5)}]
 end
 #|
 # ============================================================
