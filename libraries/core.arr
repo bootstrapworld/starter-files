@@ -1578,10 +1578,9 @@ fun mr-code(t, params, response) block:
   nothing
 end
 
-lr-code :: (t :: Table, param :: String, response :: String) ->  nothing
 # just a special-case wrapper for multiple-regression-fun, which produces
 # a function consuming a row and producing a number
-fun lr-code(t, param, response):
+fun lr-code(t :: Table, param :: String, response :: String):
   mr-code(t, [list: param], response)
 end
 
