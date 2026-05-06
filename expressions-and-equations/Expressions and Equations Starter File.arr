@@ -5,7 +5,7 @@ aqua-star      =  star(50, "solid", "aqua")
 orange-dot     =  circle(30, "solid", "orange")
 purple-square  =  square(100, "solid", "purple")
 white-circle   =  circle(30, "solid", "white")
-red-rectangle  =  rectangle(120, 60, "solid", "yellow")
+gold-rectangle =  rectangle(120, 60, "solid", "yellow")
 blue-ellipse   =  ellipse(60, 30, "solid", "blue")
 bootstrap      =  text("Bootstrap", 50, "green")
 
