@@ -58,8 +58,8 @@ MAX-SHARPNESS   = 6.0       # max |dθ/dt| allowed at any point on the track
 # This both gives the regression a varying `speed` column to work
 # with (a constant column makes the matrix solver singular) and
 # matches how a real driver lifts off the throttle in a turn.
-MIN-SPEED       = 3.0
-MAX-SPEED       = 4.0
+MIN-SPEED       = 2.0
+MAX-SPEED       = 3.0
 SPEED-STEP      = 0.05      # how much speed changes per tick
 STEER-DEAD-BAND = 15        # |steering| < this counts as "near-straight"
 # Closest-t search constants
