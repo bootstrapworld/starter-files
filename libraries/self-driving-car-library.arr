@@ -5,9 +5,13 @@ provide *
 # re-export every symbol from Core
 import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr") as Core
 import csv as csv
+
+# privately imported libraries so we can use
+# their private methods and functions
 import tables as Tables
 import statistics as Statistics
 import lists as Lists
+
 include string-dict
 provide from Core:
   *,
@@ -45,13 +49,15 @@ ROAD-HALF-WIDTH =  45       # pixels from centerline to road edge
 CAR-LENGTH      =  26
 CAR-WIDTH       =  14
 TEXT-SPACING    =   2
+
 # Driving Constants
-CAR-SPEED       = 3.5       # initial speed; varies between MIN-SPEED and MAX-SPEED at runtime
+CAR-SPEED       = 3.0       # initial speed; varies between MIN-SPEED and MAX-SPEED at runtime
 STEERING-FACTOR = 0.035     # converts model degrees -> rad/tick of yaw
 LOOKAHEAD       = 0.08      # parameter step for measuring track curvature
 MAX-STEER       = 90        # max |steering angle| (degrees) the wheel can reach
 STEER-RATE      = 8         # how fast the wheel ramps toward its target each tick
 MAX-SHARPNESS   = 6.0       # max |dθ/dt| allowed at any point on the track
+
 # Speed dynamics — speed creeps up toward MAX-SPEED while the wheel
 # is within ±STEER-DEAD-BAND of centre, and creeps back down toward
 # MIN-SPEED whenever the wheel is turned more sharply than that.
@@ -62,9 +68,18 @@ MIN-SPEED       = 2.0
 MAX-SPEED       = 3.0
 SPEED-STEP      = 0.05      # how much speed changes per tick
 STEER-DEAD-BAND = 15        # |steering| < this counts as "near-straight"
+
 # Closest-t search constants
 CLOSEST-T-STEPS  = 480      # samples around the loop
 CLOSEST-T-WINDOW =  10      # ± window for the per-tick incremental search
+
+# POV (driver's view) rendering constants
+POV-HORIZON-Y   = 250       # screen y of the horizon line
+POV-FOCAL       = 280       # perspective focal length
+POV-CAM-HEIGHT  =  60       # camera height above the road plane
+POV-LOOKAHEAD   =  60       # number of road samples to project ahead
+POV-STEP        = 0.05      # t-step between samples
+POV-NEAR-D      =  15       # don't render samples closer than this (world px)
 # ============================================================
 # TRACK PARAMETERS
 # Randomised once per reactor call so every run uses a fresh track.
@@ -402,6 +417,75 @@ fun draw-car(s :: CarState, alive-color, crashed-color, hud-top, crash-msg, road
     place-image(text(crash-msg, 28, "yellow"), WIDTH / 2, HEIGHT / 2, scene2)
   end
 end
+# Pre-built sky+ground background for the POV view (built once).
+POV-BACKGROUND = above(
+  rectangle(WIDTH, POV-HORIZON-Y,             "solid", "skyblue"),
+  rectangle(WIDTH, HEIGHT - POV-HORIZON-Y,    "solid", "darkgreen"))
+# Driver's-view draw pass.  Renders the road as a perspective
+# projection of road-centerline samples taken ahead of the car —
+# each sample becomes a horizontal slice whose width and screen
+# position come from a pinhole-camera formula.  When the road
+# curves, the slices march sideways across the screen, which makes
+# left vs. right intuitive without a birds-eye reference frame.
+fun draw-pov(s :: CarState, trk :: TrackParams, hud-top, crash-msg):
+  current-t = (s.t-prev / CLOSEST-T-STEPS) * 2 * PI
+  fx        = num-cos(s.heading)
+  fy        = num-sin(s.heading)
+  fun draw-segs(i :: Number, scene):
+    if i < 0:
+      scene
+    else:
+      t-sample = current-t + (i * POV-STEP)
+      cx       = track-cx(trk, t-sample)
+      cy       = track-cy(trk, t-sample)
+      vx       = cx - s.x
+      vy       = cy - s.y
+      d-f      = (vx * fx) + (vy * fy)
+      if d-f < POV-NEAR-D:
+        draw-segs(i - 1, scene)
+      else:
+        d-r   = (vy * fx) - (vx * fy)
+        shadow scale = POV-FOCAL / d-f
+        sx    = (WIDTH / 2)   + (d-r * scale)
+        sy    = POV-HORIZON-Y + (POV-CAM-HEIGHT * scale)
+        width = (2 * ROAD-HALF-WIDTH) * scale
+        if (sy > HEIGHT) or (width > (2 * WIDTH)):
+          draw-segs(i - 1, scene)
+        else:
+          band-color =
+            if num-modulo(i, 2) == 0: "gray" else: "dimgray" end
+          asphalt = rectangle(width, 7, "solid", band-color)
+          scene-1 = place-image(asphalt, sx, sy, scene)
+          scene-2 =
+            if num-modulo(i, 2) == 0:
+              place-image(circle(2, "solid", "yellow"), sx, sy, scene-1)
+            else:
+              scene-1
+            end
+          draw-segs(i - 1, scene-2)
+        end
+      end
+    end
+  end
+  scene = draw-segs(POV-LOOKAHEAD, POV-BACKGROUND)
+  values = above-list(
+    [list:
+      text(fmt(s.speed-val),     13, "white"),
+      square(TEXT-SPACING, "solid", "transparent"),
+      text(fmt(s.sharpness-val), 13, "white"),
+      square(TEXT-SPACING, "solid", "transparent"),
+      text(fmt(s.offset-val),    13, "white"),
+      square(TEXT-SPACING, "solid", "transparent"),
+      text(fmt(s.steer-val),     13, "yellow")])
+  sensor-lines = beside(HUD-LABELS, values)
+  hud    = above(hud-top, sensor-lines)
+  scene2 = place-image(hud, 104, 8 + (image-height(hud) / 2), scene)
+  if s.alive:
+    scene2
+  else:
+    place-image(text(crash-msg, 28, "yellow"), WIDTH / 2, HEIGHT / 2, scene2)
+  end
+end
 # ============================================================
 # REACTOR FACTORY
 # `frames-per-second` is your knob for slow machines: recommend
@@ -429,75 +513,83 @@ fun drive(predictor, frames-per-second):
   r.interact()
 end
 # ============================================================
-# TRAINING REACTOR FACTORY
+# TRAINING REACTOR FACTORIES
 #
-# The arrow keys flip `key-left` / `key-right` in the car state.
-# Every tick, `ramp-steering` looks at those flags and the wheel's
-# current angle and produces the next angle by stepping toward the
-# corresponding target (-MAX-STEER, +MAX-STEER, or 0 when nothing
-# is held).  That smooth ramp is what fills the recorded
-# steering-angle column with realistic continuous values.
+# `train` (birds-eye) and `train-pov` (driver's view) share
+# everything except their draw function.  Both: arrow keys flip
+# `key-left` / `key-right`; every tick `ramp-steering` reads those
+# flags and nudges the wheel toward (-MAX-STEER, +MAX-STEER, or 0).
+# The continuous-valued `steer-val` that comes out is what gets
+# logged into `steering-angle` for the regression to learn from.
+# Esc ends the session and `interact-trace` returns the table.
 # ============================================================
-fun train(frames-per-second):
-  trk      = random-track()
-  road-img = make-road-image(trk)
-  initial  = car(track-cx(trk, 0), track-cy(trk, 0), track-heading(trk, 0),
-                 true, CAR-SPEED, 0, 0, 0,
-                 false, false, 0)
-  fun handle-raw-key(s :: CarState, event) -> CarState:
-    is-down = event.action == "keydown"
-    is-up   = event.action == "keyup"
-    # Esc ends the session.  In survival mode the car never crashes
-    # on its own, so without an explicit "stop" key the student
-    # would have to close the reactor window manually.
-    if (event.key == "escape") and is-down:
-      car(s.x, s.y, s.heading, false,
-          s.speed-val, s.sharpness-val, s.offset-val, s.steer-val,
-          s.key-left, s.key-right, s.t-prev)
-    else:
-      new-left =
-        ask:
-          | (event.key == "left")  and is-down then: true
-          | (event.key == "left")  and is-up   then: false
-          | otherwise:                              s.key-left
-        end
-      new-right =
-        ask:
-          | (event.key == "right") and is-down then: true
-          | (event.key == "right") and is-up   then: false
-          | otherwise:                              s.key-right
-        end
-      car(s.x, s.y, s.heading, s.alive,
-          s.speed-val, s.sharpness-val, s.offset-val, s.steer-val,
-          new-left, new-right, s.t-prev)
-    end
+# Keyboard handler shared by both training variants.
+fun handle-train-key(s :: CarState, event) -> CarState:
+  is-down = event.action == "keydown"
+  is-up   = event.action == "keyup"
+  # Esc ends the session.  In survival mode the car never crashes
+  # on its own, so without an explicit "stop" key the student
+  # would have to close the reactor window manually.
+  if (event.key == "escape") and is-down:
+    car(s.x, s.y, s.heading, false,
+        s.speed-val, s.sharpness-val, s.offset-val, s.steer-val,
+        s.key-left, s.key-right, s.t-prev)
+  else:
+    new-left =
+      ask:
+        | (event.key == "left")  and is-down then: true
+        | (event.key == "left")  and is-up   then: false
+        | otherwise:                              s.key-left
+      end
+    new-right =
+      ask:
+        | (event.key == "right") and is-down then: true
+        | (event.key == "right") and is-up   then: false
+        | otherwise:                              s.key-right
+      end
+    car(s.x, s.y, s.heading, s.alive,
+        s.speed-val, s.sharpness-val, s.offset-val, s.steer-val,
+        new-left, new-right, s.t-prev)
   end
-  fun draw(s):
-    steer-label = ask:
-      | s.steer-val < (0 - 1) then: text("◄  TURNING LEFT",  13, "cyan")
-      | s.steer-val > 1       then: text("TURNING RIGHT  ►", 13, "cyan")
-      | otherwise:                  text("●  STRAIGHT",      13, "white")
-    end
-    draw-car(s, "royalblue", "darkblue",
-      above-list([list:
-          text("TRAINING MODE  ←  →   Esc to save", 13, "lime"),
-          square(TEXT-SPACING, "solid", "transparent"),
-          steer-label,
-          square(TEXT-SPACING, "solid", "transparent")
-        ]),
-      "Training session ended — data saved",
-      road-img)
+end
+# Builds the "TRAINING MODE" banner with the live LEFT/RIGHT/
+# STRAIGHT indicator.  Result is passed as the `hud-top` argument
+# to whichever draw function the caller picked.
+fun training-hud-top(s :: CarState):
+  steer-label = ask:
+    | s.steer-val < (0 - 1) then: text("◄  TURNING LEFT",  13, "cyan")
+    | s.steer-val > 1       then: text("TURNING RIGHT  ►", 13, "cyan")
+    | otherwise:                  text("●  STRAIGHT",      13, "white")
   end
+  above-list([list:
+      text("TRAINING MODE  ←  →   Esc to save", 13, "lime"),
+      square(TEXT-SPACING, "solid", "transparent"),
+      steer-label,
+      square(TEXT-SPACING, "solid", "transparent")
+    ])
+end
+# Runs a training session and returns the recorded data table.
+# `make-draw` is a builder
+#     (TrackParams -> (CarState -> Image))
+# so each train variant can precompute track-dependent state
+# (e.g. the birds-eye road image) exactly once before the reactor
+# starts, instead of every frame.
+fun run-training(frames-per-second, make-draw):
+  trk     = random-track()
+  initial = car(track-cx(trk, 0), track-cy(trk, 0), track-heading(trk, 0),
+                true, CAR-SPEED, 0, 0, 0,
+                false, false, 0)
+  draw    = make-draw(trk)
   r = reactor:
     init:             initial,
     on-tick:          make-tick(trk, ramp-steering, true),
-    on-raw-key:       handle-raw-key,
+    on-raw-key:       handle-train-key,
     seconds-per-tick: 1 / frames-per-second,
     to-draw:          draw,
     stop-when:        car-done,
     title:            "Training mode — hold ← or → to steer"
   end
-  alive = r.interact-trace().filter({(row): row["state"].alive})
+  alive  = r.interact-trace().filter({(row): row["state"].alive})
   states = alive.all-rows().map({(row): row["state"]})
   [Tables.table-from-columns:
     {"id";              alive.column("tick")},
@@ -505,6 +597,33 @@ fun train(frames-per-second):
     {"curve-sharpness"; states.map({(s): s.sharpness-val })},
     {"offset";          states.map({(s): s.offset-val    })},
     {"steering-angle";  states.map({(s): s.steer-val     })}]
+end
+# Birds-eye training: track viewed from above.  Better for
+# spatial intuition, but harder for kids to react to curves.
+fun train(frames-per-second):
+  run-training(frames-per-second,
+    lam(trk):
+      road-img = make-road-image(trk)
+      lam(s :: CarState):
+        draw-car(s, "royalblue", "darkblue",
+          training-hud-top(s),
+          "Training session ended — data saved",
+          road-img)
+      end
+    end)
+end
+# Driver's-view training: road viewed from inside the car.
+# Curves visibly bend left/right ahead of the driver, which makes
+# the right reaction obvious without spatial reasoning.
+fun train-pov(frames-per-second):
+  run-training(frames-per-second,
+    lam(trk):
+      lam(s :: CarState):
+        draw-pov(s, trk,
+          training-hud-top(s),
+          "Training session ended — data saved")
+      end
+    end)
 end
 # ============================================================
 # DATA POST-PROCESSING
