@@ -1528,6 +1528,9 @@ fun mr-coeffs(t, params, response) block:
   end
 end
 
+lr-coeffs :: (t :: Table, param :: String, response :: String) -> Table
+fun lr-coeffs(t, param, response): mr-coeffs(t, [list: param], response) end
+
 mr-fun :: (t :: Table, params :: List<String>, response :: String) -> (Row -> Number)
 fun mr-fun(t, params, response) block:
   # generate the coefficients table
@@ -1550,6 +1553,13 @@ fun mr-fun(t, params, response) block:
   end
 end
 
+lr-fun :: (t :: Table, param :: String, response :: String) ->  (Row -> Number)
+# just a special-case wrapper for multiple-regression-fun, which produces
+# a function consuming a row and producing a number
+fun lr-fun(t, param, response):
+  mr-fun(t, [list: param], response)
+end
+
 mr-code :: (t :: Table, params :: List<String>, response :: String) -> Nothing
 fun mr-code(t, params, response) block:
   # generate the coefficients table
@@ -1568,14 +1578,7 @@ fun mr-code(t, params, response) block:
   nothing
 end
 
-lr-fun :: (t :: Table, param :: String, response :: String) ->  (Row -> Number)
-# just a special-case wrapper for multiple-regression-fun, which produces
-# a function consuming a row and producing a number
-fun lr-fun(t, param, response):
-  mr-fun(t, [list: param], response)
-end
-
-lr-code :: (t :: Table, param :: String, response :: String) ->  (Row -> Number)
+lr-code :: (t :: Table, param :: String, response :: String) ->  nothing
 # just a special-case wrapper for multiple-regression-fun, which produces
 # a function consuming a row and producing a number
 fun lr-code(t, param, response):
