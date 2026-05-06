@@ -4,10 +4,9 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 provide *
 # re-export every symbol from Core
 import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr") as Core
-import csv as csv
 
-# privately imported libraries so we can use
-# their private methods and functions
+# private module imports
+import csv as csv
 import tables as Tables
 import statistics as Statistics
 import lists as Lists
@@ -51,7 +50,6 @@ CAR-WIDTH       =  14
 TEXT-SPACING    =   2
 
 # Driving Constants
-CAR-SPEED       = 3.0       # initial speed; varies between MIN-SPEED and MAX-SPEED at runtime
 STEERING-FACTOR = 0.035     # converts model degrees -> rad/tick of yaw
 LOOKAHEAD       = 0.08      # parameter step for measuring track curvature
 MAX-STEER       = 90        # max |steering angle| (degrees) the wheel can reach
@@ -64,6 +62,7 @@ MAX-SHARPNESS   = 6.0       # max |dθ/dt| allowed at any point on the track
 # This both gives the regression a varying `speed` column to work
 # with (a constant column makes the matrix solver singular) and
 # matches how a real driver lifts off the throttle in a turn.
+CAR-SPEED       = 2.0       # initial speed; varies between MIN-SPEED and MAX-SPEED at runtime
 MIN-SPEED       = 2.0
 MAX-SPEED       = 3.0
 SPEED-STEP      = 0.05      # how much speed changes per tick
@@ -232,6 +231,18 @@ end
 fun sharpness-at-t(trk :: TrackParams, t :: Number) -> Number:
   wrap-angle(track-heading(trk, t + LOOKAHEAD) - track-heading(trk, t)) / LOOKAHEAD
 end
+# Signed angle (in degrees) between the car's heading and the
+# track's tangent at parameter t.  Positive = the car is rotated
+# clockwise relative to the road (pointing further "right" than
+# the road goes); negative = rotated counter-clockwise.  Without
+# this feature the model can't tell "I'm 0px off-centre, pointed
+# along the road" apart from "I'm 0px off-centre, pointed
+# perpendicular off the road" — both project to the same point
+# in (offset, sharpness, speed) space.
+fun heading-error-at-t(trk :: TrackParams, t :: Number,
+                       car-h :: Number) -> Number:
+  wrap-angle(car-h - track-heading(trk, t)) * (180 / PI)
+end
 fun compute-offset(trk :: TrackParams, px :: Number, py :: Number) -> Number:
   offset-at-t(trk, px, py, closest-t(trk, px, py))
 end
@@ -274,34 +285,44 @@ HUD-LABELS = above-list(
     square(TEXT-SPACING, "solid", "transparent"),
     text("offset:          ", 13, "white"),
     square(TEXT-SPACING, "solid", "transparent"),
+    text("heading-error:   ", 13, "white"),
+    square(TEXT-SPACING, "solid", "transparent"),
     text("steering-angle:  ", 13, "yellow")])
 fun fmt(v :: Number) -> String:
   easy-num-repr(v, 6)
 end
 # ============================================================
 # CAR STATE
-# `t-prev`               caches the previous tick's closest-sample
-#                        index for the incremental closest-t search.
+# `t-prev`                 caches the previous tick's closest-
+#                          sample index for the incremental
+#                          closest-t search.
+# `heading-error-val`      signed angle (deg) between the car's
+#                          heading and the track tangent.  Lets
+#                          the model learn to recover when it's
+#                          pointed the wrong way — without this
+#                          feature the car sails perpendicularly
+#                          off the road with no corrective signal.
 # `key-left` / `key-right` track which arrow keys are currently
-#                        held down in training mode.  The wheel's
-#                        actual angle (`steer-val`) ramps smoothly
-#                        toward its target each tick, so the
-#                        recorded steering values span the full
-#                        continuous range.
+#                          held down in training mode.  The wheel's
+#                          actual angle (`steer-val`) ramps smoothly
+#                          toward its target each tick, so the
+#                          recorded steering values span the full
+#                          continuous range.
 # ============================================================
 data CarState:
   | car(
-      x             :: Number,
-      y             :: Number,
-      heading       :: Number,
-      alive         :: Boolean,
-      speed-val     :: Number,
-      sharpness-val :: Number,
-      offset-val    :: Number,
-      steer-val     :: Number,
-      key-left      :: Boolean,
-      key-right     :: Boolean,
-      t-prev        :: Number)
+      x                 :: Number,
+      y                 :: Number,
+      heading           :: Number,
+      alive             :: Boolean,
+      speed-val         :: Number,
+      sharpness-val     :: Number,
+      offset-val        :: Number,
+      heading-error-val :: Number,
+      steer-val         :: Number,
+      key-left          :: Boolean,
+      key-right         :: Boolean,
+      t-prev            :: Number)
 end
 # ============================================================
 # SHARED REACTOR HELPERS
@@ -326,8 +347,9 @@ fun snap-back(trk :: TrackParams, t-i :: Number, s :: CarState,
                 end
   new-x       = cx - (signed-snap * num-sin(h))
   new-y       = cy + (signed-snap * num-cos(h))
+  # heading reset to track tangent ⇒ heading-error = 0
   car(new-x, new-y, h, true,
-      s.speed-val, sharpness, signed-snap, s.steer-val,
+      s.speed-val, sharpness, signed-snap, 0, s.steer-val,
       s.key-left, s.key-right, t-i)
 end
 # Returns a tick function whose only variable behaviour is how
@@ -342,20 +364,21 @@ fun make-tick(trk :: TrackParams, get-steering, survival :: Boolean):
     if not(s.alive):
       s
     else:
-      t-i       = closest-t-near(trk, s.x, s.y, s.t-prev)
-      t         = (t-i / CLOSEST-T-STEPS) * 2 * PI
-      offset    = offset-at-t(trk, s.x, s.y, t)
-      sharpness = sharpness-at-t(trk, t)
+      t-i         = closest-t-near(trk, s.x, s.y, s.t-prev)
+      t           = (t-i / CLOSEST-T-STEPS) * 2 * PI
+      offset      = offset-at-t(trk, s.x, s.y, t)
+      sharpness   = sharpness-at-t(trk, t)
+      heading-err = heading-error-at-t(trk, t, s.heading)
       if num-abs(offset) >= ROAD-HALF-WIDTH:
         if survival:
           snap-back(trk, t-i, s, sharpness, offset)
         else:
           car(s.x, s.y, s.heading, false,
-              s.speed-val, sharpness, offset, s.steer-val,
+              s.speed-val, sharpness, offset, heading-err, s.steer-val,
               s.key-left, s.key-right, t-i)
         end
       else:
-        steering-deg = get-steering(s, sharpness, offset)
+        steering-deg = get-steering(s, sharpness, offset, heading-err)
         new-speed =
           if num-abs(steering-deg) < STEER-DEAD-BAND:
             num-min(s.speed-val + SPEED-STEP, MAX-SPEED)
@@ -367,7 +390,7 @@ fun make-tick(trk :: TrackParams, get-steering, survival :: Boolean):
         new-x        = s.x + (new-speed * num-cos(new-h))
         new-y        = s.y + (new-speed * num-sin(new-h))
         car(new-x, new-y, new-h, true,
-            new-speed, sharpness, offset, steering-deg,
+            new-speed, sharpness, offset, heading-err, steering-deg,
             s.key-left, s.key-right, t-i)
       end
     end
@@ -378,7 +401,8 @@ end
 # When neither is held, the wheel self-centres back to 0 at the
 # same rate.  This is what produces continuous, time-correlated
 # steering values in the recorded data.
-fun ramp-steering(s :: CarState, _sharp :: Number, _off :: Number) -> Number:
+fun ramp-steering(s :: CarState, _sharp :: Number, _off :: Number,
+                  _he :: Number) -> Number:
   target =
     ask:
       | s.key-left  and not(s.key-right) then: 0 - MAX-STEER
@@ -406,6 +430,8 @@ fun draw-car(s :: CarState, alive-color, crashed-color, hud-top, crash-msg, road
       text(fmt(s.sharpness-val), 13, "white"),
       square(TEXT-SPACING, "solid", "transparent"),
       text(fmt(s.offset-val), 13, "white"),
+      square(TEXT-SPACING, "solid", "transparent"),
+      text(fmt(s.heading-error-val), 13, "white"),
       square(TEXT-SPACING, "solid", "transparent"),
       text(fmt(s.steer-val),  13, "yellow")])
   sensor-lines = beside(HUD-LABELS, values)
@@ -470,13 +496,15 @@ fun draw-pov(s :: CarState, trk :: TrackParams, hud-top, crash-msg):
   scene = draw-segs(POV-LOOKAHEAD, POV-BACKGROUND)
   values = above-list(
     [list:
-      text(fmt(s.speed-val),     13, "white"),
+      text(fmt(s.speed-val),         13, "white"),
       square(TEXT-SPACING, "solid", "transparent"),
-      text(fmt(s.sharpness-val), 13, "white"),
+      text(fmt(s.sharpness-val),     13, "white"),
       square(TEXT-SPACING, "solid", "transparent"),
-      text(fmt(s.offset-val),    13, "white"),
+      text(fmt(s.offset-val),        13, "white"),
       square(TEXT-SPACING, "solid", "transparent"),
-      text(fmt(s.steer-val),     13, "yellow")])
+      text(fmt(s.heading-error-val), 13, "white"),
+      square(TEXT-SPACING, "solid", "transparent"),
+      text(fmt(s.steer-val),         13, "yellow")])
   sensor-lines = beside(HUD-LABELS, values)
   hud    = above(hud-top, sensor-lines)
   scene2 = place-image(hud, 104, 8 + (image-height(hud) / 2), scene)
@@ -495,10 +523,14 @@ fun drive(predictor, frames-per-second):
   trk      = random-track()
   road-img = make-road-image(trk)
   initial  = car(track-cx(trk, 0), track-cy(trk, 0), track-heading(trk, 0),
-                 true, CAR-SPEED, 0, 0, 0,
+                 true, CAR-SPEED, 0, 0, 0, 0,
                  false, false, 0)
-  fun get-steering(s, sharpness, offset):
-    r = [Tables.raw-row: {"speed";s.speed-val}, {"curve-sharpness";sharpness}, {"offset";offset}]
+  fun get-steering(s, sharpness, offset, heading-err):
+    r = [Tables.raw-row:
+          {"speed";           s.speed-val},
+          {"curve-sharpness"; sharpness},
+          {"offset";          offset},
+          {"heading-error";   heading-err}]
     predictor(r)
   end
   fun draw(s): draw-car(s, "red", "darkred", empty-image, "CRASHED", road-img) end
@@ -532,7 +564,8 @@ fun handle-train-key(s :: CarState, event) -> CarState:
   # would have to close the reactor window manually.
   if (event.key == "escape") and is-down:
     car(s.x, s.y, s.heading, false,
-        s.speed-val, s.sharpness-val, s.offset-val, s.steer-val,
+        s.speed-val, s.sharpness-val, s.offset-val,
+        s.heading-error-val, s.steer-val,
         s.key-left, s.key-right, s.t-prev)
   else:
     new-left =
@@ -548,7 +581,8 @@ fun handle-train-key(s :: CarState, event) -> CarState:
         | otherwise:                              s.key-right
       end
     car(s.x, s.y, s.heading, s.alive,
-        s.speed-val, s.sharpness-val, s.offset-val, s.steer-val,
+        s.speed-val, s.sharpness-val, s.offset-val,
+        s.heading-error-val, s.steer-val,
         new-left, new-right, s.t-prev)
   end
 end
@@ -577,7 +611,7 @@ end
 fun run-training(frames-per-second, make-draw):
   trk     = random-track()
   initial = car(track-cx(trk, 0), track-cy(trk, 0), track-heading(trk, 0),
-                true, CAR-SPEED, 0, 0, 0,
+                true, CAR-SPEED, 0, 0, 0, 0,
                 false, false, 0)
   draw    = make-draw(trk)
   r = reactor:
@@ -593,10 +627,11 @@ fun run-training(frames-per-second, make-draw):
   states = alive.all-rows().map({(row): row["state"]})
   [Tables.table-from-columns:
     {"id";              alive.column("tick")},
-    {"speed";           states.map({(s): s.speed-val     })},
-    {"curve-sharpness"; states.map({(s): s.sharpness-val })},
-    {"offset";          states.map({(s): s.offset-val    })},
-    {"steering-angle";  states.map({(s): s.steer-val     })}]
+    {"speed";           states.map({(s): s.speed-val         })},
+    {"curve-sharpness"; states.map({(s): s.sharpness-val     })},
+    {"offset";          states.map({(s): s.offset-val        })},
+    {"heading-error";   states.map({(s): s.heading-error-val })},
+    {"steering-angle";  states.map({(s): s.steer-val         })}]
 end
 # Birds-eye training: track viewed from above.  Better for
 # spatial intuition, but harder for kids to react to curves.
@@ -666,6 +701,7 @@ fun smooth(t):
     {"speed";           t.column("speed")},
     {"curve-sharpness"; t.column("curve-sharpness")},
     {"offset";          t.column("offset")},
+    {"heading-error";   t.column("heading-error")},
     {"steering-angle";  moving-average(t.column("steering-angle"), 5)}]
 end
 #|
