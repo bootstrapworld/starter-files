@@ -19,6 +19,10 @@ hit-table = load-table:
 end
 
 ######################################################### 
+# Define a table of just the sliders
+fun is-slider(r) : r["pitch-type"] == "slider" end
+sliders-table = filter(hit-table, is-slider)
+
 # Define a table of just the curve balls
 fun is-curve(r) : r["pitch-type"] == "curveball" end
 curve-table = filter(hit-table, is-curve)
@@ -27,24 +31,18 @@ curve-table = filter(hit-table, is-curve)
 fun is-four-seam(r) : r["pitch-type"] == "four-seam-fastball" end
 fast4seam-table = filter(hit-table, is-four-seam)
 
-# Define a table of just the sliders
-fun is-slider(r) : r["pitch-type"] == "slider" end
-sliders-table = filter(hit-table, is-slider)
-
-
 ######################################################### 
 # DEFINE SOME MODELS by filling in "..."
 # Predicting HIT-DISTANCE from HIT-ANGLE: 
 
-# Best model you can fit visually for the curve ball data
-fun curve(x):     (... * sqr(x - ...))  + ... end
-
 # Best model you can fit visually for the sliders data
 fun sliders(x):   (... * sqr(x - ...))  + ... end
 
+# Best model you can fit visually for the curve ball data
+fun curve(x):     (... * sqr(x - ...))  + ... end
+
 # Best model you can fit visually for the four seam fastball data
 fun fast4seam(x): (... * sqr(x - ...))  + ... end
-
 
 # Model from Samples using standard form
 fun f(x) : ((... * sqr(x)) + (... * x)) + ... end
