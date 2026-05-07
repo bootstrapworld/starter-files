@@ -1569,7 +1569,7 @@ fun mr-code(t, params, response) block:
   # table, extracts the values in explanation-order, and 
   # passes them to the raw function
   fun fold-code(acc, row): 
-    if row["coefficient-name"] == "constant": acc + easy-num-repr(row["coefficient-value"], 6)
+    if row["coefficient-name"] == "intercept": acc + easy-num-repr(row["coefficient-value"], 6)
     else: 
       acc + "(r[\"" + row["coefficient-name"] + "\"] * " 
         + easy-num-repr(row["coefficient-value"], 6) + ") + "
