@@ -11,6 +11,12 @@ animals-table =
   source: shelter-sheet.sheet-by-name("pets", true)
 end
 
+
+########################################################
+# Define some rows
+cat-row = row-n(animals-table, 0) 
+dog-row = row-n(animals-table, 10) 
+
 # Make scatter plots showing the relationships
 # between pounds v. weeks and age v. weeks
 scatter-plot(animals-table, "name", "pounds", "weeks")
