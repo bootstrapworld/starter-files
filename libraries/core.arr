@@ -1546,7 +1546,7 @@ fun mr-fun(t, params, response) block:
     end
     
     fun fold-coeffs(acc, row): 
-      if row["coefficient-name"] == "constant": acc + row["coefficient-value"]
+      if row["coefficient-name"] == "intercept": acc + row["coefficient-value"]
       else: acc + (r[row["coefficient-name"]] * row["coefficient-value"])
       end
     end
