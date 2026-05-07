@@ -241,7 +241,7 @@ fun animal-color(r):
   else if (r["species"] == "snail"):     "black"
   end
 end
-
+#|
 pie-chart(animals-table, "species")
 bar-chart(animals-table, "species")
 # we no longer support image-pie-chart
@@ -263,7 +263,8 @@ split-and-reduce(animals-table, "species", "pounds", sum)
 group-and-subgroup(animals-table, "species", "sex")
 group(animals-table, "sex")
 fit-model(animals-table, "name", "pounds", "weeks", lam(x): x + 1 end)
-
+   
+   
 examples "making regression functions":
   lr-fun(animals-table, "age", "name") raises "One or more of the columns (age or name) does not contain numeric data."
   mr-fun(animals-table, [list: "age","pounds"], "name") raises "One or more of the columns (age, pounds or name) does not contain numeric data."
@@ -276,6 +277,8 @@ examples "S in Num->Num and Row->Num form":
   mr-S(animals-table, [list:"age"], "weeks", lam(r):  (0.78925 * r["age"]) + 2.309 end) is-roughly ~5.539741245494801
 end
 
+f = lr-fun(animals-table, "age", "weeks")
+fit-row-model(animals-table, "name", "age", "weeks", f)
 ########################################################################
 ## Trig functions
 
@@ -288,3 +291,4 @@ examples:
   cos(PI / 3) is-roughly 0.5
   sin(PI / 6) is-roughly 0.5
 end
+|#

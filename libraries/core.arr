@@ -1693,6 +1693,51 @@ fun fit-model(t, ls, xs, ys, fn) block:
   above(title, add-margin(img))
 end
 
+fit-row-model :: (t :: Table, ls :: String, xs :: String, ys :: String, fn :: (Row -> Number)) -> Image
+fun fit-row-model(t, ls, xs, ys, fn) block:
+  check-integrity(t, [list: ls, xs, ys])
+  labels = get-labels(t, ls)
+  # wrap the function so it only consumes a number, then constructs a dummy row
+  wrapped-fn = lam(x): fn([T.raw-row: {xs; x}]) end
+
+  # the line below calls S, which does our error-checking
+  S-value     = mr-S(t, [list: xs], ys, fn)
+  R-sqr-value = Stats.r-squared(t.column(xs), t.column(ys), wrapped-fn)
+  S-str       = easy-num-repr(S-value, 10)
+  #r-str       = if (R-sqr-value > 0): easy-num-repr(num-sqrt(R-sqr-value)) else: "N/A" end
+  r-sqr-str   = easy-num-repr(R-sqr-value, 10)
+
+  scatter = from-list.labeled-scatter-plot(
+    labels,
+    ensure-numbers(t.column(xs)),
+    ensure-numbers(t.column(ys)))
+    .legend("Data")
+    .point-size(5)
+  padding = (Math.max(t.column(ys)) - Math.min(t.column(ys))) / 100
+  fn-plot = from-list.function-plot(wrapped-fn)
+    .color(C.red)
+    .legend("Model")
+  intervals = from-list.interval-chart(
+    t.column(xs),
+    t.column(ys),
+    mr-residuals(t, [list: xs], ys, fn))
+    .point-size(1)
+    .pointer-color(C.green)
+    .lineWidth(10)
+    .color(C.black)
+    .style("sticks")
+    .legend("Residuals")
+  title-str = "S: " + S-str + "   R²: " + r-sqr-str
+  chart = render-charts([list: fn-plot, scatter, intervals]).width(600).height(400)
+    .title(title-str)
+    .x-axis(xs)
+    .y-axis(ys)
+    .y-min(Math.min(t.column(ys)) - padding)
+  img = display-chart(chart)
+  title = make-title([list:"", ys, "vs.", xs])
+  above(title, add-margin(img))
+end
+
 
 
 # Given a size, produce a normal distribution of that size
