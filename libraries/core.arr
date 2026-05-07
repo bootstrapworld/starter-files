@@ -1523,8 +1523,9 @@ fun mr-coeffs(t, params, response) block:
   else if params.length() > (t.length() + 1):
     raise(Err.message-exception("Cannot perform regression on these parameters on this table, because a model with " + params.length() + " parameters requires a table with at least " + (params.length() + 1) + " rows"))
   else:
-    # generate the coefficients table
+    # generate the coefficients table, replacing Pyret's default "constant" with "intercept"
     Stats.multiple-regression-table(t, params, response)
+      .transform-column("coefficient-name", {(v): if v == "constant": "intercept" else: v end})
   end
 end
 
