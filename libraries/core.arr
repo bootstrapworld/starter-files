@@ -1442,7 +1442,8 @@ fun lr-plot(t, ls, xs, ys) block:
     fn = Stats.linear-regression(t.column(xs), t.column(ys))
     fn-plot = from-list.function-plot(fn)
       .legend("Model")
-    s-num = S(t, xs, ys, fn)
+    # wrap the xs in a list, and fn in a row-consuming fn
+    s-num = S(t, [list: xs], ys, {(r): fn(r[xs])})
     r-sqr-num = Stats.r-squared(t.column(xs), t.column(ys), fn)
     chart = render-charts([list: scatter, fn-plot]).width(600).height(400)
       .title(make-lr-title(fn, r-sqr-num, s-num))
@@ -1467,7 +1468,8 @@ fun simple-lr-plot(t, xs, ys) block:
     padding = (Math.max(t.column(ys)) - Math.min(t.column(ys))) / 100
     fn = Stats.linear-regression(t.column(xs), t.column(ys))
     fn-plot = from-list.function-plot(fn)
-    s-num = S(t, xs, ys, fn)
+    # wrap the xs in a list, and fn in a row-consuming fn
+    s-num = S(t, [list: xs], ys, {(r): fn(r[xs])})
     r-sqr-num = Stats.r-squared(t.column(xs), t.column(ys), fn)
     chart = render-charts([list: scatter, fn-plot]).width(600).height(400)
       .title(make-lr-title(fn, r-sqr-num, s-num))
@@ -1496,7 +1498,8 @@ fun image-lr-plot(t, xs, ys, f) block:
     fn = Stats.linear-regression(t.column(xs), t.column(ys))
     fn-plot = from-list.function-plot(fn)
       .legend("Model")
-    s-num = S(t, xs, ys, fn)
+    # wrap the xs in a list, and fn in a row-consuming fn
+    s-num = S(t, [list: xs], ys, {(r): fn(r[xs])})
     r-sqr-num = Stats.r-squared(t.column(xs), t.column(ys), fn)
     chart = render-charts([list: scatter, fn-plot]).width(600).height(400)
       .title(make-lr-title(fn, r-sqr-num, s-num))
@@ -1623,8 +1626,8 @@ fun residuals(t, explanation, response, model):
   mr-residuals(t, [list: explanation], response, f)
 end
 
-mr-S :: (t :: Table, explanations :: List<String>, response :: String, model :: (Row -> Number)) -> Number
-fun mr-S(t, explanations, response, model) block:
+S :: (t :: Table, explanations :: List<String>, response :: String, model :: (Row -> Number)) -> Number
+fun S(t, explanations, response, model) block:
 
   # error-checking
   all-cols = link(response, explanations)
@@ -1646,9 +1649,9 @@ fun mr-S(t, explanations, response, model) block:
   num-sqrt(Math.sum(residuals-sqr) / degrees-of-freedom)
 end
 
-S :: (t :: Table, explanation :: String, response :: String, model :: (Number -> Number)) -> Number
-fun S(t, explanation, response, model) block:
-  mr-S(t, [list: explanation], response, lam(r :: Row): model(r[explanation]) end)
+simple-S :: (t :: Table, explanation :: String, response :: String, model :: (Row -> Number)) -> Number
+fun simple-S(t, explanation, response, model):
+  S(t, [list: xs], ys, {(r): fn(r[xs])})
 end
 
 fit-model :: (t :: Table, ls :: String, xs :: String, ys :: String, fn :: (Number -> Number)) -> Image
@@ -1657,9 +1660,10 @@ fun fit-model(t, ls, xs, ys, fn) block:
   labels = get-labels(t, ls)
 
   # the line below calls S, which does our error-checking
-  S-value     = S(t, xs, ys, fn)
+  # wrap the xs in a list, and fn in a row-consuming fn
+  s-num = S(t, [list: xs], ys, {(r): fn(r[xs])})
   R-sqr-value = Stats.r-squared(t.column(xs), t.column(ys), fn)
-  S-str       = easy-num-repr(S-value, 10)
+  S-str       = easy-num-repr(s-num, 10)
   #r-str       = if (R-sqr-value > 0): easy-num-repr(num-sqrt(R-sqr-value)) else: "N/A" end
   r-sqr-str   = easy-num-repr(R-sqr-value, 10)
 
@@ -1693,53 +1697,6 @@ fun fit-model(t, ls, xs, ys, fn) block:
   title = make-title([list:"", ys, "vs.", xs])
   above(title, add-margin(img))
 end
-
-fit-row-model :: (t :: Table, ls :: String, xs :: String, ys :: String, fn :: (Row -> Number)) -> Image
-fun fit-row-model(t, ls, xs, ys, fn) block:
-  check-integrity(t, [list: ls, xs, ys])
-  labels = get-labels(t, ls)
-  # wrap the function so it only consumes a number, then constructs a dummy row
-  wrapped-fn = lam(x): fn([T.raw-row: {xs; x}]) end
-
-  # the line below calls S, which does our error-checking
-  S-value     = mr-S(t, [list: xs], ys, fn)
-  R-sqr-value = Stats.r-squared(t.column(xs), t.column(ys), wrapped-fn)
-  S-str       = easy-num-repr(S-value, 10)
-  #r-str       = if (R-sqr-value > 0): easy-num-repr(num-sqrt(R-sqr-value)) else: "N/A" end
-  r-sqr-str   = easy-num-repr(R-sqr-value, 10)
-
-  scatter = from-list.labeled-scatter-plot(
-    labels,
-    ensure-numbers(t.column(xs)),
-    ensure-numbers(t.column(ys)))
-    .legend("Data")
-    .point-size(5)
-  padding = (Math.max(t.column(ys)) - Math.min(t.column(ys))) / 100
-  fn-plot = from-list.function-plot(wrapped-fn)
-    .color(C.red)
-    .legend("Model")
-  intervals = from-list.interval-chart(
-    t.column(xs),
-    t.column(ys),
-    mr-residuals(t, [list: xs], ys, fn))
-    .point-size(1)
-    .pointer-color(C.green)
-    .lineWidth(10)
-    .color(C.black)
-    .style("sticks")
-    .legend("Residuals")
-  title-str = "S: " + S-str + "   R²: " + r-sqr-str
-  chart = render-charts([list: fn-plot, scatter, intervals]).width(600).height(400)
-    .title(title-str)
-    .x-axis(xs)
-    .y-axis(ys)
-    .y-min(Math.min(t.column(ys)) - padding)
-  img = display-chart(chart)
-  title = make-title([list:"", ys, "vs.", xs])
-  above(title, add-margin(img))
-end
-
-
 
 # Given a size, produce a normal distribution of that size
 # between 0-1 using  Box Muller transform described at

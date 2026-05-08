@@ -28,3 +28,5 @@ fun   age-predictor(age):     (... *  age  ) + ... end
 # Once you've filled in the blanks above, uncomment these lines of code to fit your models!
 # fit-model(animals-table, "name", "pounds", "weeks", pounds-predictor)
 # fit-model(animals-table, "name", "age", "weeks", pounds-predictor)
+
+fun age-pound-predictor(r): (... * pounds) + (... * age) + ... end
