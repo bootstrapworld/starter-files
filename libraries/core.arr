@@ -1651,7 +1651,7 @@ end
 
 simple-S :: (t :: Table, explanation :: String, response :: String, model :: (Row -> Number)) -> Number
 fun simple-S(t, explanation, response, model):
-  S(t, [list: xs], ys, {(r): fn(r[xs])})
+  S(t, [list: explanation], response, {(r): model(r[explanation])})
 end
 
 fit-model :: (t :: Table, ls :: String, xs :: String, ys :: String, fn :: (Number -> Number)) -> Image
