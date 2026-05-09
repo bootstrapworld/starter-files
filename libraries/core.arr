@@ -82,17 +82,15 @@ end
 #################################################
 # Numerical functions
 
-num-round-to :: (n :: Number, digits :: Number) -> Roughnum
-fun num-round-to(n, digits) block:
-  num-to-roughnum(num-round(n * expt(10, digits)) / expt(10, digits))
-end
-
-# round digits to something reasonable
 fun round-digits(val, digits):
-  num-round(val * expt(10, digits)) / expt(10, digits)
+  shadow scale = expt(10, digits)
+  num-round(val * scale) / scale
 end
 
-# allow custom log bases
+fun num-round-to(n :: Number, digits :: Number) -> Roughnum:
+  num-to-roughnum(round-digits(n, digits))
+end
+
 fun log-base(base, val):
   lg = num-log(val) / num-log(base)
   lg-round = round-digits(lg, 4)
@@ -103,428 +101,14 @@ fun log-base(base, val):
   end
 end
 
-# shortcut alias for log and ln
 fun log(n): log-base(10, n) end
 ln = num-log
-
-# utility functions
-fun fake-num-to-fixnum(n) block:
-  var s = num-to-string(num-to-roughnum(n))
-  var len = string-length(s)
-  s := string-substring(s, 1, len)
-  len := len - 1
-  expt-position = string-index-of(s, 'e')
-  if expt-position == -1: s
-  else:
-    if string-substring(s, expt-position + 1, expt-position + 2) == '+':
-      string-substring(s, 0, expt-position) + 'e' + string-substring(s, expt-position + 2, len)
-    else: s
-    end
-  end
+data ShrinkResult:
+  | fits(s :: String)
+  | overflow
+  | cantfit
 end
 
-fun fake-num-to-fixnum-no-exp(n):
-  make-unsci(fake-num-to-fixnum(n))
-end
-
-fun string-to-number-i(s):
-  cases(Option) string-to-number(s):
-    | some(n) => n
-    | none => -1e100
-  end
-end
-
-fun get-girth(n):
-  if n == 0: 0
-  else: num-floor(log-base(10, abs(n)))
-  end
-end
-
-fun make-sci(underlying-num, underlying-num-str, max-chars) block:
-  # spy "make-sci": underlying-num, underlying-num-str, max-chars end
-  underlying-num-str-len = string-length(underlying-num-str)
-  girth = num-floor(log-base(10, abs(underlying-num)))
-  neg-girth = 0 - girth
-  # spy 'girth': girth, neg-girth end
-  decimal-point-position = string-index-of(underlying-num-str, '.')
-  int-str = if decimal-point-position > -1:
-    string-substring(underlying-num-str, 0, decimal-point-position)
-  else: underlying-num-str
-  end
-  dec-str = if decimal-point-position > -1:
-    string-substring(underlying-num-str, decimal-point-position + 1, underlying-num-str-len)
-  else: ''
-  end
-  # spy: int-str, dec-str end
-  dec-str-len = string-length(dec-str)
-  int-part = if (girth > 0) and (girth < max-chars): int-str + '.'
-  else if girth >= 0:
-    string-substring(int-str, 0, 1) + '.'
-  else: string-substring(dec-str, neg-girth - 1, neg-girth) + '.'
-  end
-  dec-part = if (girth > 0) and (girth < max-chars): dec-str
-  else if girth >= 0:
-    string-substring(int-str, 1, string-length(int-str)) +
-    dec-str
-  else if neg-girth == dec-str-len: '0'
-  else: string-substring(dec-str, neg-girth, dec-str-len)
-  end
-  expt-part = if (girth > 0) and (girth < max-chars): ''
-  else if girth == 0: ''
-  else if girth > 0: 'e' + num-to-string(girth)
-  else: 'e-' + num-to-string(neg-girth)
-  end
-  # spy: int-part, dec-part, expt-part end
-
-  output = int-part + dec-part + expt-part
-
-  if string-length(output) <= max-chars:
-    # spy: fixme: 100 end
-    output
-  else:
-    # spy: fixme: 101 end
-    shrink-dec(output, max-chars)
-  end
-end
-
-fun make-unsci(underlying-num-str):
-  # spy 'make-unsci of': underlying-num-str end
-  e-position = string-index-of(underlying-num-str, 'e')
-  if e-position < 0: underlying-num-str
-  else:
-    underlying-num-str-len = string-length(underlying-num-str)
-    mantissa-str = string-substring(underlying-num-str, 0, e-position)
-    exponent = string-to-number-i(string-substring(
-        underlying-num-str, e-position + 1, underlying-num-str-len))
-    mantissa-len = string-length(mantissa-str)
-    mantissa-decimal-point-position = string-index-of(mantissa-str, '.')
-    mantissa-int-str =
-      if mantissa-decimal-point-position > -1:
-        string-substring(mantissa-str, 0, mantissa-decimal-point-position)
-      else: mantissa-str
-      end
-    mantissa-frac-str =
-      if mantissa-decimal-point-position > -1:
-        string-substring(mantissa-str,
-          mantissa-decimal-point-position + 1, mantissa-len)
-      else: ''
-      end
-    if exponent == 0:
-      underlying-num-str
-    else if exponent > 0:
-      mantissa-frac-len = string-length(mantissa-frac-str)
-      if mantissa-frac-len == exponent:
-        mantissa-int-str + mantissa-frac-str
-      else if mantissa-frac-len < exponent:
-        mantissa-int-str + mantissa-frac-str +
-        string-repeat('0', exponent - mantissa-frac-len)
-      else:
-        mantissa-int-str +
-        string-substring(mantissa-frac-str, 0, exponent) + '.' +
-        string-substring(mantissa-frac-str, exponent, mantissa-frac-len)
-      end
-    else: # ie, exponent < 0
-      shadow exponent = 0 - exponent
-      mantissa-int-len = string-length(mantissa-int-str)
-      if mantissa-int-len == exponent:
-        "0." + mantissa-int-str + mantissa-frac-str
-      else if mantissa-int-len < exponent:
-        "0." + string-repeat('0', (exponent - mantissa-int-len) - 1) +
-        mantissa-int-str + mantissa-frac-str
-      else:
-        string-substring(mantissa-int-str, 0, mantissa-int-len - exponent) +
-        "." +
-        string-substring(mantissa-int-str, mantissa-int-len - exponent,
-          mantissa-int-len)
-      end
-    end
-  end
-end
-
-fun shrink-dec-part(dec-part, max-chars) block:
-  # spy 'shrink-dec-part of': dec-part, max-chars end
-  dec-part-len = string-length(dec-part)
-  if max-chars < -1 block:
-    'cantfit'
-  else if max-chars == -1:
-    var ss1n = 0
-    if dec-part-len > 0 block:
-      ss1n-str = string-substring(dec-part, 0, 1)
-      ss1n := string-to-number-i(ss1n-str)
-      if ss1n >= 5:
-        'overflow'
-      else:
-        ''
-      end
-    else:
-      ''
-    end
-  else if dec-part-len == 0:
-    ''
-  else:
-    girth = get-girth(string-to-number-i(dec-part))
-    var left-0-padding-len = dec-part-len - (girth + 1)
-    ss1n-str = string-substring(dec-part, 0, max-chars)
-    var ss1n = 0
-    var ss1n-girth = -1
-    if ss1n-str <> '' block:
-      ss1n := string-to-number-i(ss1n-str)
-      ss1n-girth := get-girth(ss1n)
-    else: false
-    end
-    orig-ss1n-girth = ss1n-girth
-    ss2n = string-to-number-i(string-substring(dec-part, max-chars, max-chars + 1))
-    # spy: fixme: 177 end
-    # spy: dec-part, max-chars, ss1n, ss2n end
-    if ss2n >= 5 block:
-      ss1n := ss1n + 1
-      ss1n-girth := get-girth(ss1n)
-    else: false
-    end
-    if ss1n-girth > orig-ss1n-girth:
-      left-0-padding-len := left-0-padding-len - 1
-    else: false
-    end
-    if left-0-padding-len < 0:
-      'overflow'
-    else:
-      left-0-padding = string-repeat('0', left-0-padding-len)
-      left-0-padding + num-to-string(ss1n)
-    end
-  end
-end
-
-fun shrink-dec(num-str, max-chars):
-  len = string-length(num-str)
-  # spy 'shrink-dec of': num-str, max-chars, len end
-  if len <= max-chars block: num-str
-  else:
-    dot-position = string-index-of(num-str, '.')
-    var int-part = '0'
-    var frac-expt-part = ''
-    var frac-part = ''
-    var expt-part = ''
-    if dot-position < 0 block:
-      e-position = string-index-of(num-str, 'e')
-      if e-position < 0 block:
-        int-part := num-str
-      else:
-        int-part := string-substring(num-str, 0, e-position)
-        expt-part := string-substring(e-position, len)
-      end
-    else:
-      int-part := string-substring(num-str, 0, dot-position)
-      frac-expt-part := string-substring(num-str, dot-position + 1, len)
-      e-position = string-index-of(frac-expt-part, 'e')
-      if e-position < 0 block:
-        frac-part := frac-expt-part
-      else:
-        frac-expt-part-len = string-length(frac-expt-part)
-        frac-part := string-substring(frac-expt-part, 0, e-position)
-        expt-part := string-substring(frac-expt-part, e-position, frac-expt-part-len)
-      end
-    end
-    # spy: int-part, frac-part, expt-part end
-    int-part-len = string-length(int-part)
-    frac-part-len = string-length(frac-part)
-    expt-part-len = string-length(expt-part)
-    int-part-num = string-to-number-i(int-part)
-    if int-part-len <= max-chars block:
-      # spy: fixme: 302 end
-      frac-part-mod = shrink-dec-part(frac-part,
-        max-chars - (int-part-len + expt-part-len + 1))
-      # spy: frac-part-mod end
-      if frac-part-mod == 'cantfit':
-        'cantfit'
-      else if frac-part-mod == 'overflow':
-        # when incoming frac-part is .9999x where x >= 5,
-        # it overflows past the decimal point, i.e.,
-        # should be rounded to 1
-        num-to-string(int-part-num + 1) + expt-part
-      else if frac-part-mod == '':
-        # no need to add decimal point in this case
-        int-part + expt-part
-      else:
-        int-part + '.' + frac-part-mod + expt-part
-      end
-    else:
-      'cantfit'
-    end
-  end
-end
-
-fun num-to-sci(n, max-chars) block:
-  # spy 'num-to-sci of': n, max-chars end
-  negativep = (n < 0)
-  roughp = num-is-roughnum(n)
-  var underlying-num = if negativep: 0 - n else: n end
-  # spy: underlying-num end
-  underlying-num-str = fake-num-to-fixnum(underlying-num)
-  if roughp:
-    underlying-num := string-to-number-i(underlying-num-str)
-  else: false
-  end
-  # spy: underlying-num-str end
-  underlying-num-str-len = string-length(underlying-num-str)
-  prefix = (if roughp: '~' else: '' end) + (if negativep: '-' else: '' end)
-  prefix-len = string-length(prefix)
-  max-chars-mod = max-chars - prefix-len
-  var output = ''
-  if not(string-contains(underlying-num-str, 'e')):
-    # spy: fixme: 1, max-chars-mod end
-    if underlying-num-str-len <= max-chars-mod:
-      if not(string-contains(underlying-num-str, '/') or string-contains(underlying-num-str, '.')):
-        # this weird special case bc of bigints
-        # spy: fixme: 1 end
-        output := num-to-string(n)
-      else:
-        # spy: fixme: 1.1 end
-        output := prefix + underlying-num-str
-      end
-    else if underlying-num == 0:
-      output := prefix + '0'
-    else:
-      girth = num-floor(log-base(10, abs(underlying-num)))
-      sci-num-str = make-sci(underlying-num, underlying-num-str,
-        max-chars-mod)
-      # spy: fixme: 2, girth, underlying-num-str, sci-num-str, max-chars-mod end
-      # spy: sci-num-str end
-      if sci-num-str == 'cantfit':
-        output := 'cantfit'
-      else if (girth < 0) and (girth > -3):
-        # spy: fixme: 2.4 end
-        num-mod = shrink-dec(underlying-num-str, max-chars-mod)
-        if num-mod == 'cantfit':
-          output := 'cantfit'
-        else:
-          output := prefix + num-mod
-        end
-      else if string-length(sci-num-str) <= max-chars-mod:
-        # spy: fixme: 2.5 end
-        output := prefix + sci-num-str
-      else if not(string-contains(underlying-num-str, '/')):
-        # spy: fixme: 2.6 end
-        num-mod = shrink-dec(underlying-num-str, max-chars-mod)
-        if num-mod == 'cantfit':
-          output := 'cantfit'
-        else:
-          output := prefix + num-mod
-        end
-      else:
-        # spy: fixme: 3 end
-        output := prefix + sci-num-str
-      end
-    end
-  else:
-    unsci-underlying-num-str = make-unsci(underlying-num-str)
-    # spy "unsci": prefix, underlying-num-str, unsci-underlying-num-str,  max-chars-mod end
-    # spy: unsci-num-str-len: string-length(unsci-underlying-num-str) end
-    if string-length(unsci-underlying-num-str) <= max-chars-mod:
-      output := prefix + unsci-underlying-num-str
-    else if underlying-num-str-len <= max-chars-mod:
-      output := prefix + underlying-num-str
-    else:
-      # spy: fixme: 4 end
-      num-mod = shrink-dec(underlying-num-str, max-chars-mod)
-      if num-mod == 'cantfit':
-        output := 'cantfit'
-      else:
-        output := prefix + num-mod
-      end
-    end
-  end
-  if output == 'cantfit':
-    raise('Could not fit ' + prefix + underlying-num-str + ' into ' + tostring(max-chars) + ' chars')
-  else:
-    output
-  end
-end
-
-
-fun easy-num-repr(n, max-chars) block:
-  # spy 'easy-num-repr of': n, max-chars end
-  negativep = (n < 0)
-  roughp = num-is-roughnum(n)
-  prefix = (if roughp: '~' else: '' end) + (if negativep: '-' else: '' end)
-  prefix-len = string-length(prefix)
-  max-chars-mod = max-chars - prefix-len
-  var underlying-num = if negativep: 0 - n else: n end
-  underlying-num-str = fake-num-to-fixnum-no-exp(underlying-num)
-  if roughp:
-    underlying-num := string-to-number-i(underlying-num-str)
-  else: false
-  end
-  decimal-point-position = string-index-of(underlying-num-str, '.')
-  underlying-num-str-len = string-length(underlying-num-str)
-  # spy: prefix, underlying-num, underlying-num-str, underlying-num-str-len, max-chars-mod end
-  var int-str = underlying-num-str
-  var dec-str = ''
-  if decimal-point-position > -1 block:
-    int-str := string-substring(underlying-num-str, 0, decimal-point-position)
-    dec-str := '0' + string-substring(underlying-num-str, decimal-point-position, underlying-num-str-len)
-  else: false
-  end
-  # spy: int-str, dec-str end
-  var output = ''
-  if underlying-num == 1 block:
-    output := prefix + '1'
-  else:
-    var min-len-needed = 0
-    if underlying-num > 1:
-      min-len-needed := string-length(int-str)
-    else:
-      min-len-needed := (0 - get-girth(underlying-num)) + 2
-    end
-    # spy: min-len-needed, underlying-num-str-len, max-chars-mod end
-    if (min-len-needed <= underlying-num-str-len) and (min-len-needed <= max-chars-mod) and (max-chars-mod <= underlying-num-str-len) block:
-      # spy: fixme: 'ez' end
-      var rounding-check-p = false
-      if max-chars-mod == underlying-num-str-len block:
-        # spy: fixme: 'ez1' end
-        output := prefix + string-substring(underlying-num-str, 0, max-chars-mod)
-      else:
-        # spy: fixme: 'ez2' end
-        # spy: underlying-num-str, max-chars-mod, decimal-point-position end
-        var end-i = max-chars-mod + 1
-        if max-chars-mod == decimal-point-position:
-          end-i := max-chars-mod + 2
-        else: false
-        end
-        var num-2 = string-substring(underlying-num-str, 0, end-i)
-        # spy: num-2 end
-        if underlying-num > 1:
-          # spy: fixme: 'ez2.1' end
-          output := prefix + num-to-sci(string-to-number-i(num-2), max-chars-mod)
-        else:
-          # spy: fixme: 'ez2.2' end
-          dec-part-mod = shrink-dec-part(string-substring(num-2, 2, string-length(num-2)), max-chars-mod - 2)
-          if dec-part-mod == 'cantfit':
-            # spy: fixme: 'ez2.2.1' end
-            output := 'cantfit'
-          else if dec-part-mod == 'overflow':
-            # spy: fixme: 'ez2.2.2' end
-            output := prefix + '1'
-          else:
-            # spy: fixme: 'ez2.2.3' end
-            output := prefix + '0.' + dec-part-mod
-          end
-        end
-      end
-    else:
-      # spy: fixme: 'ez-else' end
-      output := prefix + num-to-sci(underlying-num, max-chars-mod)
-    end
-  end
-  if output == 'cantfit':
-    raise('Could not fit ' + prefix + underlying-num-str + ' into ' + tostring(max-chars) + ' chars')
-  else:
-    output
-  end
-end
-
-
-#################################################################################
-# Trig functions
 
 TRIG_ROUND_DIGITS = 10
 
@@ -549,6 +133,340 @@ end
 fun sin-deg(n): sin(n * (PI / 180)) end
 fun cos-deg(n): cos(n * (PI / 180)) end
 fun tan-deg(n): tan(n * (PI / 180)) end
+
+# --- string-form number utilities ---
+
+fun string-to-number-i(s):
+  cases(Option) string-to-number(s):
+    | some(n) => n
+    | none => -1e100
+  end
+end
+
+fun strip-roughnum-prefix(s :: String) -> String:
+  string-substring(s, 1, string-length(s))
+end
+
+fun normalize-exponent(s :: String) -> String:
+  e-pos = string-index-of(s, 'e')
+  if e-pos == -1: s
+  else if string-char-at(s, e-pos + 1) == '+':
+    string-substring(s, 0, e-pos) + 'e' +
+    string-substring(s, e-pos + 2, string-length(s))
+  else: s
+  end
+end
+
+fun num-to-fixnum-str(n):
+  normalize-exponent(strip-roughnum-prefix(num-to-string(num-to-roughnum(n))))
+end
+
+fun num-to-fixnum-no-exp-str(n):
+  make-unsci(num-to-fixnum-str(n))
+end
+
+fun count-leading-zeros(s):
+  fun helper(i):
+    if i == string-length(s): i
+    else if string-char-at(s, i) == '0': helper(i + 1)
+    else: i
+    end
+  end
+  helper(0)
+end
+
+fun str-girth(num-str):
+  doc: ```
+       Compute floor(log10(|n|)) directly from a no-exponent string
+       form of n.  Returns 0 for "0".
+       ```
+  dot-pos = string-index-of(num-str, '.')
+  int-str =
+    if dot-pos < 0: num-str
+    else: string-substring(num-str, 0, dot-pos)
+    end
+  if (int-str == '') or (int-str == '0'):
+    dec-str =
+      if dot-pos < 0: ''
+      else: string-substring(num-str, dot-pos + 1, string-length(num-str))
+      end
+    leading-zeros = count-leading-zeros(dec-str)
+    if leading-zeros == string-length(dec-str): 0
+    else: 0 - (leading-zeros + 1)
+    end
+  else:
+    string-length(int-str) - 1
+  end
+end
+
+# --- shrinking ---
+
+fun shrink-dec-part(dec-part, max-chars):
+  doc: ```
+       Truncate a fractional-digit string to fit `max-chars`, rounding
+       the next digit if it's >= 5.  Returns:
+         fits(s)   - the (possibly zero-padded) shrunk string
+         overflow  - rounding carried past the leftmost digit
+         cantfit   - max-chars too small to represent anything
+       ```
+  dec-part-len = string-length(dec-part)
+  if max-chars < -1: cantfit
+  else if max-chars == -1:
+    if (dec-part-len > 0) and
+      (string-to-number-i(string-char-at(dec-part, 0)) >= 5):
+      overflow
+    else:
+      fits('')
+    end
+  else if dec-part-len == 0:
+    fits('')
+  else:
+    head-str = string-substring(dec-part, 0, max-chars)
+    next-digit = string-to-number-i(
+      string-char-at(dec-part, max-chars))
+    head-num = if head-str == '': 0 else: string-to-number-i(head-str) end
+    rounded-num = if next-digit >= 5: head-num + 1 else: head-num end
+    rounded-str = num-to-string(rounded-num)
+    padding-len = max-chars - string-length(rounded-str)
+    if padding-len < 0:
+      overflow
+    else:
+      fits(string-repeat('0', padding-len) + rounded-str)
+    end
+  end
+end
+
+fun split-num-str(num-str):
+  doc: "Decompose a numeric string into {int-part; frac-part; expt-part}."
+  len = string-length(num-str)
+  dot-pos = string-index-of(num-str, '.')
+  if dot-pos < 0:
+    e-pos = string-index-of(num-str, 'e')
+    if e-pos < 0:
+      {num-str; ''; ''}
+    else:
+      {string-substring(num-str, 0, e-pos);
+       '';
+       string-substring(num-str, e-pos, len)}
+    end
+  else:
+    int-part = string-substring(num-str, 0, dot-pos)
+    frac-expt-part = string-substring(num-str, dot-pos + 1, len)
+    fe-len = string-length(frac-expt-part)
+    e-pos = string-index-of(frac-expt-part, 'e')
+    if e-pos < 0:
+      {int-part; frac-expt-part; ''}
+    else:
+      {int-part;
+       string-substring(frac-expt-part, 0, e-pos);
+       string-substring(frac-expt-part, e-pos, fe-len)}
+    end
+  end
+end
+
+fun shrink-dec(num-str, max-chars):
+  len = string-length(num-str)
+  if len <= max-chars:
+    fits(num-str)
+  else:
+    {int-part; frac-part; expt-part} = split-num-str(num-str)
+    int-part-len = string-length(int-part)
+    expt-part-len = string-length(expt-part)
+    if int-part-len > max-chars:
+      cantfit
+    else:
+      cases(ShrinkResult) shrink-dec-part(frac-part,
+          max-chars - (int-part-len + expt-part-len + 1)):
+        | cantfit => cantfit
+        | overflow =>
+          int-part-num = string-to-number-i(int-part)
+          carried = num-to-string(int-part-num + 1) + expt-part
+          if string-length(carried) <= max-chars: fits(carried)
+          else: cantfit
+          end
+        | fits(s) =>
+          if s == '': fits(int-part + expt-part)
+          else: fits(int-part + '.' + s + expt-part)
+          end
+      end
+    end
+  end
+end
+
+# --- scientific notation construction ---
+
+fun mantissa-parts(int-str, dec-str, girth):
+  if girth >= 0:
+    {string-char-at(int-str, 0);
+     string-substring(int-str, 1, string-length(int-str)) + dec-str}
+  else:
+    neg-girth = 0 - girth
+    dec-str-len = string-length(dec-str)
+    {string-char-at(dec-str, neg-girth - 1);
+     if neg-girth == dec-str-len: '0'
+     else: string-substring(dec-str, neg-girth, dec-str-len)
+     end}
+  end
+end
+
+fun to-scientific(num-str, girth):
+  len = string-length(num-str)
+  dot-pos = string-index-of(num-str, '.')
+  int-str =
+    if dot-pos > -1: string-substring(num-str, 0, dot-pos)
+    else: num-str
+    end
+  dec-str =
+    if dot-pos > -1: string-substring(num-str, dot-pos + 1, len)
+    else: ''
+    end
+  {m-int; m-frac} = mantissa-parts(int-str, dec-str, girth)
+  expt-str =
+    if girth == 0: ''
+    else if girth > 0: 'e' + num-to-string(girth)
+    else: 'e-' + num-to-string(0 - girth)
+    end
+  m-int + '.' + m-frac + expt-str
+end
+
+fun make-sci(underlying-num-str, max-chars) -> ShrinkResult:
+  girth = str-girth(underlying-num-str)
+  output =
+    if (girth > 0) and (girth < max-chars):
+      if string-index-of(underlying-num-str, '.') < 0:
+        underlying-num-str + '.'
+      else:
+        underlying-num-str
+      end
+    else:
+      to-scientific(underlying-num-str, girth)
+    end
+  if string-length(output) <= max-chars: fits(output)
+  else: shrink-dec(output, max-chars)
+  end
+end
+
+fun make-unsci(underlying-num-str):
+  e-pos = string-index-of(underlying-num-str, 'e')
+  if e-pos < 0: underlying-num-str
+  else:
+    underlying-num-str-len = string-length(underlying-num-str)
+    mantissa-str = string-substring(underlying-num-str, 0, e-pos)
+    exponent = string-to-number-i(string-substring(
+        underlying-num-str, e-pos + 1, underlying-num-str-len))
+    mantissa-len = string-length(mantissa-str)
+    mantissa-dot-pos = string-index-of(mantissa-str, '.')
+    mantissa-int-str =
+      if mantissa-dot-pos > -1:
+        string-substring(mantissa-str, 0, mantissa-dot-pos)
+      else: mantissa-str
+      end
+    mantissa-frac-str =
+      if mantissa-dot-pos > -1:
+        string-substring(mantissa-str, mantissa-dot-pos + 1, mantissa-len)
+      else: ''
+      end
+    if exponent == 0:
+      underlying-num-str
+    else if exponent > 0:
+      mantissa-frac-len = string-length(mantissa-frac-str)
+      if mantissa-frac-len == exponent:
+        mantissa-int-str + mantissa-frac-str
+      else if mantissa-frac-len < exponent:
+        mantissa-int-str + mantissa-frac-str +
+        string-repeat('0', exponent - mantissa-frac-len)
+      else:
+        mantissa-int-str +
+        string-substring(mantissa-frac-str, 0, exponent) + '.' +
+        string-substring(mantissa-frac-str, exponent, mantissa-frac-len)
+      end
+    else:
+      shadow exponent = 0 - exponent
+      mantissa-int-len = string-length(mantissa-int-str)
+      if mantissa-int-len == exponent:
+        '0.' + mantissa-int-str + mantissa-frac-str
+      else if mantissa-int-len < exponent:
+        '0.' + string-repeat('0', (exponent - mantissa-int-len) - 1) +
+        mantissa-int-str + mantissa-frac-str
+      else:
+        string-substring(mantissa-int-str, 0, mantissa-int-len - exponent) +
+        '.' +
+        string-substring(mantissa-int-str, mantissa-int-len - exponent,
+          mantissa-int-len)
+      end
+    end
+  end
+end
+
+# --- top-level ---
+
+fun compute-prefix(n):
+  (if num-is-roughnum(n): '~' else: '' end) +
+  (if n < 0: '-' else: '' end)
+end
+
+fun natural-min-len(full-no-exp :: String) -> Number:
+  doc: ```
+       Chars natural decimal needs just to convey magnitude + 1 sig digit.
+       ```
+  dot-pos = string-index-of(full-no-exp, '.')
+  if dot-pos < 0:
+    string-length(full-no-exp)
+  else:
+    int-str = string-substring(full-no-exp, 0, dot-pos)
+    if int-str == '0':
+      dec-str = string-substring(full-no-exp, dot-pos + 1,
+        string-length(full-no-exp))
+      2 + count-leading-zeros(dec-str) + 1
+    else:
+      dot-pos
+    end
+  end
+end
+
+fun easy-num-repr(n :: Number, max-chars :: Number) -> String:
+  doc: ```
+       Render `n` as a string of at most `max-chars` characters using
+       the most accuracy-preserving non-rational decimal representation
+       that fits.  Prefers natural decimal; falls back to scientific
+       when natural would lose magnitude or fail to fit.  Raises if
+       even scientific cannot fit.
+       ```
+  prefix = compute-prefix(n)
+  budget = max-chars - string-length(prefix)
+
+  result =
+    if num-is-rational(n) and (n == 0):
+      fits('0')
+    else if num-is-rational(n) and (abs(n) == 1):
+      fits('1')
+    else:
+      full-no-exp = num-to-fixnum-no-exp-str(abs(n))
+      if natural-min-len(full-no-exp) <= budget:
+        shrink-dec(full-no-exp, budget)
+      else:
+        full-with-exp = num-to-fixnum-str(abs(n))
+        if string-contains(full-with-exp, 'e'):
+          if string-length(full-with-exp) <= budget:
+            fits(full-with-exp)
+          else:
+            shrink-dec(full-with-exp, budget)
+          end
+        else:
+          make-sci(full-with-exp, budget)
+        end
+      end
+    end
+
+  cases(ShrinkResult) result:
+    | fits(s) => prefix + s
+    | cantfit =>
+      raise('Could not fit ' + prefix +
+            num-to-fixnum-no-exp-str(abs(n)) +
+            ' into ' + tostring(max-chars) + ' chars')
+  end
+end
+
 
 
 #################################################################################
