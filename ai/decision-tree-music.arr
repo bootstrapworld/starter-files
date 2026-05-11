@@ -40,6 +40,8 @@ fun genre-img(r):
   if      (r["genre"] == "country"):     country-img
   else if (r["genre"] == "rock-n-roll"): rock-img
   else if (r["genre"] == "r-n-b"):       rnb-img
+  else if (r["genre"] == "reggae"):      reggae-img
+  else if (r["genre"] == "k-pop"):       kpop-img
   end
 end
 
