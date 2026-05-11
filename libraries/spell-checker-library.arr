@@ -262,12 +262,13 @@ fun alt-words(orig-s :: String, dictionary :: BKNode, n :: Number):
   results = Sets.list-to-set(bk-search(dictionary, s, n)).to-list()
   row-list = results.map({(wr): [
         T.raw-row: {"word"; wr.word},
-        {"edit-distance"; wr.edit-distance}
+        {"edit-distance"; wr.edit-distance},
+        {"id"; random(9999999999)} 
       ]})
-  row-list.foldl({(r, t): t.add-row(r)}, table: word, edit-distance end)
-    .order-by("word", true)
-    .order-by("edit-distance", true)
+  row-list.foldl({(r, t): t.add-row(r)}, table: word, edit-distance, id end)
+    .order-by("id", true)
     .filter(lam(r): r["word"] <> orig-s end)
+    .select-columns([list: "word", "edit-distance"])
 end
 
 #################### For Authoring ##########################################
