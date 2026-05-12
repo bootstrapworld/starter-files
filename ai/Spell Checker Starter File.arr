@@ -24,11 +24,11 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 
 
 # You can combine these functions to generate spellings that are more than 1 edit away
-# swap-letters(swap-letters("hello"))
-# deletions(sub-letters(swap-letters("hello")))
+# swaps(swaps("hello"))
+# deletions(subs(swaps("hello")))
 
-# Only show words that show up in the given dictionary
-# only-real(sub-letters("hello"), WORDS-L)
+# Only show words produced by the function that are found in the specified dictionary 
+# only-real(subs("hello"), WORDS-L)
 
 
 # SPELL-CHECKING
