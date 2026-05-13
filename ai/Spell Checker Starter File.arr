@@ -11,24 +11,24 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 # We've also created some special functions for you to explore:
 
 # Find all spellings that can be reached by substituting a single letter (1 edit)
-# subs("hello")
+# subs("wello")
 
 # Find all spellings that can be reached by swapping adjacent letters (1 edit)
-# swaps("hello")
+# swaps("wello")
 
 # Find all spellings that can be reached by inserting a single letter (1 edit)
-# insertions("hello")
+# insertions("wello")
 
 # Find all spellings that can be reached by deleting a single letter (1 edit)
-# deletions("hello")
+# deletions("wello")
 
 
 # You can combine these functions to generate spellings that are more than 1 edit away
-# swaps(swaps("hello"))
-# deletions(subs(swaps("hello")))
+# swaps(swaps("wello"))
+# deletions(subs(swaps("wello")))
 
 # Only show words produced by the function that are found in the specified dictionary 
-# only-real(subs("hello"), WORDS-L)
+# only-real(subs("wello"), WORDS-L)
 
 
 # SPELL-CHECKING
