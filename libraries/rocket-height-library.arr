@@ -24,12 +24,6 @@ provide from L:
   data *
 end
 
-provide from Math:
-    * hiding(sum),
-  type *,
-  data *
-end
-
 ################################################################
 ######################### ROCKET HEIGHT ########################
 

@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/algebra", "../libraries/", "rocket-height-library.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "rocket-height-library.arr")
 
 
 # WARNING - THERE'S SOME SLOPPY CODE IN THIS FILE! 
