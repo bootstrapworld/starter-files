@@ -685,7 +685,7 @@ fun run-training(frames-per-second, draw-fn):
     {"steering-angle";  states.map({(s): s.steer-val         })}]
 end
 # Birds-eye training: track viewed from above.
-fun train(frames-per-second):
+fun train-bev(frames-per-second):
   fun draw-fn(g):
     base = draw-car(g.car, "royalblue", "darkblue",
       training-hud-top(g.car),
