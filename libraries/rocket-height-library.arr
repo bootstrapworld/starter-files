@@ -4,6 +4,19 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 # Rocket Height support file, as of Fall 2026
 
 provide *
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr") as Core
+
+provide from Core:
+    * hiding(dilate),
+  type Posn,
+  module Err,
+  module Sets,
+  module T,
+  module SD,
+  module R,
+  module L,
+  module Stats
+end
 
 provide from L:
     * hiding(filter, sort, range),
@@ -11,7 +24,6 @@ provide from L:
   data *
 end
 
-import math as Math
 provide from Math:
     * hiding(sum),
   type *,

@@ -1,5 +1,5 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/algebra", "../libraries/core.arr")
-include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/algebra", "../libraries/rocket-height-library.arr", "../libraries/rocket-height-library.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/algebra", "../libraries/", "rocket-height-library.arr")
+
 
 # WARNING - THERE'S SOME SLOPPY CODE IN THIS FILE! 
 # GOOD NEWS - YOU WILL FIX IT!
@@ -23,7 +23,7 @@ fun rocket-height(seconds):
 end
 
 # TO MAKE IT FLY:
-blastoff(rocket-height)
+#blastoff(rocket-height)
 
 # TO SEE A GRAPH OF THE FLIGHT-PATH:
 # graph(rocket-height)
