@@ -721,19 +721,19 @@ fun dt-code(c :: DecisionTree) block:
       | decide(lbl) => [list: "\"" + lbl + "\""]
       | node(col, is-quant, val, splitter, yes, no) =>
         header = if is-quant:
-            "if r[\"" + col + "\"] < " + easy-num-repr(val, 8) + ":"
+          "if r[\"" + col + "\"] < " + easy-num-repr(val, 8) + ":"
         else if is-link(val):
-            if val.length() == 1:
-              "if r[\"" + col + "\"] == " + render-val(val.first) + ":"
-            else:
-              conditions = val.map(lam(x):
-                  "(r[\"" + col + "\"] == " + render-val(x) + ")"
-                end).join-str(" or ")
-              "if " + conditions + ":"
-            end
+          if val.length() == 1:
+            "if r[\"" + col + "\"] == " + render-val(val.first) + ":"
           else:
-            "if r[\"" + col + "\"] == " + render-val(val) + ":"
+            conditions = val.map(lam(x):
+                "(r[\"" + col + "\"] == " + render-val(x) + ")"
+              end).join-str(" or ")
+            "if " + conditions + ":"
           end
+        else:
+          "if r[\"" + col + "\"] == " + render-val(val) + ":"
+        end
         yes-lines = prefix-lines(to-lines(yes), "   ", "   ")
         no-lines  = prefix-lines(to-lines(no), "   ", "   ")
         [list: header] + yes-lines + [list: "else:"] + no-lines + [list: "end"]
@@ -761,10 +761,10 @@ end
 # If both branches resolve to the same decide(label), collapse to that leaf;
 # otherwise return the full node unchanged.
 fun prune-or-node(
-  yes-tree :: DecisionTree,
-  no-tree  :: DecisionTree,
-  full-node :: DecisionTree
-) -> DecisionTree:
+    yes-tree :: DecisionTree,
+    no-tree  :: DecisionTree,
+    full-node :: DecisionTree
+    ) -> DecisionTree:
   cases(DecisionTree) yes-tree:
     | decide(yl) =>
       cases(DecisionTree) no-tree:
@@ -1201,15 +1201,8 @@ fun generate-from(corpus, input):
     .get-value()
 end
 
-##################################################################
-# Regression
-
-
-
-
 
 ####################################################################
-#  pca.arr
 #
 #  Principal Component Analysis over a Pyret table, written on top
 #  of the standard `matrices` library.
@@ -1346,7 +1339,7 @@ data PCAResult:
       end
       T.raw-row.make(raw-array-from-list(pc-pairs))
     end,
-    
+
     method project-table(self, t :: Table) -> Table:
       T.table-from-rows
         .make(raw-array-from-list(t.all-rows().map(self.project-row)))
@@ -1400,3 +1393,455 @@ end
     project = result.fn()     # the live projection function
     project([list: 2.5, 2.4, 0.5])
 |#
+
+
+####################################################################
+#
+#  Playing around with neural nets
+#
+####################################################################
+
+
+#  Externally, a *layer* is a table of neurons
+#  Internally, we use a record-list to make list operations easier
+type Neuron = {
+  weights :: Table,
+  bias :: Number,
+  activation :: String     # "sigmoid" or "step"
+}
+
+type Layer   = List<Neuron>
+type Network = List<Layer>
+
+# Logistic activation.  Squashes z into the open interval (0, 1).
+fun sigmoid(z :: Number) -> Number:
+  1 / (1 + num-exp(0 - z))
+end
+
+# Step activation.  1 if z is non-negative, else 0.
+fun step(z :: Number) -> Number:
+  if z >= 0: 1 else: 0 end
+end
+examples:
+  sigmoid(0)    is-roughly 0.5
+  sigmoid(100)  is-roughly 1
+  sigmoid(-100) is-roughly 0
+  step(0)    is 1
+  step(2.5)  is 1
+  step(-0.1) is 0
+end
+
+# Apply the appropriate activation to z.
+fun apply-activation(name :: String, z :: Number) -> Number:
+  ask:
+    | name == "sigmoid" then: sigmoid(z)
+    | name == "step"    then: step(z)
+    | otherwise: raise(Err.message-exception("Unknown activation: " + name))
+  end
+end
+examples:
+  apply-activation("sigmoid",  0) is-roughly 0.5
+  apply-activation("step",    -1) is 0
+  apply-activation("step",     1) is 1
+end
+
+
+# The sum of element-wise products of `inputs` and `weights`
+fun weighted-sum(inputs :: List<Number>, weights :: List<Number>) -> Number:
+  products = L.map2(lam(x, w): x * w end, inputs, weights)
+  # foldl's lambda receives (accumulator, element) — accumulator first.
+  L.foldl(lam(total, p): total + p end, 0, products)
+end
+
+examples:
+  weighted-sum([list: 4, 3],    [list: 0.5, -1.0])    is (4 * 0.5) + (3 * -1.0)
+  weighted-sum([list: 1, 1, 1], [list: 0.2, 0.3, 0.5]) is-roughly 1.0
+  weighted-sum([list: ],        [list: ])              is 0
+end
+
+
+fun make-neuron(
+    weights :: Table, # rows are (input-name, weight) pairs
+    bias :: Number,
+    activation :: String
+    ) -> Neuron:
+  { weights: weights, bias: bias, activation: activation }
+end
+
+# Run one neuron on one list of inputs
+fun neuron-output(n :: Neuron, inputs :: List<Number>) -> Number:
+  weights = n.weights.column("weight")       # Get weights out of the neuron
+  z = weighted-sum(inputs, weights) + n.bias # Take the weighted sum and add the bias.
+  apply-activation(n.activation, z)          # Apply the activation
+where:
+  n1 = make-neuron(
+    table: input-name :: String, weight :: Number
+      row: "x", 5
+    end,
+    0,
+    "step")
+  neuron-output(n1, [list:  0.5]) is 1     #  5 *  0.5 =  2.5, step => 1
+  neuron-output(n1, [list: -1])   is 0     #  5 * -1   = -5,   step => 0
+end
+
+
+# ----------------------------------------------------------------
+#  Unit 3  —  one neuron learns one example
+#
+#  The perceptron rule (no calculus needed):
+#       w_i  :=  w_i + lr * (target - output) * x_i
+#       bias :=  bias + lr * (target - output)
+#  Works cleanly for step-activated neurons and motivates the more
+#  general "wiggle each weight and see how loss changes" approach
+#  that Unit 6 will introduce.
+# ----------------------------------------------------------------
+
+# Return a fresh weights table with the same input-names but the weight column replaced.
+fun update-weights-column(
+    weight-table :: Table,
+    new-weights :: List<Number>
+    ) -> Table:
+  weight-table
+    .drop("weight")
+    .add-column("weight", new-weights)
+end
+
+# Nudge a neuron's weights and bias toward producing `target` on these `inputs` 
+fun perceptron-update(
+    n :: Neuron,
+    inputs :: List<Number>,
+    target :: Number,
+    learning-rate :: Number
+    ) -> Neuron:
+  output = neuron-output(n, inputs)
+  error  = target - output
+
+  old-weights = n.weights.column("weight")
+  new-weights = L.map2(
+    lam(w, x): w + (learning-rate * error * x) end,
+    old-weights, inputs)
+
+  {
+    weights:    update-weights-column(n.weights, new-weights),
+    bias:       n.bias + (learning-rate * error),
+    activation: n.activation
+  }
+where:
+  good = make-neuron(
+    table: input-name :: String, weight :: Number
+      row: "x", 1
+    end,
+    0, "step")
+  neuron-output(good, [list: 1]) is 1
+  good-after = perceptron-update(good, [list: 1], 1, 0.5)
+  neuron-output(good-after, [list: 1]) is 1
+end
+
+# Run every neuron in the layer on the same inputs.  Returns one
+# output per neuron, in the layer's neuron order.  Those outputs
+# become the inputs to the next layer.
+fun layer-output(layer :: Layer, inputs :: List<Number>) -> List<Number>:
+  L.map(lam(n): neuron-output(n, inputs) end, layer)
+where:
+  n-pos = make-neuron(
+  table: input-name :: String, weight :: Number row: "x",  1 end,
+    0, "step")
+  n-neg = make-neuron(
+  table: input-name :: String, weight :: Number row: "x", -1 end,
+    0, "step")
+  layer-output([list: n-pos, n-neg], [list:  1]) is [list: 1, 0]
+  layer-output([list: n-pos, n-neg], [list: -1]) is [list: 0, 1]
+  # interesting test!
+  # both neurons will fire here
+  layer-output([list: n-pos, n-neg], [list: 0]) is [list: 1, 1]
+end
+
+
+# forward-pass - compose the layers via fold and feed them inputs. 
+# Should we call it 'forward' instead?
+fun run(net :: Network, inputs :: List<Number>) -> List<Number>:
+  L.foldl(
+    lam(current, layer): layer-output(layer, current) end,
+    inputs,
+    net)
+where:
+  pass-through = make-neuron(
+  table: input-name :: String, weight :: Number row: "x", 1 end,
+    0, "step")
+  # A one-layer, one-neuron "network" that just passes its input along:
+  run([list: [list: pass-through]], [list: 1]) is [list: 1]
+  # Two such layers stacked: still passes the input along.
+  run([list: [list: pass-through], [list: pass-through]], [list: 1]) is [list: 1]
+end
+
+
+# The squared difference between two numbers.  Always non-negative
+fun squared-error(predicted :: Number, actual :: Number) -> Number:
+  (predicted - actual) * (predicted - actual)
+end
+examples:
+  squared-error(0,    0)   is 0
+  squared-error(1,    1)   is 0
+  squared-error(0.5,  1)   is-roughly 0.25
+  squared-error(0,    2)   is 4
+  squared-error(2,    0)   is 4    # symmetric in its arguments
+end
+
+# Mean squared error of `net` on every row of `data`.
+# consumes the feature-names (input cols, in order) and 
+# target-name - (output col)
+# Assumes the network has a single output neuron, so we take the `.first` of its output list
+fun dataset-loss(
+    net :: Network,
+    data_ :: Table,
+    feature-names :: List<String>,
+    target-name :: String
+  ) -> Number:
+  feature-cols = L.map(lam(name): data_.column(name) end, feature-names)
+  targets      = data_.column(target-name)
+
+  # For each row index i: build that row's input list, run the net,
+  # square the error.
+  per-row-losses = L.map_n(
+    lam(i, target):
+      inputs = L.map(lam(col): L.get(col, i) end, feature-cols)
+      prediction = run(net, inputs).first
+      squared-error(prediction, target)
+    end,
+    0, targets)
+
+  total = L.foldl(lam(acc, x): acc + x end, 0, per-row-losses)
+  total / L.length(per-row-losses)
+where:
+  # A one-neuron network with a huge positive bias outputs ~1 for any input.
+  always-one = make-neuron(
+    table: input-name :: String, weight :: Number
+      row: "x", 0
+    end,
+    100, "sigmoid")
+  always-one-net = [list: [list: always-one]]
+  ones-data = table: x :: Number, y :: Number
+    row: 0, 1
+    row: 1, 1
+  end
+  dataset-loss(always-one-net, ones-data, [list: "x"], "y") is-roughly 0
+end
+
+# make a net where a specific weight has been shifted by delta
+fun perturb-weight(
+    net :: Network,
+    layer-idx :: Number,
+    neuron-idx :: Number,
+    weight-idx :: Number,
+    delta :: Number
+  ) -> Network:
+  doc: "Return a copy of `net` with one weight (at the given coords) shifted by `delta`."
+  L.map_n(lam(li, layer):
+    if li == layer-idx:
+      L.map_n(lam(ni, neuron):
+        if ni == neuron-idx:
+          old-weights = neuron.weights.column("weight")
+          new-weights = L.map_n(
+            lam(wi, w): if wi == weight-idx: w + delta else: w end end,
+            0, old-weights)
+          {
+            weights:    update-weights-column(neuron.weights, new-weights),
+            bias:       neuron.bias,
+            activation: neuron.activation
+          }
+        else: neuron
+        end
+      end, 0, layer)
+    else: layer
+    end
+  end, 0, net)
+end
+
+# make a net where a specific bias has been shifted by delta
+fun perturb-bias(
+    net :: Network,
+    layer-idx :: Number,
+    neuron-idx :: Number,
+    delta :: Number
+  ) -> Network:
+  doc: "Return a copy of `net` with one neuron's bias shifted by `delta`."
+  L.map_n(lam(li, layer):
+    if li == layer-idx:
+      L.map_n(lam(ni, neuron):
+        if ni == neuron-idx:
+          {
+            weights:    neuron.weights,
+            bias:       neuron.bias + delta,
+            activation: neuron.activation
+          }
+        else: neuron
+        end
+      end, 0, layer)
+    else: layer
+    end
+  end, 0, net)
+end
+
+
+#  For every weight in the network: wiggle it up by ε, wiggle it
+#  down by ε, look at how much the total loss changed, divide by
+#  2ε.  That number is the estimated ∂loss/∂weight.  Same for
+#  every bias.
+#
+#  Result shape: a "shadow Network" identical in shape to `net`,
+#  but where each weight is its gradient and each bias is its
+#  gradient.  `apply-gradient` will walk both in lockstep.
+# ----------------------------------------------------------------
+
+# Estimate ∂loss/∂param for every weight and bias by central
+#       differences:
+#                       loss(p + ε)  −  loss(p − ε)
+#            grad  ≈  ──────────────────────────────
+#                                 2ε
+#       Returns a Network of the same shape as `net`.
+fun numerical-gradient(
+    net :: Network,
+    data_ :: Table,
+    feature-names :: List<String>,
+    target-name :: String,
+    epsilon :: Number
+  ) -> Network:
+  fun loss-at(perturbed :: Network) -> Number:
+    dataset-loss(perturbed, data_, feature-names, target-name)
+  end
+
+  L.map_n(lam(li, layer):
+    L.map_n(lam(ni, neuron):
+      old-weights = neuron.weights.column("weight")
+      # One gradient per weight.
+      weight-grads = L.map_n(
+        lam(wi, _):
+          (loss-at(perturb-weight(net, li, ni, wi, epsilon))
+            - loss-at(perturb-weight(net, li, ni, wi, 0 - epsilon)))
+          / (2 * epsilon)
+        end,
+        0, old-weights)
+      # One gradient for the bias.
+      bias-grad =
+        (loss-at(perturb-bias(net, li, ni, epsilon))
+          - loss-at(perturb-bias(net, li, ni, 0 - epsilon)))
+        / (2 * epsilon)
+      {
+        weights:    update-weights-column(neuron.weights, weight-grads),
+        bias:       bias-grad,
+        activation: neuron.activation
+      }
+    end, 0, layer)
+  end, 0, net)
+where:
+  # Sanity check: the gradient has the same shape as the network.
+  tiny = make-neuron(
+    table: input-name :: String, weight :: Number
+      row: "x", 0.5
+    end,
+    0, "sigmoid")
+  tiny-net  = [list: [list: tiny]]
+  tiny-data = table: x :: Number, y :: Number  row: 1, 1  end
+  g = numerical-gradient(tiny-net, tiny-data, [list: "x"], "y", 0.001)
+  L.length(g) is L.length(tiny-net)                              # same #layers
+  L.length(g.first) is L.length(tiny-net.first)                  # same #neurons
+end
+
+
+# Update every weight and bias by stepping AGAINST the gradient,
+# returning (old − (learning-rate · grad)) 
+fun apply-gradient(
+    net :: Network,
+    grad :: Network,
+    learning-rate :: Number
+  ) -> Network:
+  L.map2(lam(layer, grad-layer):
+    L.map2(lam(neuron, grad-neuron):
+      old-weights  = neuron.weights.column("weight")
+      grad-weights = grad-neuron.weights.column("weight")
+      new-weights  = L.map2(
+        lam(w, gw): w - (learning-rate * gw) end,
+        old-weights, grad-weights)
+      {
+        weights:    update-weights-column(neuron.weights, new-weights),
+        bias:       neuron.bias - (learning-rate * grad-neuron.bias),
+        activation: neuron.activation
+      }
+    end, layer, grad-layer)
+  end, net, grad)
+where:
+  # A zero gradient leaves the network unchanged.
+  n = make-neuron(
+    table: input-name :: String, weight :: Number row: "x", 0.7 end,
+    0.2, "sigmoid")
+  net = [list: [list: n]]
+  zero-grad = make-neuron(
+    table: input-name :: String, weight :: Number row: "x", 0 end,
+    0, "sigmoid")
+  zero-grad-net = [list: [list: zero-grad]]
+  stepped = apply-gradient(net, zero-grad-net, 1)
+  stepped.first.first.bias is 0.2
+  stepped.first.first.weights.column("weight") is [list: 0.7]
+end
+
+############################################################
+#  The training loop:
+#
+#  Repeat for `epochs` rounds:
+#     1. estimate the gradient on the whole dataset
+#     2. step every weight & bias against it
+#     3. record this epoch's loss
+#  Return both the trained network and a loss-history table
+#  (columns: epoch, loss) that students can plot directly
+
+# train a given network on given data_ for given epochs
+# return {trained-network, loss-history}, where the history
+# is a table with columns for epoch and loss
+fun train(
+    net :: Network,
+    data_ :: Table,
+    feature-names :: List<String>,
+    target-name :: String,
+    learning-rate :: Number,
+    epochs :: Number
+  ) -> { trained :: Network, loss-history :: Table }:
+
+  EPSILON = 0.001    # finite-difference step size
+
+  fun loop(current, epoch, history):
+    if epoch == epochs:
+      { trained: current, loss-history: history }
+    else:
+      grad     = numerical-gradient(current, data_, feature-names, target-name, EPSILON)
+      stepped  = apply-gradient(current, grad, learning-rate)
+      new-loss = dataset-loss(stepped, data_, feature-names, target-name)
+      new-row = [T.raw-row: {"epoch"; epoch + 1}, {"loss"; new-loss}]
+      loop(stepped, epoch + 1, history.add-row(new-row))
+    end
+  end
+  initial-loss = dataset-loss(net, data_, feature-names, target-name)
+  initial-history = table: epoch :: Number, loss :: Number
+    row: 0, initial-loss
+  end
+  loop(net, 0, initial-history)
+where:
+  # A one-neuron sigmoid network learning y = sigmoid(2x).
+  # Initial weight 0, bias 0 → initial output 0.5 for every x.
+  start = make-neuron(
+    table: input-name :: String, weight :: Number row: "x", 0 end,
+    0, "sigmoid")
+  start-net = [list: [list: start]]
+  toy-data = table: x :: Number, y :: Number
+    row:  2, 0.98
+    row:  1, 0.88
+    row:  0, 0.5
+    row: -1, 0.12
+    row: -2, 0.02
+  end
+  result = train(start-net, toy-data, [list: "x"], "y", 1, 200)
+  initial-loss = dataset-loss(start-net,     toy-data, [list: "x"], "y")
+  final-loss   = dataset-loss(result.trained, toy-data, [list: "x"], "y")
+  # Training has to drive the loss meaningfully downward.
+  (final-loss < initial-loss) is true
+  (final-loss < 0.01)         is true
+end
