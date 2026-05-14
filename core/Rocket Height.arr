@@ -23,7 +23,7 @@ fun rocket-height(seconds):
 end
 
 # TO MAKE IT FLY:
-#blastoff(rocket-height)
+blastoff(rocket-height)
 
 # TO SEE A GRAPH OF THE FLIGHT-PATH:
 # graph(rocket-height)
