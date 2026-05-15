@@ -12,7 +12,7 @@ cat  = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files
 ### ARE THEY INVERSES?
 # Explore the `blend-images` function with these pairs of images
 
-#blend-image(flower, invert(flower))
+#blend-images(flower, invert(flower))
 
 butterfly  = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/butterfly.png")
 butterfly2 = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/butterfly2.png")
