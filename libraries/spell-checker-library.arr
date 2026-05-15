@@ -26,6 +26,7 @@ provide from Starter:
 end
 
 provide from L: * hiding(filter, range, sort), type *, data * end
+include valueskeleton
 
 # given two strings, produce the edit-distance between the
 fun levenshtein(s :: String, t :: String) -> Number:
@@ -64,7 +65,11 @@ data WordResult:
 end
 
 data BKNode:
-  | bk-node(word :: String, children :: SD.MutableStringDict)
+  | bk-node(word :: String, children :: SD.MutableStringDict) with:
+  
+  method _output(self) block:
+      vs-value(image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/images/dictionary-icon.png"))
+  end
 end
 
 fun bk-search(node :: BKNode, query :: String, n :: Number) -> List<WordResult>:
