@@ -57,7 +57,7 @@ fun swim-classifier(r):
 end
 
 # You can test out the classifier using the `classify` function
-# classify(simple-animals, "species", tail-classifier)
+# classify(testing, "species", tail-classifier)
 
 
 # my-classifier1 :: Row -> String
