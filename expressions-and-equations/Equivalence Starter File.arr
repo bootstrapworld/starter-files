@@ -20,7 +20,7 @@ C3 = square(20 * 20, "solid", "deeppink")
 D1 = rectangle(48, 72, "solid", "blue")
 D2 = rectangle(72, 48, "solid", "blue")
 D3 = scale(8, rectangle(6, 9, "solid", "blue"))
-D4 = rotate(90, B1)
+D4 = rotate(90, D1)
 
 #Question 6:
 E1 = radial-star(6, 20, 50, "solid", "red") 
