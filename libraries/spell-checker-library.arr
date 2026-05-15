@@ -64,11 +64,13 @@ data WordResult:
   | word-result(word :: String, edit-distance :: Number)
 end
 
+DICTIONARY-IMG = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries/images/dictionary-icon.png")
+
 data BKNode:
   | bk-node(word :: String, children :: SD.MutableStringDict) with:
   
   method _output(self) block:
-      vs-value(image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/images/dictionary-icon.png"))
+      vs-value(scale(0.5, DICTIONARY-IMG))
   end
 end
 
