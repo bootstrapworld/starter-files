@@ -426,7 +426,7 @@ fun distance-similarity(t :: Table, id, cols :: List<String>) block:
       0,
       vals1,
       vals2)
-    sqrt(sum-of-squares)
+    rounded-exact(sqrt(sum-of-squares))
   end
   compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
   fun compare-row(r): helper(r, compare-to) end
