@@ -474,7 +474,7 @@ end
 #   cos(θ) = (A · B) / (|A| * |B|)
 fun cosine-similarity(t :: Table, id, cols :: List<String>) block:
   compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
-  fun compare-row(r): row-cosine-similarity(r, compare-to) end
+  fun compare-row(r): row-cosine-similarity(r, compare-to, cols) end
   t.build-column("cosine-similarity", compare-row).order-by("cosine-similarity", false)
 end
 
