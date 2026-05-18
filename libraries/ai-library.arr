@@ -412,7 +412,7 @@ fun simple-similarity(t :: Table, id, cols :: List<String>) block:
     if (vals1 == vals2): 1 else: 0 end
   end
   compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
-  fun compare-row(r): helper(r, compare-to, cols) end
+  fun compare-row(r): helper(r, compare-to) end
   t.build-column("simple-similarity", compare-row).order-by("simple-similarity", false)
 end
 
@@ -430,7 +430,7 @@ fun bag-similarity(t :: Table, id) block:
     if (sd1 == sd2): 1 else: 0 end
   end
   compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
-  fun compare-row(r): helper(r, compare-to, cols) end
+  fun compare-row(r): helper(r, compare-to) end
   t.build-column("bag-similarity", compare-row).order-by("bag-similarity", false)
 end
 
@@ -457,7 +457,7 @@ end
 #   cos(θ) = (A · B) / (|A| * |B|)
 fun cosine-similarity(t :: Table, id, cols :: List<String>) block:
   compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
-  fun compare-row(r): row-cosine-similarity(r, compare-to, cols) end
+  fun compare-row(r): row-cosine-similarity(r, compare-to) end
   t.build-column("cosine-similarity", compare-row).order-by("cosine-similarity", false)
 end
 
@@ -469,7 +469,7 @@ fun angle-similarity(t :: Table, id, cols :: List<String>) block:
     rounded-exact((num-acos(row-cosine-similarity(r1, r2, cols)) * 180) / PI)
   end
   compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
-  fun compare-row(r): helper(r, compare-to, cols) end
+  fun compare-row(r): helper(r, compare-to) end
   t.build-column("angle-similarity", compare-row).order-by("angle-similarity", false)
 end
 
