@@ -29,8 +29,8 @@ music-testing  = load-music-sheet("testing")
 country-img = text("🐴", 20, "black")
 rock-img    = text("🎸", 20, "black")
 rnb-img     = text("🎤", 20, "black")
-reggae      = text("🇯🇲", 20, "black")
-k-pop       = text("🇰🇷", 20, "black")
+reggae-img  = text("🇯🇲", 20, "black")
+kpop-img    = text("🇰🇷", 20, "black")
 
 
 ######################################################################
