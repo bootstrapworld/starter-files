@@ -292,7 +292,7 @@ fun build-centroid(t :: Table, name) -> Row:
 end
 
 _centroid-test = table: x, y row: 2, 1 row: 4, 5 end
-examples:
+examples "build-centroid":
   build-centroid(_centroid-test, "test") is
   [T.raw-row: {"ID";"test CENTROID"},{"DOC";""}, {"RATING";""}, {"TAGS";""},{"x";3},{"y";3}]
 end
@@ -403,14 +403,12 @@ end
 #                        in common.
 ################################################################
 
-# simple-similarity: true iff the two DOCs are identical
-# (same words, same order, same frequency)
-fun simple-similarity(r1 :: Row, r2 :: Row) -> Number block:
-  cols = r1.get-column-names()
-  when not(member(cols, "DOC")):
-    raise(Err.message-exception("Simple similarity requires that all rows have a 'DOC' column"))
-  end
-  if (r1["DOC"] == r2["DOC"]): 1 else: 0 end
+# simple-similarity: true iff the specified cols of the two rows 
+# are identical
+fun simple-similarity(r1 :: Row, r2 :: Row, cols :: List<String>) -> Number block:
+  vals1 = cols.map({(c): r1[c]})
+  vals2 = cols.map({(c): r2[c]})
+  if (vals1 == vals2): 1 else: 0 end
 end
 
 # bag-similarity: returns 1 the two bags contain the same words
@@ -426,13 +424,16 @@ fun bag-similarity(r1 :: Row, r2 :: Row) -> Number block:
   if (sd1 == sd2): 1 else: 0 end
 end
 
-
-# sd-cos-sim: returns a number from 0 to 1 measuring how
+# returns a number from 0 to 1 measuring how
 # similar the two word-frequency vectors are. 1 = identical bags,
 # 0 = no words in common. Uses the standard cosine similarity formula:
 #   cos(θ) = (A · B) / (|A| * |B|)
-fun sd-cos-sim(sd1 :: SD.StringDict, sd2 :: SD.StringDict) -> Number block:
-  # shortcut for identical bags
+fun cosine-similarity(r1 :: Row, r2 :: Row, cols :: List<String>) -> Number block:
+  # convert each row to a StringDict, and compute cosine similarity
+  sd1 = row-to-dict(cols, r1)
+  sd2 = row-to-dict(cols, r2)
+  
+  # shortcut for truly-equal vectors
   when sd1 == sd2: 1 end
 
   # if the magnitude of the products is 0, return 0 with a warning
@@ -444,29 +445,18 @@ fun sd-cos-sim(sd1 :: SD.StringDict, sd2 :: SD.StringDict) -> Number block:
   end
 end
 
-# a wrapper function that exposes sd-cos-sim to row inputs
-# check to ensure the rows have at least 2 non-restricted columns
-fun cosine-similarity(r1 :: Row, r2 :: Row) -> Number block:
-  cols = get-unrestricted-cols(r1)
-  when cols.length() < 2:
-    raise(Err.message-exception("Cosine and angle similarity require at least 2 quantitative columns."))
-  end
-  # convert each row to a StringDict, and compute cosine similarity
-  sd-cos-sim(row-to-dict(cols, r1), row-to-dict(cols, r2))
-end
-
 # angle-similarity-lists: converts cosine similarity to degrees (0-90°).
 # 0° means the DOCs are identical; 90° means completely dissimilar.
-fun angle-similarity(r1 :: Row, r2 :: Row) -> Number:
-  num-exact((num-acos(cosine-similarity(r1, r2)) * 180) / 3.14159265)
+fun angle-similarity(r1 :: Row, r2 :: Row, cols :: List<String>) -> Number:
+  rounded-exact((num-acos(cosine-similarity(r1, r2, cols)) * 180) / PI)
 end
 
 # sort a table in terms of similarity-to-a-specific-row, as
 # specified by the ID
-fun compute-similarity(t :: Table, id, fn) block:
+fun compute-similarity(t :: Table, id, cols :: List<String>, fn) block:
   compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
-  fun compare-row(r): fn(r, compare-to) end
-  t.build-column("SIMILARITY", compare-row)
+  fun compare-row(r): fn(r, compare-to, cols) end
+  t.build-column("SIMILARITY", compare-row).order-by("SIMILARITY", false)
 end
 
 #|
@@ -517,7 +507,9 @@ end
    recommend(image-model)
 |#
 
-
+####################################################################
+#
+#  Decision Trees and Clustering
 
 
 fun simple-clustering(d :: List<Number>, n-clusters :: Number) -> List<{Number; Number}>:
@@ -1422,7 +1414,7 @@ end
 fun step(z :: Number) -> Number:
   if z >= 0: 1 else: 0 end
 end
-examples:
+examples "step and sigmoid":
   sigmoid(0)    is-roughly 0.5
   sigmoid(100)  is-roughly 1
   sigmoid(-100) is-roughly 0
@@ -1439,7 +1431,7 @@ fun apply-activation(name :: String, z :: Number) -> Number:
     | otherwise: raise(Err.message-exception("Unknown activation: " + name))
   end
 end
-examples:
+examples "apply-activation":
   apply-activation("sigmoid",  0) is-roughly 0.5
   apply-activation("step",    -1) is 0
   apply-activation("step",     1) is 1
@@ -1453,7 +1445,7 @@ fun weighted-sum(inputs :: List<Number>, weights :: List<Number>) -> Number:
   L.foldl(lam(total, p): total + p end, 0, products)
 end
 
-examples:
+examples "weighted sum":
   weighted-sum([list: 4, 3],    [list: 0.5, -1.0])    is (4 * 0.5) + (3 * -1.0)
   weighted-sum([list: 1, 1, 1], [list: 0.2, 0.3, 0.5]) is-roughly 1.0
   weighted-sum([list: ],        [list: ])              is 0
@@ -1579,7 +1571,7 @@ end
 fun squared-error(predicted :: Number, actual :: Number) -> Number:
   (predicted - actual) * (predicted - actual)
 end
-examples:
+examples "squared-error":
   squared-error(0,    0)   is 0
   squared-error(1,    1)   is 0
   squared-error(0.5,  1)   is-roughly 0.25
