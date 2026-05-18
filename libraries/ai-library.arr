@@ -416,6 +416,23 @@ fun simple-similarity(t :: Table, id, cols :: List<String>) block:
   t.build-column("simple-similarity", compare-row).order-by("simple-similarity", false)
 end
 
+# distance-similarity: returns the euclidean distance between
+# points defined by the cols
+fun distance-similarity(t :: Table, id, cols :: List<String>) block:
+  fun helper(r1 :: Row, r2 :: Row) -> Number block:
+    vals1 = cols.map({(c): r1[c]})
+    vals2 = cols.map({(c): r2[c]})
+    sum-of-squares = L.fold2(lam(acc, vA, vB): acc + sqr(vA - vB) end,
+      0,
+      vals1,
+      vals2)
+    sqrt(sum-of-squares)
+  end
+  compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
+  fun compare-row(r): helper(r, compare-to) end
+  t.build-column("distance-similarity", compare-row).order-by("distance-similarity", false)
+end
+
 # bag-similarity: returns 1 the two bags contain the same words
 # with the same frequencies (regardless of order). Otherwise 0.
 fun bag-similarity(t :: Table, id) block:
