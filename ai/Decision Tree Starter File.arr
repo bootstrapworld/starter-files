@@ -1,12 +1,12 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/", "libraries/ai-library.arr")
 shelter-sheet = load-spreadsheet("https://docs.google.com/spreadsheets/d/1DjY_8v8VGyacnpuy72Up4oYYIJ64gqvoCKR7_LTf3lI/")
 training = 
-  load-table: name, species, sex, pounds, tail, mammal, swims
+  load-table: ID, species, sex, pounds, tail, mammal, swims
     source: shelter-sheet.sheet-by-name("training", true)
   end
 
 testing = 
-  load-table: name, species, sex, pounds, tail, mammal, swims
+  load-table: ID, species, sex, pounds, tail, mammal, swims
     source: shelter-sheet.sheet-by-name("testing", true)
   end
 
