@@ -430,7 +430,7 @@ fun distance-similarity(t :: Table, id, cols :: List<String>) block:
   end
   compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
   fun compare-row(r): helper(r, compare-to) end
-  t.build-column("distance-similarity", compare-row).order-by("distance-similarity", false)
+  t.build-column("distance-similarity", compare-row).order-by("distance-similarity", true)
 end
 
 # bag-similarity: returns 1 the two bags contain the same words
@@ -487,7 +487,7 @@ fun angle-similarity(t :: Table, id, cols :: List<String>) block:
   end
   compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
   fun compare-row(r): helper(r, compare-to) end
-  t.build-column("angle-similarity", compare-row).order-by("angle-similarity", false)
+  t.build-column("angle-similarity", compare-row).order-by("angle-similarity", true)
 end
 
 #|
