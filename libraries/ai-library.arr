@@ -405,34 +405,41 @@ end
 
 # simple-similarity: true iff the specified cols of the two rows 
 # are identical
-fun simple-similarity(r1 :: Row, r2 :: Row, cols :: List<String>) -> Number block:
-  vals1 = cols.map({(c): r1[c]})
-  vals2 = cols.map({(c): r2[c]})
-  if (vals1 == vals2): 1 else: 0 end
+fun simple-similarity(t :: Table, id, cols :: List<String>, fn) block:
+  fun helper(r1 :: Row, r2 :: Row) -> Number block:
+    vals1 = cols.map({(c): r1[c]})
+    vals2 = cols.map({(c): r2[c]})
+    if (vals1 == vals2): 1 else: 0 end
+  end
+  compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
+  fun compare-row(r): helper(r, compare-to, cols) end
+  t.build-column("simple-similarity", compare-row).order-by("simple-similarity", false)
 end
 
 # bag-similarity: returns 1 the two bags contain the same words
 # with the same frequencies (regardless of order). Otherwise 0.
-fun bag-similarity(r1 :: Row, r2 :: Row) -> Number block:
-  cols = get-unrestricted-cols(r1)
-  when cols.length() == 0:
-    raise(Err.message-exception("Bag similarity ignores certain columns (" + restricted-cols.join-str(", ") + "), but no other columns were found"))
+fun bag-similarity(t :: Table, id, fn) block:
+  cols = get-unrestricted-cols(t.row-n(0))
+  fun helper(r1 :: Row, r2 :: Row) -> Number block:
+    when cols.length() == 0:
+      raise(Err.message-exception("Bag similarity ignores certain columns (" + restricted-cols.join-str(", ") + "), but no other columns were found"))
+    end
+    sd1 = row-to-dict(cols, r1)
+    sd2 = row-to-dict(cols, r2)
+    
+    if (sd1 == sd2): 1 else: 0 end
   end
-  sd1 = row-to-dict(cols, r1)
-  sd2 = row-to-dict(cols, r2)
-
-  if (sd1 == sd2): 1 else: 0 end
+  compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
+  fun compare-row(r): helper(r, compare-to, cols) end
+  t.build-column("bag-similarity", compare-row).order-by("bag-similarity", false)
 end
 
-# returns a number from 0 to 1 measuring how
-# similar the two word-frequency vectors are. 1 = identical bags,
-# 0 = no words in common. Uses the standard cosine similarity formula:
-#   cos(θ) = (A · B) / (|A| * |B|)
-fun cosine-similarity(r1 :: Row, r2 :: Row, cols :: List<String>) -> Number block:
+
+fun row-cosine-similarity(r1 :: Row, r2 :: Row, cols :: List<String>) -> Number block:
   # convert each row to a StringDict, and compute cosine similarity
   sd1 = row-to-dict(cols, r1)
   sd2 = row-to-dict(cols, r2)
-  
+
   # shortcut for truly-equal vectors
   when sd1 == sd2: 1 end
 
@@ -444,19 +451,26 @@ fun cosine-similarity(r1 :: Row, r2 :: Row, cols :: List<String>) -> Number bloc
     rounded-exact(dot-product(sd1, sd2) / magnitude-product)
   end
 end
+# returns a number from 0 to 1 measuring how
+# similar the two word-frequency vectors are. 1 = identical bags,
+# 0 = no words in common. Uses the standard cosine similarity formula:
+#   cos(θ) = (A · B) / (|A| * |B|)
+fun cosine-similarity(t :: Table, id, cols :: List<String>, fn) block:
+  compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
+  fun compare-row(r): row-cosine-similarity(r, compare-to, cols) end
+  t.build-column("cosine-similarity", compare-row).order-by("cosine-similarity", false)
+end
+
 
 # angle-similarity-lists: converts cosine similarity to degrees (0-90°).
 # 0° means the DOCs are identical; 90° means completely dissimilar.
-fun angle-similarity(r1 :: Row, r2 :: Row, cols :: List<String>) -> Number:
-  rounded-exact((num-acos(cosine-similarity(r1, r2, cols)) * 180) / PI)
-end
-
-# sort a table in terms of similarity-to-a-specific-row, as
-# specified by the ID
-fun compute-similarity(t :: Table, id, cols :: List<String>, fn) block:
+fun angle-similarity(t :: Table, id, cols :: List<String>, fn) block:
+  fun helper(r1 :: Row, r2 :: Row) -> Number:
+    rounded-exact((num-acos(row-cosine-similarity(r1, r2, cols)) * 180) / PI)
+  end
   compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
-  fun compare-row(r): fn(r, compare-to, cols) end
-  t.build-column("SIMILARITY", compare-row).order-by("SIMILARITY", false)
+  fun compare-row(r): helper(r, compare-to, cols) end
+  t.build-column("angle-similarity", compare-row).order-by("angle-similarity", false)
 end
 
 #|

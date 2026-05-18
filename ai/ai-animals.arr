@@ -7,7 +7,7 @@ shelter-sheet = load-spreadsheet(
 
 # load the 'animals' sheet as a table
 animals-table = 
-  load-table: name, species, sex, age, fixed, legs, pounds, weeks
+  load-table: ID, species, sex, age, fixed, legs, pounds, weeks
   source: shelter-sheet.sheet-by-name("pets", true)
 end
 
@@ -19,8 +19,8 @@ dog-row = row-n(animals-table, 10)
 
 # Make scatter plots showing the relationships
 # between pounds v. weeks and age v. weeks
-scatter-plot(animals-table, "name", "pounds", "weeks")
-scatter-plot(animals-table, "name", "age", "weeks")
+scatter-plot(animals-table, "ID", "pounds", "weeks")
+scatter-plot(animals-table, "ID", "age", "weeks")
 
 fun pounds-predictor(pounds): (... * pounds) + ... end
 fun   age-predictor(age):     (... *  age  ) + ... end
