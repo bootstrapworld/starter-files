@@ -405,7 +405,7 @@ end
 
 # simple-similarity: true iff the specified cols of the two rows 
 # are identical
-fun simple-similarity(t :: Table, id, cols :: List<String>, fn) block:
+fun simple-similarity(t :: Table, id, cols :: List<String>) block:
   fun helper(r1 :: Row, r2 :: Row) -> Number block:
     vals1 = cols.map({(c): r1[c]})
     vals2 = cols.map({(c): r2[c]})
@@ -418,7 +418,7 @@ end
 
 # bag-similarity: returns 1 the two bags contain the same words
 # with the same frequencies (regardless of order). Otherwise 0.
-fun bag-similarity(t :: Table, id, fn) block:
+fun bag-similarity(t :: Table, id) block:
   cols = get-unrestricted-cols(t.row-n(0))
   fun helper(r1 :: Row, r2 :: Row) -> Number block:
     when cols.length() == 0:
@@ -455,7 +455,7 @@ end
 # similar the two word-frequency vectors are. 1 = identical bags,
 # 0 = no words in common. Uses the standard cosine similarity formula:
 #   cos(θ) = (A · B) / (|A| * |B|)
-fun cosine-similarity(t :: Table, id, cols :: List<String>, fn) block:
+fun cosine-similarity(t :: Table, id, cols :: List<String>) block:
   compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
   fun compare-row(r): row-cosine-similarity(r, compare-to, cols) end
   t.build-column("cosine-similarity", compare-row).order-by("cosine-similarity", false)
@@ -464,7 +464,7 @@ end
 
 # angle-similarity-lists: converts cosine similarity to degrees (0-90°).
 # 0° means the DOCs are identical; 90° means completely dissimilar.
-fun angle-similarity(t :: Table, id, cols :: List<String>, fn) block:
+fun angle-similarity(t :: Table, id, cols :: List<String>) block:
   fun helper(r1 :: Row, r2 :: Row) -> Number:
     rounded-exact((num-acos(row-cosine-similarity(r1, r2, cols)) * 180) / PI)
   end
