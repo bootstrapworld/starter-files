@@ -1,5 +1,6 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/", "libraries/ai-library.arr")
 shelter-sheet = load-spreadsheet("https://docs.google.com/spreadsheets/d/1DjY_8v8VGyacnpuy72Up4oYYIJ64gqvoCKR7_LTf3lI/")
+
 training = 
   load-table: ID, species, sex, pounds, tail, mammal, swims
     source: shelter-sheet.sheet-by-name("training", true)
@@ -11,6 +12,27 @@ testing =
   end
 
 #####################################################################
+# Define some rows
+
+# define firepaw to be the first raw in the table
+firepaw = row-n(training, 0)
+
+
+#####################################################################
+# tail-classifier :: Row -> String
+# consumes an animal, and predicts the species
+fun tail-classifier(r):
+  if r["tail"] == true:
+    "cat"
+  else: 
+    "snail"
+  end
+end
+
+# You can test out any classifier function using the `classify` function
+# classify(testing, "species", tail-classifier)
+
+#####################################################################
 # images of various species
 dog-img      = text("🐶", 20, "black")
 cat-img      = text("😺", 20, "black")
@@ -19,12 +41,7 @@ tarantula-img= text("🕷️", 20, "black")
 snail-img    = text("🐌", 20, "black")
 rabbit-img   = text("🐇", 20, "black")
 
-
-# define firepaw to be the first raw in the table
-firepaw = row-n(training, 0)
-
-
-#######################################################################
+#####################################################################
 # animal-img :: Row -> Image
 # given a row from the animals table, produce an image of that species
 fun animal-img(r): 
@@ -37,16 +54,8 @@ fun animal-img(r):
   end
 end
 
-
-# tail-classifier :: Row -> String
-# consumes an animal, and predicts the species
-fun tail-classifier(r):
-  if r["tail"] == true:
-    "cat"
-  else: 
-    "snail"
-  end
-end
+#####################################################################
+# Define some more classifier functions!
 
 fun swim-classifier(r):
   if r["swims"] == true:
@@ -55,10 +64,6 @@ fun swim-classifier(r):
      "cat"
   end
 end
-
-# You can test out the classifier using the `classify` function
-# classify(testing, "species", tail-classifier)
-
 
 # my-classifier1 :: Row -> String
 # fill in the `...` with your splits and leaf nodes!
