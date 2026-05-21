@@ -30,7 +30,7 @@ end
 # define firepaw to be the first row in the table
 firepaw = row-n(training, 0)
 
-# define frisky to be the second row in the table
+# define frisky to be the sixth row in the table
 
 #####################################################################
 # images of various species
