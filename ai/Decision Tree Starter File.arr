@@ -1,4 +1,5 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/", "libraries/ai-library.arr")
+
 shelter-sheet = load-spreadsheet("https://docs.google.com/spreadsheets/d/1DjY_8v8VGyacnpuy72Up4oYYIJ64gqvoCKR7_LTf3lI/")
 
 training = 
@@ -10,13 +11,6 @@ testing =
   load-table: ID, species, sex, pounds, tail, mammal, swims
     source: shelter-sheet.sheet-by-name("testing", true)
   end
-
-#####################################################################
-# Define some rows
-
-# define firepaw to be the first raw in the table
-firepaw = row-n(training, 0)
-
 
 #####################################################################
 # tail-classifier :: Row -> String
@@ -31,6 +25,12 @@ end
 
 # You can test out any classifier function using the `classify` function
 # classify(testing, "species", tail-classifier)
+
+#####################################################################
+# define firepaw to be the first row in the table
+firepaw = row-n(training, 0)
+
+# define frisky to be the second row in the table
 
 #####################################################################
 # images of various species
@@ -54,19 +54,14 @@ fun animal-img(r):
   end
 end
 
+# Use animal-img to make an image-dot-plot
+# image-dot-plot(training, "pounds", animal-img)
+
 #####################################################################
 # Define some more classifier functions!
 
-fun swim-classifier(r):
-  if r["swims"] == true:
-     "dog"
-  else:
-     "cat"
-  end
-end
-
 # my-classifier1 :: Row -> String
-# fill in the `...` with your splits and leaf nodes!
+# fill in the `...` with your splits and leaf nodes for a one-level tree!
 fun my-classifier1(r):
   if r[...] == ... :
     ...
@@ -75,7 +70,7 @@ fun my-classifier1(r):
   end
 end
 
-# fill in the `...` with your splits and leaf nodes!
+# fill in the `...` with your splits and leaf nodes for a two-level tree!
 fun my-classifier2(r):
   if r[...] == ... :
     if r[...] == ... :
