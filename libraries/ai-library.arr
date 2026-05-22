@@ -717,8 +717,8 @@ sharing:
           else:
             col + " == " + render-val(val) + "?"
           end
-          yes-lines = prefix-lines(to-lines(yes),     "├── ", "│   ")
-          no-lines  = prefix-lines(to-lines(no), "└── ", "    ")
+          yes-lines = prefix-lines(to-lines(yes),     "├✔─ ", "│   ")
+          no-lines  = prefix-lines(to-lines(no), "└✘─ ", "    ")
           [list: header] + yes-lines + no-lines
       end
     end
