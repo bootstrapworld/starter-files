@@ -587,7 +587,7 @@ end
 # `frames-per-second` is your knob for slow machines: recommend
 # 20fps on fast machines, and 12fps on slow ones
 # ============================================================
-fun drive(predictor, frames-per-second):
+fun drive(frames-per-second, predictor) block:
   initial = fresh-game()
   fun get-steering(s, sharpness, offset, heading-err):
     r = [Tables.raw-row:
@@ -611,6 +611,7 @@ fun drive(predictor, frames-per-second):
     title:            "ML-driven car"
   end
   r.interact()
+  nothing
 end
 # ============================================================
 # TRAINING REACTOR FACTORIES
