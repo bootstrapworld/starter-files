@@ -405,32 +405,58 @@ end
 
 # simple-similarity: true iff the specified cols of the two rows 
 # are identical
-fun simple-similarity(r1 :: Row, r2 :: Row, cols :: List<String>) -> Number block:
-  vals1 = cols.map({(c): r1[c]})
-  vals2 = cols.map({(c): r2[c]})
-  if (vals1 == vals2): 1 else: 0 end
+fun simple-similarity(t :: Table, id, cols :: List<String>) block:
+  fun helper(r1 :: Row, r2 :: Row) -> Number block:
+    vals1 = cols.map({(c): r1[c]})
+    vals2 = cols.map({(c): r2[c]})
+    if (vals1 == vals2): 1 else: 0 end
+  end
+  compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
+  fun compare-row(r): helper(r, compare-to) end
+  t.build-column("simple-similarity", compare-row).order-by("simple-similarity", false)
 end
 
 # distance-similarity: returns the euclidean distance between
-# rows, as defined by the cols
-fun distance-similarity(r1 :: Row, r2 :: Row, cols :: List<String>) -> Number block:
-  vals1 = cols.map({(c): r1[c]})
-  vals2 = cols.map({(c): r2[c]})
-  if cols.length() == 1: 
-    abs(r1[cols.get(0)] - r2[cols.get(0)])
-  else:
-    sum-of-squares = L.fold2(lam(acc, vA, vB): acc + sqr(vA - vB) end,
-      0,
-      vals1,
-      vals2)
-    rounded-exact(sqrt(sum-of-squares))
+# points defined by the cols
+fun distance-similarity(t :: Table, id, cols :: List<String>) block:
+  fun helper(r1 :: Row, r2 :: Row) -> Number block:
+    vals1 = cols.map({(c): r1[c]})
+    vals2 = cols.map({(c): r2[c]})
+    if cols.length() == 1: 
+      abs(r1[cols.get(0)] - r2[cols.get(0)])
+    else:
+      sum-of-squares = L.fold2(lam(acc, vA, vB): acc + sqr(vA - vB) end,
+        0,
+        vals1,
+        vals2)
+      rounded-exact(sqrt(sum-of-squares))
+    end
   end
+  compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
+  fun compare-row(r): helper(r, compare-to) end
+  t.build-column("distance-similarity", compare-row).order-by("distance-similarity", true)
 end
 
-# returns the cosine similarity between two rows, based on the specified
-# columns. Uses the standard cosine similarity formula:
-#   cos(θ) = (A · B) / (|A| * |B|)
-fun cosine-similarity(r1 :: Row, r2 :: Row, cols :: List<String>) -> Number block:
+# bag-similarity: returns 1 the two bags contain the same words
+# with the same frequencies (regardless of order). Otherwise 0.
+fun bag-similarity(t :: Table, id) block:
+  cols = get-unrestricted-cols(t.row-n(0))
+  fun helper(r1 :: Row, r2 :: Row) -> Number block:
+    when cols.length() == 0:
+      raise(Err.message-exception("Bag similarity ignores certain columns (" + restricted-cols.join-str(", ") + "), but no other columns were found"))
+    end
+    sd1 = row-to-dict(cols, r1)
+    sd2 = row-to-dict(cols, r2)
+
+    if (sd1 == sd2): 1 else: 0 end
+  end
+  compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
+  fun compare-row(r): helper(r, compare-to) end
+  t.build-column("bag-similarity", compare-row).order-by("bag-similarity", false)
+end
+
+
+fun row-cosine-similarity(r1 :: Row, r2 :: Row, cols :: List<String>) -> Number block:
   # convert each row to a StringDict, and compute cosine similarity
   sd1 = row-to-dict(cols, r1)
   sd2 = row-to-dict(cols, r2)
@@ -446,48 +472,26 @@ fun cosine-similarity(r1 :: Row, r2 :: Row, cols :: List<String>) -> Number bloc
     rounded-exact(dot-product(sd1, sd2) / magnitude-product)
   end
 end
-
-# returns the angle similarity between two rows, based on the specified
-# columns. (Just a wrapper around cosine-similarity)
-fun angle-similarity(r1 :: Row, r2 :: Row, cols :: List<String>) -> Number:
-  rounded-exact((num-acos(cosine-similarity(r1, r2, cols)) * 180) / PI)
-end
-
-# given a table, an id, a list of columns and a similarity function,
-# reproduces the table with a new "similarity" column, showing
-# the results of comparing each column to the one specified by the id
-# using the given similarity function
-fun similarity-to-id(
-    t :: Table, 
-    id, 
-    cols :: List<String>, 
-    similarity-fn :: (Row, Row, List<String> -> Number)) block:
-  matches = t.filter({(r): r["id"] == id})
-  when (matches.length() <> 1):
-    raise(Err.message-exception("The ID you provided must match EXACTLY one row in the table"))
-  end
-  target-row = matches.row-n(0)
-  fun compare-row(sample-row): similarity-fn(sample-row, target-row, cols) end
-  t.build-column("similarity", compare-row)
+# returns a number from 0 to 1 measuring how
+# similar the two word-frequency vectors are. 1 = identical bags,
+# 0 = no words in common. Uses the standard cosine similarity formula:
+#   cos(θ) = (A · B) / (|A| * |B|)
+fun cosine-similarity(t :: Table, id, cols :: List<String>) block:
+  compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
+  fun compare-row(r): row-cosine-similarity(r, compare-to, cols) end
+  t.build-column("cosine-similarity", compare-row).order-by("cosine-similarity", false)
 end
 
 
-# bag-similarity: returns 1 the two bags contain the same words
-# with the same frequencies (regardless of order). Otherwise 0.
-fun bag-similarity(t :: Table, id) block:
-  cols = get-unrestricted-cols(t.row-n(0))
-  fun helper(r1 :: Row, r2 :: Row) -> Number block:
-    when cols.length() == 0:
-      raise(Err.message-exception("Bag similarity ignores certain columns (" + restricted-cols.join-str(", ") + "), but no other columns were found"))
-    end
-    sd1 = row-to-dict(cols, r1)
-    sd2 = row-to-dict(cols, r2)
-    
-    if (sd1 == sd2): 1 else: 0 end
+# angle-similarity-lists: converts cosine similarity to degrees (0-90°).
+# 0° means the DOCs are identical; 90° means completely dissimilar.
+fun angle-similarity(t :: Table, id, cols :: List<String>) block:
+  fun helper(r1 :: Row, r2 :: Row) -> Number:
+    rounded-exact((num-acos(row-cosine-similarity(r1, r2, cols)) * 180) / PI)
   end
   compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
   fun compare-row(r): helper(r, compare-to) end
-  t.build-column("bag-similarity", compare-row).order-by("bag-similarity", false)
+  t.build-column("angle-similarity", compare-row).order-by("angle-similarity", true)
 end
 
 
@@ -1620,7 +1624,7 @@ fun dataset-loss(
     data_ :: Table,
     feature-names :: List<String>,
     target-name :: String
-  ) -> Number:
+    ) -> Number:
   feature-cols = L.map(lam(name): data_.column(name) end, feature-names)
   targets      = data_.column(target-name)
 
@@ -1658,27 +1662,27 @@ fun perturb-weight(
     neuron-idx :: Number,
     weight-idx :: Number,
     delta :: Number
-  ) -> Network:
+    ) -> Network:
   doc: "Return a copy of `net` with one weight (at the given coords) shifted by `delta`."
   L.map_n(lam(li, layer):
-    if li == layer-idx:
-      L.map_n(lam(ni, neuron):
-        if ni == neuron-idx:
-          old-weights = neuron.weights.column("weight")
-          new-weights = L.map_n(
-            lam(wi, w): if wi == weight-idx: w + delta else: w end end,
-            0, old-weights)
-          {
-            weights:    update-weights-column(neuron.weights, new-weights),
-            bias:       neuron.bias,
-            activation: neuron.activation
-          }
-        else: neuron
-        end
-      end, 0, layer)
-    else: layer
-    end
-  end, 0, net)
+      if li == layer-idx:
+        L.map_n(lam(ni, neuron):
+            if ni == neuron-idx:
+              old-weights = neuron.weights.column("weight")
+              new-weights = L.map_n(
+                lam(wi, w): if wi == weight-idx: w + delta else: w end end,
+                0, old-weights)
+              {
+                weights:    update-weights-column(neuron.weights, new-weights),
+                bias:       neuron.bias,
+                activation: neuron.activation
+              }
+            else: neuron
+            end
+          end, 0, layer)
+      else: layer
+      end
+    end, 0, net)
 end
 
 # make a net where a specific bias has been shifted by delta
@@ -1687,23 +1691,23 @@ fun perturb-bias(
     layer-idx :: Number,
     neuron-idx :: Number,
     delta :: Number
-  ) -> Network:
+    ) -> Network:
   doc: "Return a copy of `net` with one neuron's bias shifted by `delta`."
   L.map_n(lam(li, layer):
-    if li == layer-idx:
-      L.map_n(lam(ni, neuron):
-        if ni == neuron-idx:
-          {
-            weights:    neuron.weights,
-            bias:       neuron.bias + delta,
-            activation: neuron.activation
-          }
-        else: neuron
-        end
-      end, 0, layer)
-    else: layer
-    end
-  end, 0, net)
+      if li == layer-idx:
+        L.map_n(lam(ni, neuron):
+            if ni == neuron-idx:
+              {
+                weights:    neuron.weights,
+                bias:       neuron.bias + delta,
+                activation: neuron.activation
+              }
+            else: neuron
+            end
+          end, 0, layer)
+      else: layer
+      end
+    end, 0, net)
 end
 
 
@@ -1729,34 +1733,34 @@ fun numerical-gradient(
     feature-names :: List<String>,
     target-name :: String,
     epsilon :: Number
-  ) -> Network:
+    ) -> Network:
   fun loss-at(perturbed :: Network) -> Number:
     dataset-loss(perturbed, data_, feature-names, target-name)
   end
 
   L.map_n(lam(li, layer):
-    L.map_n(lam(ni, neuron):
-      old-weights = neuron.weights.column("weight")
-      # One gradient per weight.
-      weight-grads = L.map_n(
-        lam(wi, _):
-          (loss-at(perturb-weight(net, li, ni, wi, epsilon))
-            - loss-at(perturb-weight(net, li, ni, wi, 0 - epsilon)))
-          / (2 * epsilon)
-        end,
-        0, old-weights)
-      # One gradient for the bias.
-      bias-grad =
-        (loss-at(perturb-bias(net, li, ni, epsilon))
-          - loss-at(perturb-bias(net, li, ni, 0 - epsilon)))
-        / (2 * epsilon)
-      {
-        weights:    update-weights-column(neuron.weights, weight-grads),
-        bias:       bias-grad,
-        activation: neuron.activation
-      }
-    end, 0, layer)
-  end, 0, net)
+      L.map_n(lam(ni, neuron):
+          old-weights = neuron.weights.column("weight")
+          # One gradient per weight.
+          weight-grads = L.map_n(
+            lam(wi, _):
+              (loss-at(perturb-weight(net, li, ni, wi, epsilon))
+                  - loss-at(perturb-weight(net, li, ni, wi, 0 - epsilon)))
+                / (2 * epsilon)
+            end,
+            0, old-weights)
+          # One gradient for the bias.
+          bias-grad =
+            (loss-at(perturb-bias(net, li, ni, epsilon))
+                - loss-at(perturb-bias(net, li, ni, 0 - epsilon)))
+            / (2 * epsilon)
+          {
+            weights:    update-weights-column(neuron.weights, weight-grads),
+            bias:       bias-grad,
+            activation: neuron.activation
+          }
+        end, 0, layer)
+    end, 0, net)
 where:
   # Sanity check: the gradient has the same shape as the network.
   tiny = make-neuron(
@@ -1765,7 +1769,7 @@ where:
     end,
     0, "sigmoid")
   tiny-net  = [list: [list: tiny]]
-  tiny-data = table: x :: Number, y :: Number  row: 1, 1  end
+tiny-data = table: x :: Number, y :: Number  row: 1, 1  end
   g = numerical-gradient(tiny-net, tiny-data, [list: "x"], "y", 0.001)
   L.length(g) is L.length(tiny-net)                              # same #layers
   L.length(g.first) is L.length(tiny-net.first)                  # same #neurons
@@ -1778,29 +1782,29 @@ fun apply-gradient(
     net :: Network,
     grad :: Network,
     learning-rate :: Number
-  ) -> Network:
+    ) -> Network:
   L.map2(lam(layer, grad-layer):
-    L.map2(lam(neuron, grad-neuron):
-      old-weights  = neuron.weights.column("weight")
-      grad-weights = grad-neuron.weights.column("weight")
-      new-weights  = L.map2(
-        lam(w, gw): w - (learning-rate * gw) end,
-        old-weights, grad-weights)
-      {
-        weights:    update-weights-column(neuron.weights, new-weights),
-        bias:       neuron.bias - (learning-rate * grad-neuron.bias),
-        activation: neuron.activation
-      }
-    end, layer, grad-layer)
-  end, net, grad)
+      L.map2(lam(neuron, grad-neuron):
+          old-weights  = neuron.weights.column("weight")
+          grad-weights = grad-neuron.weights.column("weight")
+          new-weights  = L.map2(
+            lam(w, gw): w - (learning-rate * gw) end,
+            old-weights, grad-weights)
+          {
+            weights:    update-weights-column(neuron.weights, new-weights),
+            bias:       neuron.bias - (learning-rate * grad-neuron.bias),
+            activation: neuron.activation
+          }
+        end, layer, grad-layer)
+    end, net, grad)
 where:
   # A zero gradient leaves the network unchanged.
   n = make-neuron(
-    table: input-name :: String, weight :: Number row: "x", 0.7 end,
+  table: input-name :: String, weight :: Number row: "x", 0.7 end,
     0.2, "sigmoid")
   net = [list: [list: n]]
   zero-grad = make-neuron(
-    table: input-name :: String, weight :: Number row: "x", 0 end,
+  table: input-name :: String, weight :: Number row: "x", 0 end,
     0, "sigmoid")
   zero-grad-net = [list: [list: zero-grad]]
   stepped = apply-gradient(net, zero-grad-net, 1)
@@ -1828,7 +1832,7 @@ fun train(
     target-name :: String,
     learning-rate :: Number,
     epochs :: Number
-  ) -> { trained :: Network, loss-history :: Table }:
+    ) -> { trained :: Network, loss-history :: Table }:
 
   EPSILON = 0.001    # finite-difference step size
 
@@ -1852,7 +1856,7 @@ where:
   # A one-neuron sigmoid network learning y = sigmoid(2x).
   # Initial weight 0, bias 0 → initial output 0.5 for every x.
   start = make-neuron(
-    table: input-name :: String, weight :: Number row: "x", 0 end,
+  table: input-name :: String, weight :: Number row: "x", 0 end,
     0, "sigmoid")
   start-net = [list: [list: start]]
   toy-data = table: x :: Number, y :: Number
