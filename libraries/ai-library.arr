@@ -462,8 +462,8 @@ fun similarity-to-id(
   when (matches.length() <> 1):
     raise(Err.message-exception("The ID you provided must match EXACTLY one row in the table"))
   end
-  target = matches.row-n(0)
-  fun compare-row(r): similarity-fn(r, target) end
+  target-row = matches.row-n(0)
+  fun compare-row(sample-row): similarity-fn(sample-row, target-row, cols) end
   t.build-column("similarity", compare-row)
 end
 
