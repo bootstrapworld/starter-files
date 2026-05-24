@@ -416,11 +416,15 @@ end
 fun distance-similarity(r1 :: Row, r2 :: Row, cols :: List<String>) -> Number block:
   vals1 = cols.map({(c): r1[c]})
   vals2 = cols.map({(c): r2[c]})
-  sum-of-squares = L.fold2(lam(acc, vA, vB): acc + sqr(vA - vB) end,
-    0,
-    vals1,
-    vals2)
-  rounded-exact(sqrt(sum-of-squares))
+  if cols.length() == 1: 
+    abs(r1[cols.get(0)] - r2[cols.get(0)])
+  else:
+    sum-of-squares = L.fold2(lam(acc, vA, vB): acc + sqr(vA - vB) end,
+      0,
+      vals1,
+      vals2)
+    rounded-exact(sqrt(sum-of-squares))
+  end
 end
 
 # returns the cosine similarity between two rows, based on the specified
