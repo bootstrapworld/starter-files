@@ -405,33 +405,68 @@ end
 
 # simple-similarity: true iff the specified cols of the two rows 
 # are identical
-fun simple-similarity(t :: Table, id, cols :: List<String>) block:
-  fun helper(r1 :: Row, r2 :: Row) -> Number block:
-    vals1 = cols.map({(c): r1[c]})
-    vals2 = cols.map({(c): r2[c]})
-    if (vals1 == vals2): 1 else: 0 end
-  end
-  compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
-  fun compare-row(r): helper(r, compare-to) end
-  t.build-column("simple-similarity", compare-row).order-by("simple-similarity", false)
+fun simple-similarity(r1 :: Row, r2 :: Row, cols :: List<String>) -> Number block:
+  vals1 = cols.map({(c): r1[c]})
+  vals2 = cols.map({(c): r2[c]})
+  if (vals1 == vals2): 1 else: 0 end
 end
 
 # distance-similarity: returns the euclidean distance between
-# points defined by the cols
-fun distance-similarity(t :: Table, id, cols :: List<String>) block:
-  fun helper(r1 :: Row, r2 :: Row) -> Number block:
-    vals1 = cols.map({(c): r1[c]})
-    vals2 = cols.map({(c): r2[c]})
-    sum-of-squares = L.fold2(lam(acc, vA, vB): acc + sqr(vA - vB) end,
-      0,
-      vals1,
-      vals2)
-    rounded-exact(sqrt(sum-of-squares))
-  end
-  compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
-  fun compare-row(r): helper(r, compare-to) end
-  t.build-column("distance-similarity", compare-row).order-by("distance-similarity", true)
+# rows, as defined by the cols
+fun distance-similarity(r1 :: Row, r2 :: Row, cols :: List<String>) -> Number block:
+  vals1 = cols.map({(c): r1[c]})
+  vals2 = cols.map({(c): r2[c]})
+  sum-of-squares = L.fold2(lam(acc, vA, vB): acc + sqr(vA - vB) end,
+    0,
+    vals1,
+    vals2)
+  rounded-exact(sqrt(sum-of-squares))
 end
+
+# returns the cosine similarity between two rows, based on the specified
+# columns. Uses the standard cosine similarity formula:
+#   cos(θ) = (A · B) / (|A| * |B|)
+fun cosine-similarity(r1 :: Row, r2 :: Row, cols :: List<String>) -> Number block:
+  # convert each row to a StringDict, and compute cosine similarity
+  sd1 = row-to-dict(cols, r1)
+  sd2 = row-to-dict(cols, r2)
+
+  # shortcut for truly-equal vectors
+  when sd1 == sd2: 1 end
+
+  # if the magnitude of the products is 0, return 0 with a warning
+  magnitude-product = sqrt(dot-product(sd1, sd1)) * sqrt(dot-product(sd2, sd2))
+  if num-exact(magnitude-product) == 0:
+    raise(Err.message-exception("One of the vectors being compared is zero, so I can't calculate its similarity. Does one of your rows have all zero values?"))
+  else:
+    rounded-exact(dot-product(sd1, sd2) / magnitude-product)
+  end
+end
+
+# returns the angle similarity between two rows, based on the specified
+# columns. (Just a wrapper around cosine-similarity)
+fun angle-similarity(r1 :: Row, r2 :: Row, cols :: List<String>) -> Number:
+  rounded-exact((num-acos(cosine-similarity(r1, r2, cols)) * 180) / PI)
+end
+
+# given a table, an id, a list of columns and a similarity function,
+# reproduces the table with a new "similarity" column, showing
+# the results of comparing each column to the one specified by the id
+# using the given similarity function
+fun similarity-to-id(
+    t :: Table, 
+    id, 
+    cols :: List<String>, 
+    similarity-fn :: (Row, Row, List<String> -> Number)) block:
+  matches = t.filter({(r): r["id"] == id})
+  when (matches.length() <> 1):
+    raise(Err.message-exception("The ID you provided must match EXACTLY one row in the table"))
+  end
+  target = matches.row-n(0)
+  fun compare-row(r): similarity-fn(r, target) end
+  t.build-column("similarity", compare-row)
+end
+
 
 # bag-similarity: returns 1 the two bags contain the same words
 # with the same frequencies (regardless of order). Otherwise 0.
@@ -451,44 +486,6 @@ fun bag-similarity(t :: Table, id) block:
   t.build-column("bag-similarity", compare-row).order-by("bag-similarity", false)
 end
 
-
-fun row-cosine-similarity(r1 :: Row, r2 :: Row, cols :: List<String>) -> Number block:
-  # convert each row to a StringDict, and compute cosine similarity
-  sd1 = row-to-dict(cols, r1)
-  sd2 = row-to-dict(cols, r2)
-
-  # shortcut for truly-equal vectors
-  when sd1 == sd2: 1 end
-
-  # if the magnitude of the products is 0, return 0 with a warning
-  magnitude-product = sqrt(dot-product(sd1, sd1)) * sqrt(dot-product(sd2, sd2))
-  if num-exact(magnitude-product) == 0:
-    raise(Err.message-exception("One of the vectors being compared is zero, so I can't calculate its similarity. Does one of your rows have all zero values?"))
-  else:
-    rounded-exact(dot-product(sd1, sd2) / magnitude-product)
-  end
-end
-# returns a number from 0 to 1 measuring how
-# similar the two word-frequency vectors are. 1 = identical bags,
-# 0 = no words in common. Uses the standard cosine similarity formula:
-#   cos(θ) = (A · B) / (|A| * |B|)
-fun cosine-similarity(t :: Table, id, cols :: List<String>) block:
-  compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
-  fun compare-row(r): row-cosine-similarity(r, compare-to, cols) end
-  t.build-column("cosine-similarity", compare-row).order-by("cosine-similarity", false)
-end
-
-
-# angle-similarity-lists: converts cosine similarity to degrees (0-90°).
-# 0° means the DOCs are identical; 90° means completely dissimilar.
-fun angle-similarity(t :: Table, id, cols :: List<String>) block:
-  fun helper(r1 :: Row, r2 :: Row) -> Number:
-    rounded-exact((num-acos(row-cosine-similarity(r1, r2, cols)) * 180) / PI)
-  end
-  compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
-  fun compare-row(r): helper(r, compare-to) end
-  t.build-column("angle-similarity", compare-row).order-by("angle-similarity", true)
-end
 
 #|
    ########################################################################

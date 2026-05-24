@@ -1,0 +1,18 @@
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/", "libraries/ai-library.arr")
+fast-food-sheet = load-spreadsheet("https://docs.google.com/spreadsheets/d/1INp_O7oOwY68694lScyEUNbbHTpOCQA0RPQQXQR9URo/")
+
+fast-food = load-table: 
+  id, 
+  restaurant,  
+  price, 
+  fries, 
+  burgers
+  source: fast-food-sheet.sheet-by-name("data", true) 
+end
+scatter-plot(fast-food, "restaurant", "fries", "price")
+scatter-plot(fast-food, "restaurant", "burgers", "price")
+
+##################################
+# Define some rows
+mc-donalds = row-n(fast-food, 0)
+in-n-out   = row-n(fast-food, 5)
