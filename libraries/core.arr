@@ -246,8 +246,8 @@ fun split-num-str(num-str):
       {num-str; ''; ''}
     else:
       {string-substring(num-str, 0, e-pos);
-       '';
-       string-substring(num-str, e-pos, len)}
+        '';
+        string-substring(num-str, e-pos, len)}
     end
   else:
     int-part = string-substring(num-str, 0, dot-pos)
@@ -258,8 +258,8 @@ fun split-num-str(num-str):
       {int-part; frac-expt-part; ''}
     else:
       {int-part;
-       string-substring(frac-expt-part, 0, e-pos);
-       string-substring(frac-expt-part, e-pos, fe-len)}
+        string-substring(frac-expt-part, 0, e-pos);
+        string-substring(frac-expt-part, e-pos, fe-len)}
     end
   end
 end
@@ -276,7 +276,7 @@ fun shrink-dec(num-str, max-chars):
       cantfit
     else:
       cases(ShrinkResult) shrink-dec-part(frac-part,
-          max-chars - (int-part-len + expt-part-len + 1)):
+            max-chars - (int-part-len + expt-part-len + 1)):
         | cantfit => cantfit
         | overflow =>
           int-part-num = string-to-number-i(int-part)
@@ -298,14 +298,14 @@ end
 fun mantissa-parts(int-str, dec-str, girth):
   if girth >= 0:
     {string-char-at(int-str, 0);
-     string-substring(int-str, 1, string-length(int-str)) + dec-str}
+      string-substring(int-str, 1, string-length(int-str)) + dec-str}
   else:
     neg-girth = 0 - girth
     dec-str-len = string-length(dec-str)
     {string-char-at(dec-str, neg-girth - 1);
-     if neg-girth == dec-str-len: '0'
-     else: string-substring(dec-str, neg-girth, dec-str-len)
-     end}
+      if neg-girth == dec-str-len: '0'
+      else: string-substring(dec-str, neg-girth, dec-str-len)
+      end}
   end
 end
 
@@ -462,8 +462,8 @@ fun easy-num-repr(n :: Number, max-chars :: Number) -> String:
     | fits(s) => prefix + s
     | cantfit =>
       raise('Could not fit ' + prefix +
-            num-to-fixnum-no-exp-str(abs(n)) +
-            ' into ' + tostring(max-chars) + ' chars')
+        num-to-fixnum-no-exp-str(abs(n)) +
+        ' into ' + tostring(max-chars) + ' chars')
   end
 end
 
@@ -1465,7 +1465,7 @@ fun mr-fun(t, params, response) block:
     when params.any(row-missing-col):
       raise(Err.message-exception("One or more of the columns needed by this model (" + params.join-str(", ") + " and " + response + ") was not found in the table. Are you sure you are fitting the right model to the right data?"))
     end
-    
+
     fun fold-coeffs(acc, row): 
       if row["coefficient-name"] == "intercept": acc + row["coefficient-value"]
       else: acc + (r[row["coefficient-name"]] * row["coefficient-value"])
@@ -1494,7 +1494,7 @@ fun mr-code(t, params, response) block:
     else: 
       acc + "(r[\"" + row["coefficient-name"] + "\"] * " 
         + easy-num-repr(row["coefficient-value"], 6) + ") + "
-      end
+    end
   end
   print("fun predictor(r):\n  " + L.foldr(fold-code, "", coeffs.all-rows()) + "\nend")
   nothing
@@ -2364,11 +2364,43 @@ end
 # compute symmetry along the horizontal and vertical axes
 # 1 = totally symmetric, 0 = not at all symmetric
 fun image-symmetry-vertical(img :: Image) -> Number:
-  1 - ((~0 + images-difference(img, flip-horizontal(img)).v) / 255)
+  num-exact(num-round-to(
+      1 - ((~0 + images-difference(img, flip-horizontal(img)).v) / 255),
+      10))
 end
 fun image-symmetry-horizontal(img :: Image) -> Number:
-  1 - ((~0 + images-difference(img, flip-vertical(img)).v) / 255)
+  num-exact(num-round-to(
+      1 - ((~0 + images-difference(img, flip-vertical(img)).v) / 255),
+      10))
 end
+
+# Counts pixels in `img` where the given channel ("red", "green", or "blue")
+# is strictly the largest of the three channel values
+fun count-dominant-pixels(img :: Image, channel :: String) -> Number:
+  # Returns true if `a` is strictly greater than both `b` and `c`
+  fun is-dominant(a :: Number, b :: Number, c :: Number) -> Boolean:
+    (a > b) and (a > c)
+  end
+
+  color-list = I.image-to-color-list(img)
+  for fold(acc from 0, c from color-list):
+    r = c.red
+    g = c.green
+    b = c.blue
+    dominant = ask:
+      | channel == "red"   then: is-dominant(r, g, b)
+      | channel == "green" then: is-dominant(g, r, b)
+      | channel == "blue"  then: is-dominant(b, r, g)
+      | otherwise: false
+    end
+    if dominant: acc + 1 else: acc end
+  end
+end
+
+fun image-red-pixels(img :: Image):   count-dominant-pixels(img, "red")   end
+fun image-green-pixels(img :: Image): count-dominant-pixels(img, "green") end
+fun image-blue-pixels(img :: Image):  count-dominant-pixels(img, "blud")  end
+
 
 ################################################################
 ###################### TEXT TOOLS ##################
