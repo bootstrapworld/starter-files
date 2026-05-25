@@ -9,10 +9,16 @@ fast-food = load-table:
   burgers
   source: fast-food-sheet.sheet-by-name("data", true) 
 end
-scatter-plot(fast-food, "restaurant", "fries", "price")
-scatter-plot(fast-food, "restaurant", "burgers", "price")
+
 
 ##################################
 # Define some rows
 mc-donalds = row-n(fast-food, 0)
 in-n-out   = row-n(fast-food, 5)
+
+##################################
+# Similarity Functions
+# simple-similarity   :: Table, String, List<String> -> Table
+# distance-similarity :: Table, String, List<String> -> Table
+# angle-similarity    :: Table, String, List<String> -> Table
+# cosine-similarity   :: Table, String, List<String> -> Table
