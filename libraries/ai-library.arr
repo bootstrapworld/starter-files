@@ -63,11 +63,6 @@ fun decorate-image-table(t, doc-col):
   L.fold(lam(shadow t, f): f(t, doc-col) end, t, fns)
 end
 
-fun doc-thumbnail(r): 
-  factor = 80 / image-width(r["doc"])
-  scale(factor, r["doc"])
-end
-
 fun add-grade(t): add-col(t, "grade", text-grade) end
 fun add-cleaned(t, remove-stops):  
   add-col(t, "cleaned", lam(doc): text-clean(doc, remove-stops) end) 

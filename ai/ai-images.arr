@@ -13,20 +13,35 @@ img9 = image-url(lesson-folder + "sunset-mountains.png")
 
 # define the image table, leaving rating and tags empty
 images = table: ID, doc, rating, tags
-  row: "1", img1, "", ""
-  row: "2", img2, "", ""
-  row: "3", img3, "", ""
-  row: "4", img4, "", ""
-  row: "5", img5, "", ""
-  row: "6", img6, "", ""
-  row: "7", img7, "", ""
-  row: "8", img8, "", ""
-  row: "9", img9, "", ""
+  row: "0", img1, "", ""
+  row: "1", img2, "", ""
+  row: "2", img3, "", ""
+  row: "3", img4, "", ""
+  row: "4", img5, "", ""
+  row: "5", img6, "", ""
+  row: "6", img7, "", ""
+  row: "7", img8, "", ""
+  row: "8", img9, "", ""
 end
 
-# shrink all the images and make a new image table
-fun shrink(img): scale(1/2, img) end
-small-images = transform-column(images, "doc", shrink)
+# given an Image, make it half the size
+fun shrink(img): 
+  scale(1/2, img) 
+end
 
-# define a new table, with two computed columns
-images2 = images
+# shrink every image in image-table, and make a new table
+small-images = transform-column(images, "doc", shrink)
+decorated = decorate-image-table(small-images, "doc")
+
+# Four rows where the sun is visible
+sun1 = row-n(decorated, 0)
+sun2 = row-n(decorated, 6)
+sun3 = row-n(decorated, 7)
+sun4 = row-n(decorated, 8)
+
+
+# given a Row, produce an image with width=80
+fun doc-thumbnail(r): 
+  factor = 80 / image-width(r["doc"])
+  scale(factor, r["doc"])
+end
