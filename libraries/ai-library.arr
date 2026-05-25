@@ -32,12 +32,6 @@ include option
 include matrices
 
 
-SMALL-IMAGE-WIDTH = 100
-fun shrink-image(img :: Image) -> Image:
-  factor = SMALL-IMAGE-WIDTH / image-width(img)
-  scale(factor, img)
-end
-
 DIGITS = 10
 fun rounded-exact(r):
   num-exact(num-round-to(r, DIGITS))
@@ -67,6 +61,11 @@ fun add-color-names(t, doc-col): add-col(t, doc-col, "color-names", image-color-
 fun decorate-image-table(t, doc-col):
   fns = [list: add-width, add-height, add-luminance, add-entropy, add-symmetry-v, add-symmetry-h, add-color-names]
   L.fold(lam(shadow t, f): f(t, doc-col) end, t, fns)
+end
+
+fun doc-thumbnail(r): 
+  factor = 80 / image-width(r["doc"])
+  scale(factor, r["doc"])
 end
 
 fun add-grade(t): add-col(t, "grade", text-grade) end
@@ -152,11 +151,6 @@ fun get-unrestricted-cols(r):
       not(restricted-cols.any({(rc): string-contains(c, rc) or is-all-uppercase(c)}))})
 end
 
-
-# a doc-mutating function
-fun shrink-images(t):
-  t.transform-column("DOC", shrink-image)
-end
 
 # a table-normalizing function
 fun normalize(self):
