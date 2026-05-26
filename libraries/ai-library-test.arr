@@ -14,9 +14,11 @@ _centroid-test =
   end
 examples "add-centroid":
   add-centroid(_centroid-test, "test", [list: "a", "b"]) is
-  _centroid-test.add-row([T.raw-row: 
-      {"ID";"test CENTROID"},{"DOC";nothing}, {"LIKED";false}, {"DISLIKED";false}, {"TAGS";""},{"x";3},{"y";3}
-    ])
+  table: ID, DOC, LIKED, DISLIKED, TAGS, x, y  
+    row: "a", "", true,   false,   "",   2, 1 
+    row: "b", "", true,   true,    "",   4, 5 
+    row: "test CENTROID", "", false, false, "", 3, 3
+  end
 end
 
 fun find-by-tag(t :: Table, tag :: String): 
@@ -144,8 +146,8 @@ tiny-data = table: x :: Number, y :: Number  row: 1, 1  end
 g = numerical-gradient(tiny-net, tiny-data, [list: "x"], "y", 0.001)
 examples "numerical-gradient":
   # Sanity check: the gradient has the same shape as the network.
-  L.length(g) is L.length(tiny-net)                              # same #layers
-  L.length(g.first) is L.length(tiny-net.first)                  # same #neurons
+  g.length()       is tiny-net.length()             # same #layers
+  g.first.length() is tiny-net.first.length()       # same #neurons
 end
 
 
