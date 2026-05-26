@@ -258,11 +258,9 @@ end
 # Given a table, recursively build the centroid as a StringDict
 # by averaging each non-restricted column. Use exactnum to allow
 # for easy comparison
-fun build-centroid(t :: Table, name) -> Row:
-  cols = t.column-names().filter({(c):
-      not(member(restricted-cols.append([list: "NORMALIZED", "COLOR-NAMES"]), c))
-    })
-  fun add-col-avgs(shadow cols, acc):
+fun add-centroid(t :: Table, name :: String, ids :: List<String>) -> Row:
+  shadow t = t.filter({(r): member(ids, r["ID"])})
+  fun add-col-avgs(cols, acc):
     cases (List) cols:
       | empty => acc
       | link(col, rest) =>
@@ -278,19 +276,22 @@ fun build-centroid(t :: Table, name) -> Row:
     end
   end
   # compute all the averages in reverse-order (since add-col-avgs also reverses)
+  cols = t.column-names().filter(
+    {(c): is-number(t.column(c).get(0))})
   averages = add-col-avgs(cols.reverse(), [list:])
-  restricted = [list:
-    {"ID";name + " CENTROID"},
-    {"DOC";""}, {"RATING";""},
+  premade = [list: 
+    {"ID"; name + " CENTROID"}, 
+    {"DOC"; nothing},
+    {"RATING";""},
     {"TAGS";""}
   ]
-  T.raw-row.make(raw-array-from-list(L.append(restricted, averages)))
+  T.raw-row.make(raw-array-from-list(L.append(premade, averages)))
 end
 
-_centroid-test = table: x, y row: 2, 1 row: 4, 5 end
-examples "build-centroid":
-  build-centroid(_centroid-test, "test") is
-  [T.raw-row: {"ID";"test CENTROID"},{"DOC";""}, {"RATING";""}, {"TAGS";""},{"x";3},{"y";3}]
+_centroid-test = table: ID, x, y row: "a", 2, 1 row: "b", 4, 5 end
+examples "add-centroid":
+  add-centroid(_centroid-test, "test", [list: "a", "b"]) is
+  [T.raw-row: {"ID";"test CENTROID"},{"DOC";nothing}, {"RATING";""}, {"TAGS";""},{"x";3},{"y";3}]
 end
 
 fun likes(t):    t.filter({(r): r["RATING"] == "like"    }) end
