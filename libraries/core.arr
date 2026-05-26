@@ -79,6 +79,20 @@ var display-chart = lam(c) block:
   c.display() 
 end
 
+fun string-trim(s :: String) -> String:
+  doc: "Strips leading and trailing whitespace from a string"
+  is-space = lam(c): string-contains(" \t\n\r", c) end
+  fun drop-leading(chars):
+    if is-empty(chars) or not(is-space(chars.first)):
+      chars
+    else:
+      drop-leading(chars.rest)
+    end
+  end
+  chars = string-explode(s)
+  L.reverse(drop-leading(L.reverse(drop-leading(chars)))).join-str("")
+end
+
 #################################################
 # Numerical functions
 

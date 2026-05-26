@@ -14,6 +14,13 @@ height = table: player, inches
   row: "Brad Wanamaker", 75
 end
 
+examples "string-trim":
+  string-trim("  hello  ")   is "hello"
+  string-trim("\t hi \n")    is "hi"
+  string-trim("no-spaces")   is "no-spaces"
+  string-trim("   ")         is ""
+  string-trim("")            is ""
+end
 
 examples "variance":
   pop-variance(height, "inches") is 12.24
