@@ -13,7 +13,7 @@ img9 = image-url(lesson-folder + "sunset-mountains.png")
 
 # define the image table, leaving rating and tags empty
 images = 
-  table: ID,  doc,  liked, disliked, tags
+  table: ID,  DOC,  LIKED, DISLIKED, TAGS
     row: "0", img1, false,   false,  ""
     row: "1", img2, false,   false,  ""
     row: "2", img3, false,   false,  ""
@@ -31,8 +31,8 @@ fun shrink(img):
 end
 
 # shrink every image in image-table, and make a new table
-small-images = transform-column(images, "doc", shrink)
-decorated = decorate-image-table(small-images, "doc")
+small-images = transform-column(images, "DOC", shrink)
+decorated = decorate-image-table(small-images, "DOC")
 
 # Four rows where the sun is visible
 sun1 = row-n(decorated, 0)
@@ -43,6 +43,6 @@ sun4 = row-n(decorated, 8)
 
 # given a Row, produce an image with width=80
 fun doc-thumbnail(r): 
-  factor = 100 / image-width(r["doc"])
-  scale(factor, r["doc"])
+  factor = 100 / image-width(r["DOC"])
+  scale(factor, r["DOC"])
 end

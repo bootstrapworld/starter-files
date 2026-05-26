@@ -1,4 +1,197 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries", "ai-library.arr")
+examples "text-streak":
+  text-streak("sun sea sun sun sand", "sun")     is 2
+  text-streak("sea sea sea", "sea")              is 3
+  text-streak("sand sun sea", "cyan")            is 0
+  text-streak("sun sun sand sun sun sun", "sun") is 3
+end
+
+
+_centroid-test = 
+  table: ID, DOC, LIKED, DISLIKED, TAGS, x, y  
+    row: "a", "", true,   false,   "",   2, 1 
+    row: "b", "", true,   true,    "",   4, 5 
+  end
+examples "add-centroid":
+  add-centroid(_centroid-test, "test", [list: "a", "b"]) is
+  _centroid-test.add-row([T.raw-row: 
+      {"ID";"test CENTROID"},{"DOC";nothing}, {"LIKED";false}, {"DISLIKED";false}, {"TAGS";""},{"x";3},{"y";3}
+    ])
+end
+
+fun find-by-tag(t :: Table, tag :: String): 
+  filter(t, {(r): string-contains(r["TAGS"], tag) }) 
+end
+
+examples "simple-clustering":
+  simple-clustering([list: 10, 2, 8, 1, 9, 3], 2) is [list: {1; 3}, {8; 10}]
+  simple-clustering([list: 5, 1, 10], 2) is [list: {1; 5}, {10; 10}]
+end
+
+examples "k-means-clustering":
+  k-means-clustering([list: 1, 10, 2, 11], 2) is [list: {1; 2}, {10; 11}]
+end
+
+examples "get-boundary-threshold":
+  get-boundary-thresholds([list: {1; 2}, {10; 12}]) is [list: 6]
+  get-boundary-thresholds([list: {1; 2}, {10; 12}, {20; 22}]) is [list: 6, 16]
+end
+
+examples "step and sigmoid":
+  sigmoid(0)    is-roughly 0.5
+  sigmoid(100)  is-roughly 1
+  sigmoid(-100) is-roughly 0
+  step(0)    is 1
+  step(2.5)  is 1
+  step(-0.1) is 0
+end
+
+
+examples "apply-activation":
+  apply-activation("sigmoid",  0) is-roughly 0.5
+  apply-activation("step",    -1) is 0
+  apply-activation("step",     1) is 1
+end
+
+
+examples "weighted sum":
+  weighted-sum([list: 4, 3],    [list: 0.5, -1.0])    is (4 * 0.5) + (3 * -1.0)
+  weighted-sum([list: 1, 1, 1], [list: 0.2, 0.3, 0.5]) is-roughly 1.0
+  weighted-sum([list: ],        [list: ])              is 0
+end
+
+n1 = make-neuron(
+  table: input-name :: String, weight :: Number
+    row: "x", 5
+  end,
+  0,
+  "step")
+examples "make-neuron":
+  neuron-output(n1, [list:  0.5]) is 1     #  5 *  0.5 =  2.5, step => 1
+  neuron-output(n1, [list: -1])   is 0     #  5 * -1   = -5,   step => 0
+end
+
+
+good = make-neuron(
+  table: input-name :: String, weight :: Number
+    row: "x", 1
+  end,
+  0, "step")
+  good-after = perceptron-update(good, [list: 1], 1, 0.5)
+examples "perceptron-update":
+  neuron-output(good, [list: 1]) is 1
+  neuron-output(good-after, [list: 1]) is 1
+end
+
+
+pass-through = make-neuron(
+table: input-name :: String, weight :: Number row: "x", 1 end,
+  0, "step")
+examples "forward-pass":
+  # A one-layer, one-neuron "network" that just passes its input along:
+  run([list: [list: pass-through]], [list: 1]) is [list: 1]
+  # Two such layers stacked: still passes the input along.
+  run([list: [list: pass-through], [list: pass-through]], [list: 1]) is [list: 1]
+end
+
+n-pos = make-neuron(
+table: input-name :: String, weight :: Number row: "x",  1 end,
+  0, "step")
+n-neg = make-neuron(
+table: input-name :: String, weight :: Number row: "x", -1 end,
+  0, "step")
+examples "layer-output":
+  layer-output([list: n-pos, n-neg], [list:  1]) is [list: 1, 0]
+  layer-output([list: n-pos, n-neg], [list: -1]) is [list: 0, 1]
+  # interesting test!
+  # both neurons will fire here
+  layer-output([list: n-pos, n-neg], [list: 0]) is [list: 1, 1]
+end
+
+examples "squared-error":
+  squared-error(0,    0)   is 0
+  squared-error(1,    1)   is 0
+  squared-error(0.5,  1)   is-roughly 0.25
+  squared-error(0,    2)   is 4
+  squared-error(2,    0)   is 4    # symmetric in its arguments
+end
+
+
+# A one-neuron network with a huge positive bias outputs ~1 for any input.
+always-one = make-neuron(
+  table: input-name :: String, weight :: Number
+    row: "x", 0
+  end,
+  100, "sigmoid")
+always-one-net = [list: [list: always-one]]
+ones-data = table: x :: Number, y :: Number
+  row: 0, 1
+  row: 1, 1
+end
+examples "dataset-loss":
+  dataset-loss(always-one-net, ones-data, [list: "x"], "y") is-roughly 0
+end
+
+
+
+tiny = make-neuron(
+  table: input-name :: String, weight :: Number
+    row: "x", 0.5
+  end,
+  0, "sigmoid")
+tiny-net  = [list: [list: tiny]]
+tiny-data = table: x :: Number, y :: Number  row: 1, 1  end
+g = numerical-gradient(tiny-net, tiny-data, [list: "x"], "y", 0.001)
+examples "numerical-gradient":
+  # Sanity check: the gradient has the same shape as the network.
+  L.length(g) is L.length(tiny-net)                              # same #layers
+  L.length(g.first) is L.length(tiny-net.first)                  # same #neurons
+end
+
+
+
+
+# A zero gradient leaves the network unchanged.
+n = make-neuron(
+table: input-name :: String, weight :: Number row: "x", 0.7 end,
+  0.2, "sigmoid")
+net = [list: [list: n]]
+zero-grad = make-neuron(
+table: input-name :: String, weight :: Number row: "x", 0 end,
+  0, "sigmoid")
+zero-grad-net = [list: [list: zero-grad]]
+stepped = apply-gradient(net, zero-grad-net, 1)
+examples "apply-gradient":
+  stepped.first.first.bias is 0.2
+  stepped.first.first.weights.column("weight") is [list: 0.7]
+end
+
+
+
+
+# A one-neuron sigmoid network learning y = sigmoid(2x).
+# Initial weight 0, bias 0 → initial output 0.5 for every x.
+start = make-neuron(
+table: input-name :: String, weight :: Number row: "x", 0 end,
+  0, "sigmoid")
+start-net = [list: [list: start]]
+toy-data = table: x :: Number, y :: Number
+  row:  2, 0.98
+  row:  1, 0.88
+  row:  0, 0.5
+  row: -1, 0.12
+  row: -2, 0.02
+end
+
+train-result = train(start-net, toy-data, [list: "x"], "y", 1, 200)
+train-initial-loss = dataset-loss(start-net,     toy-data, [list: "x"], "y")
+train-final-loss   = dataset-loss(train-result.trained, toy-data, [list: "x"], "y")
+examples "train":
+  # Training has to drive the loss meaningfully downward.
+  (train-final-loss < train-initial-loss) is true
+  (train-final-loss < 0.01)               is true
+end
+
 
 # ============================================================
 #  xor-demo.arr  —  a 2-2-1 sigmoid network that computes XOR.
@@ -18,10 +211,10 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 #                   hidden-or         hidden-nand
 #                              AND-ed by output-and
 # ============================================================
- 
+
 # We use weights of ±50 so the sigmoid saturates close to 0 or 1.
 # That gives crisp outputs we can confirm with `is-roughly`.
- 
+
 hidden-or = make-neuron(
   table: input-name :: String, weight :: Number
     row: "x1",  50
@@ -29,7 +222,7 @@ hidden-or = make-neuron(
   end,
   -25,
   "sigmoid")
- 
+
 hidden-nand = make-neuron(
   table: input-name :: String, weight :: Number
     row: "x1", -50
@@ -37,11 +230,11 @@ hidden-nand = make-neuron(
   end,
   75,
   "sigmoid")
- 
+
 hidden-layer = [list: hidden-or, hidden-nand]
- 
+
 # Output: AND on the two hidden outputs.
- 
+
 output-and = make-neuron(
   table: input-name :: String, weight :: Number
     row: "h1",  50
@@ -49,25 +242,25 @@ output-and = make-neuron(
   end,
   -75,
   "sigmoid")
- 
+
 output-layer = [list: output-and]
- 
+
 xor-net = [list: hidden-layer, output-layer]
- 
- 
+
+
 # The dataset we'd train on once Unit 7 lands:
- 
+
 xor-data = table: x1 :: Number, x2 :: Number, y :: Number
   row: 0, 0, 0
   row: 0, 1, 1
   row: 1, 0, 1
   row: 1, 1, 0
 end
- 
- 
+
+
 # Confirm the forward pass.  Each call returns a one-element list
 # (one output neuron), so we take `.first` to compare it to the target.
- 
+
 check "XOR forward pass":
   run(xor-net, [list: 0, 0]).first is-roughly 0
   run(xor-net, [list: 0, 1]).first is-roughly 1
@@ -93,7 +286,7 @@ init-h2 = make-neuron(
     row: "x1", -0.2
     row: "x2",  0.4
   end,
- -0.1, "sigmoid")
+  -0.1, "sigmoid")
 
 init-output = make-neuron(
   table: input-name :: String, weight :: Number
@@ -114,7 +307,7 @@ LEARNING-RATE = 5
 EPOCHS        = 3000
 
 xor-result        = train(init-net, xor-data, [list: "x1", "x2"], "y",
-                      LEARNING-RATE, EPOCHS)
+  LEARNING-RATE, EPOCHS)
 xor-trained-net   = xor-result.trained
 xor-loss-history  = xor-result.loss-history
 
@@ -129,9 +322,9 @@ end
 # The trained network should match XOR much more closely than the
 # initial one.
 check "XOR training reduces loss":
-  initial-loss = dataset-loss(init-net,    xor-data, [list: "x1", "x2"], "y")
-  final-loss   = dataset-loss(xor-trained-net, xor-data, [list: "x1", "x2"], "y")
-  (final-loss < initial-loss) is true
+  xor-initial-loss = dataset-loss(init-net,    xor-data, [list: "x1", "x2"], "y")
+  xor-final-loss   = dataset-loss(xor-trained-net, xor-data, [list: "x1", "x2"], "y")
+  (xor-final-loss < xor-initial-loss) is true
 end
 
 # With enough epochs the network produces the right answer on every

@@ -56,7 +56,7 @@ fun add-entropy(t, doc-col): add-col(t, doc-col, "entropy", image-entropy) end
 fun add-luminance(t, doc-col): add-col(t, doc-col, "luminance", image-luminance) end
 fun add-symmetry-v(t, doc-col): add-col(t, doc-col, "symmetry-v", image-symmetry-vertical) end
 fun add-symmetry-h(t, doc-col): add-col(t, doc-col, "symmetry-h", image-symmetry-horizontal) end
-fun add-color-names(t, doc-col): add-col(t, doc-col, "color-names", image-color-names) end
+fun add-color-names(t, doc-col): add-col(t, doc-col, "COLOR-NAMES", image-color-names) end
 
 fun decorate-image-table(t, doc-col):
   fns = [list: add-width, add-height, add-luminance, add-entropy, add-symmetry-v, add-symmetry-h, add-color-names]
@@ -94,11 +94,6 @@ fun text-streak(str :: String, target :: String) -> Number:
     end
   end
   final-stats.max-seen
-where:
-  text-streak("sun sea sun sun sand", "sun")     is 2
-  text-streak("sea sea sea", "sea")              is 3
-  text-streak("sand sun sea", "cyan")            is 0
-  text-streak("sun sun sand sun sun sun", "sun") is 3
 end
 
 fun is-non-punct(c :: String) -> Boolean block:
@@ -140,7 +135,7 @@ fun is-all-uppercase(s :: String) -> Boolean:
 end
 
 # columns that should always be ignored
-restricted-cols = [list: "ID", "DOC", "RATING", "TAGS", "SIMILARITTY", "STRENGTH", "COLOR-NAMES"]
+restricted-cols = [list: "ID", "DOC", "LIKED", "DISLIKED", "TAGS", "SIMILARITTY", "STRENGTH", "COLOR-NAMES", "NORMALIZED"]
 fun get-unrestricted-cols(r):
   r.get-column-names().filter({(c):
       not(restricted-cols.any({(rc): string-contains(c, rc) or is-all-uppercase(c)}))})
@@ -255,51 +250,31 @@ end
 ###################################################################################
 # Ratings, Recommendations, and Search
 
+fun liked-ids(t):    t.filter({(r): r["LIKED"]    }).column("ID") end
+fun disliked-ids(t): t.filter({(r): r["DISLIKED"] }).column("ID") end
+
 # Given a table, recursively build the centroid as a StringDict
 # by averaging each non-restricted column. Use exactnum to allow
 # for easy comparison
-fun add-centroid(t :: Table, name :: String, ids :: List<String>) -> Row:
-  shadow t = t.filter({(r): member(ids, r["ID"])})
-  fun add-col-avgs(cols, acc):
-    cases (List) cols:
-      | empty => acc
-      | link(col, rest) =>
-        if cols.member(col) block:
-          avg = if t.get-column(col).length() == 0: 0
-          else: Stats.mean(t.get-column(col))
-          end
-          val = rounded-exact(avg)
-          add-col-avgs(rest, L.link({col; num-exact(val)}, acc))
-        else:
-          add-col-avgs(rest, acc)
-        end
-    end
-  end
-  # compute all the averages in reverse-order (since add-col-avgs also reverses)
-  cols = t.column-names().filter(
-    {(c): is-number(t.column(c).get(0))})
-  averages = add-col-avgs(cols.reverse(), [list:])
-  premade = [list: 
-    {"ID"; name + " CENTROID"}, 
-    {"DOC"; nothing},
-    {"RATING";""},
-    {"TAGS";""}
-  ]
-  T.raw-row.make(raw-array-from-list(L.append(premade, averages)))
-end
+fun add-centroid(t :: Table, name :: String, ids :: List<String>) -> Table block:
+  matching = t.filter({(r): member(ids, r["ID"])})
 
-_centroid-test = table: ID, x, y row: "a", 2, 1 row: "b", 4, 5 end
-examples "add-centroid":
-  add-centroid(_centroid-test, "test", [list: "a", "b"]) is
-  [T.raw-row: {"ID";"test CENTROID"},{"DOC";nothing}, {"RATING";""}, {"TAGS";""},{"x";3},{"y";3}]
-end
-
-fun likes(t):    t.filter({(r): r["RATING"] == "like"    }) end
-fun dislikes(t): t.filter({(r): r["RATING"] == "dislike" }) end
-fun unrated(t):  t.filter({(r): r["RATING"] == "-"       }) end
-
-fun find-by-tag(t :: Table, tag :: String): 
-  filter(t, {(r): string-contains(r["TAGS"], tag) }) 
+  # for the rows with the passed IDs, walk over the columns in-order:
+  #    hand-enter specific column names, 
+  #    skip restricted ones,
+  #    compute the average of anything else
+  tuples = matching.column-names().map({(c):
+      if c == "ID": {"ID";  name + " CENTROID"}
+      else if c == "DOC":   {"DOC"; ""}
+      else if c == "LIKED":    {"LIKED"; false}
+      else if c == "DISLIKED": {"DISLIKED"; false}
+      else if restricted-cols.member(c): {c; ""}
+      else: {c; rounded-exact(Stats.mean(matching.get-column(c)))}
+      end
+    })
+  centroid = T.raw-row.make(raw-array-from-list(tuples))
+  
+  t.add-row(centroid)
 end
 
 
@@ -307,47 +282,57 @@ end
 # if they exist. If neither does, raise an error.
 # Otherwise, find the unlabeled row that is MOST similar
 # to the like-centroid and the LEAST similar to the dislike one
-fun recommend(t :: Table) -> Table block:
-  liked     = likes(t)
-  disliked  = dislikes(t)
-  not-rated = unrated(t)
+fun recommend(t :: Table, cols) -> Table block:
+  likes    = liked-ids(t)
+  dislikes  = disliked-ids(t)
 
   # make sure we have some ratings
-  when (liked.length() + disliked.length()) == 0:
+  when (likes.length() + dislikes.length()) == 0:
     raise(Err.message-exception("No recommendations could be computed without at least one RATING"))
   end
 
-  # compute the centroids
-  preference = build-centroid(liked, "likes")
-  aversion   = build-centroid(disliked, "dislikes")
-
+  # Add "LIKE-DIST" and "DISLIKE-DIST"
+  # If we have likes, build the centroid and populate LIKE-DIST
+  # If we don't, just add the column and populate it with zeros
+  # Do the same for dislikes
+  shadow t = if likes.length() > 0:
+    w-liked-centroid = add-centroid(t, "LIKE", likes)
+    cosine-similarity(w-liked-centroid, "LIKE CENTROID", cols)
+      .rename-column("cosine-similarity", "LIKE-DIST")
+  else:
+    t.build-column("LIKE-DIST", {(r): 0})
+  end
+  shadow t = if dislikes.length() > 0:
+    w-disliked-centroid = add-centroid(t, "DISLIKE", dislikes)
+    cosine-similarity(w-disliked-centroid, "DISLIKE CENTROID", cols)
+      .rename-column("cosine-similarity", "DISLIKE-DIST")
+  else:
+    t.build-column("DISLIKE-DIST", {(r): 0})
+  end
+  
+  # remove any already-rated rows, and both centroids
+  unrated = t
+    .filter({(r): (r["ID"] <> "LIKE CENTROID") and (r["ID"] <> "DISLIKE CENTROID")})
+  
   # for every unlabeled DOC, compute the similarity from both
   # centroids. Then subtract dislike from like for a general
   # recommendation score, and sort from most-recommended to least
-  not-rated
-    .build-column("like",       {(r):
-      if liked.length() == 0: 0 else: cosine-similarity(preference, r) end })
-    .build-column("dislike",    {(r):
-      if disliked.length() == 0: 0 else: cosine-similarity(aversion, r) end })
-    .build-column("STRENGTH",  {(r): r["like"] - r["dislike"]})
+  unrated
+    .build-column("STRENGTH",  {(r): r["LIKE-DIST"] - r["DISLIKE-DIST"]})
     .order-by("STRENGTH", false)
-    .drop("like")
-    .drop("dislike")
+  #.drop("LIKE-DIST")
+  #.drop("DISLIKE-DIST")
 end
 
-# given a row, return a sorted table in cosine-similarity order
-fun match-row(t, row):
-  t
-    .build-column("SIMILARITY to " + row["ID"], {(r): cosine-similarity(row, r)})
-    .order-by("SIMILARITY to " + row["ID"], false)
-end
-
-# build a centroid for every row w/this tag, then use that to match-row
-fun search-by-tag(t, tag):
-  matching-docs = filter(t, 
-    {(r): string-split-all(r["TAGS"], ",").member(tag) })
-  centroid = build-centroid(matching-docs, tag)
-  match-row(t, centroid)
+# build a centroid for every row w/this tag, then use that find similar images
+# be sure to remove the centroid when finished
+fun search-by-tag(t, tag, cols) block:
+  matching-ids = t
+    .filter({(r): string-split-all(r["TAGS"], ",").member(tag) })
+    .column("ID")
+  t-w-centroid = add-centroid(t, "TAG", matching-ids)
+  cosine-similarity(t-w-centroid, "TAG CENTROID", cols)
+    .filter({(r): r["ID"] <> "TAG CENTROID"})
 end
 
 
@@ -492,53 +477,6 @@ fun angle-similarity(t :: Table, id, cols :: List<String>) block:
 end
 
 
-#|
-   ########################################################################
-   # Some examples of models, and how to use them
-
-   ########################################################################
-   # Load the spreadsheet and define our tables
-   data-sheet = load-spreadsheet(
-  "https://docs.google.com/spreadsheets/d/1e_3op5DNDUOAjInXtlrzQ0fKZSuASd65E9-VEjNyteo/")
-
-   images-url = "https://docs.google.com/spreadsheets/d/1e_3op5DNDUOAjInXtlrzQ0fKZSuASd65E9-VEjNyteo/export?format=csv"
-   image-table = transform-column(load-table: ID, DOC, RATING, TAGS
-      source: csv.csv-table-url(images-url, {
-              header-row: true,
-              infer-content: false
-      })
-  end, "DOC", image-url)
-
-   # shrink the OG images for performance - how small before losing accuracy?
-   # then add all the fun columns, and a BOW set for pixels
-   image-model =
-  add-bag-cols(
-    add-color-names(
-      add-luminance(
-        add-entropy(
-          shrink-images(image-corpus)))),
-    "COLOR-NAMES")
-
-   # now add a new image, and watch the model regenerate itself with all the same cols!
-   # image-model.add-doc("test", mystery-image, "dislike", "")
-
-   # search for images tagged with "sun" (or similar)
-   #search-by-tag(image-model, "sun")
-
-   # find images closest to the liked images
-   loved-images    = likes(image-model)
-   loathed-images  = dislikes(image-model)
-   img-preference  = build-centroid(loved-images,   "👍")
-   img-aversion    = build-centroid(loathed-images, "👎")
-
-   # find the distance between each row and the provided row
-   match-row(image-model, img-preference)
-   #match-row(image-model, img-aversion)
-
-   # find images closest to the liked images AND
-   #     farthest away from the disliked ones
-   recommend(image-model)
-|#
 
 ####################################################################
 #
@@ -573,9 +511,6 @@ fun simple-clustering(d :: List<Number>, n-clusters :: Number) -> List<{Number; 
         end
       end, indices).filter(lam(x): not(is-none(x)) end)
   end
-where:
-  simple-clustering([list: 10, 2, 8, 1, 9, 3], 2) is [list: {1; 3}, {8; 10}]
-  simple-clustering([list: 5, 1, 10], 2) is [list: {1; 5}, {10; 10}]
 end
 
 
@@ -612,8 +547,6 @@ fun k-means-clustering(points :: List<Number>, n-clusters :: Number) -> List<{Nu
       {cluster.get(0); cluster.last()}
     end)
     .sort-by({(a, b): a.{0} < b.{0}}, {(a, b): a == b})
-where:
-  k-means-clustering([list: 1, 10, 2, 11], 2) is [list: {1; 2}, {10; 11}]
 end
 
 fun get-boundary-thresholds(intervals :: List<{Number; Number}>) -> List<Number>:
@@ -633,9 +566,6 @@ fun get-boundary-thresholds(intervals :: List<{Number; Number}>) -> List<Number>
   else:
     find-midpoints(intervals.sort-by({(a, b): a.{0} < b.{0}}, {(a, b): a == b}))
   end
-where:
-  get-boundary-thresholds([list: {1; 2}, {10; 12}]) is [list: 6]
-  get-boundary-thresholds([list: {1; 2}, {10; 12}, {20; 22}]) is [list: 6, 16]
 end
 
 fun cluster-by-fn(t :: Table, col :: String, n-clusters :: Number, clustering-fn):
@@ -1447,14 +1377,7 @@ end
 fun step(z :: Number) -> Number:
   if z >= 0: 1 else: 0 end
 end
-examples "step and sigmoid":
-  sigmoid(0)    is-roughly 0.5
-  sigmoid(100)  is-roughly 1
-  sigmoid(-100) is-roughly 0
-  step(0)    is 1
-  step(2.5)  is 1
-  step(-0.1) is 0
-end
+
 
 # Apply the appropriate activation to z.
 fun apply-activation(name :: String, z :: Number) -> Number:
@@ -1463,11 +1386,6 @@ fun apply-activation(name :: String, z :: Number) -> Number:
     | name == "step"    then: step(z)
     | otherwise: raise(Err.message-exception("Unknown activation: " + name))
   end
-end
-examples "apply-activation":
-  apply-activation("sigmoid",  0) is-roughly 0.5
-  apply-activation("step",    -1) is 0
-  apply-activation("step",     1) is 1
 end
 
 
@@ -1478,11 +1396,6 @@ fun weighted-sum(inputs :: List<Number>, weights :: List<Number>) -> Number:
   L.foldl(lam(total, p): total + p end, 0, products)
 end
 
-examples "weighted sum":
-  weighted-sum([list: 4, 3],    [list: 0.5, -1.0])    is (4 * 0.5) + (3 * -1.0)
-  weighted-sum([list: 1, 1, 1], [list: 0.2, 0.3, 0.5]) is-roughly 1.0
-  weighted-sum([list: ],        [list: ])              is 0
-end
 
 
 fun make-neuron(
@@ -1498,15 +1411,6 @@ fun neuron-output(n :: Neuron, inputs :: List<Number>) -> Number:
   weights = n.weights.column("weight")       # Get weights out of the neuron
   z = weighted-sum(inputs, weights) + n.bias # Take the weighted sum and add the bias.
   apply-activation(n.activation, z)          # Apply the activation
-where:
-  n1 = make-neuron(
-    table: input-name :: String, weight :: Number
-      row: "x", 5
-    end,
-    0,
-    "step")
-  neuron-output(n1, [list:  0.5]) is 1     #  5 *  0.5 =  2.5, step => 1
-  neuron-output(n1, [list: -1])   is 0     #  5 * -1   = -5,   step => 0
 end
 
 
@@ -1551,15 +1455,6 @@ fun perceptron-update(
     bias:       n.bias + (learning-rate * error),
     activation: n.activation
   }
-where:
-  good = make-neuron(
-    table: input-name :: String, weight :: Number
-      row: "x", 1
-    end,
-    0, "step")
-  neuron-output(good, [list: 1]) is 1
-  good-after = perceptron-update(good, [list: 1], 1, 0.5)
-  neuron-output(good-after, [list: 1]) is 1
 end
 
 # Run every neuron in the layer on the same inputs.  Returns one
@@ -1567,20 +1462,7 @@ end
 # become the inputs to the next layer.
 fun layer-output(layer :: Layer, inputs :: List<Number>) -> List<Number>:
   L.map(lam(n): neuron-output(n, inputs) end, layer)
-where:
-  n-pos = make-neuron(
-  table: input-name :: String, weight :: Number row: "x",  1 end,
-    0, "step")
-  n-neg = make-neuron(
-  table: input-name :: String, weight :: Number row: "x", -1 end,
-    0, "step")
-  layer-output([list: n-pos, n-neg], [list:  1]) is [list: 1, 0]
-  layer-output([list: n-pos, n-neg], [list: -1]) is [list: 0, 1]
-  # interesting test!
-  # both neurons will fire here
-  layer-output([list: n-pos, n-neg], [list: 0]) is [list: 1, 1]
 end
-
 
 # forward-pass - compose the layers via fold and feed them inputs. 
 # Should we call it 'forward' instead?
@@ -1589,27 +1471,12 @@ fun run(net :: Network, inputs :: List<Number>) -> List<Number>:
     lam(current, layer): layer-output(layer, current) end,
     inputs,
     net)
-where:
-  pass-through = make-neuron(
-  table: input-name :: String, weight :: Number row: "x", 1 end,
-    0, "step")
-  # A one-layer, one-neuron "network" that just passes its input along:
-  run([list: [list: pass-through]], [list: 1]) is [list: 1]
-  # Two such layers stacked: still passes the input along.
-  run([list: [list: pass-through], [list: pass-through]], [list: 1]) is [list: 1]
 end
 
 
 # The squared difference between two numbers.  Always non-negative
 fun squared-error(predicted :: Number, actual :: Number) -> Number:
   (predicted - actual) * (predicted - actual)
-end
-examples "squared-error":
-  squared-error(0,    0)   is 0
-  squared-error(1,    1)   is 0
-  squared-error(0.5,  1)   is-roughly 0.25
-  squared-error(0,    2)   is 4
-  squared-error(2,    0)   is 4    # symmetric in its arguments
 end
 
 # Mean squared error of `net` on every row of `data`.
@@ -1637,19 +1504,6 @@ fun dataset-loss(
 
   total = L.foldl(lam(acc, x): acc + x end, 0, per-row-losses)
   total / L.length(per-row-losses)
-where:
-  # A one-neuron network with a huge positive bias outputs ~1 for any input.
-  always-one = make-neuron(
-    table: input-name :: String, weight :: Number
-      row: "x", 0
-    end,
-    100, "sigmoid")
-  always-one-net = [list: [list: always-one]]
-  ones-data = table: x :: Number, y :: Number
-    row: 0, 1
-    row: 1, 1
-  end
-  dataset-loss(always-one-net, ones-data, [list: "x"], "y") is-roughly 0
 end
 
 # make a net where a specific weight has been shifted by delta
@@ -1758,18 +1612,6 @@ fun numerical-gradient(
           }
         end, 0, layer)
     end, 0, net)
-where:
-  # Sanity check: the gradient has the same shape as the network.
-  tiny = make-neuron(
-    table: input-name :: String, weight :: Number
-      row: "x", 0.5
-    end,
-    0, "sigmoid")
-  tiny-net  = [list: [list: tiny]]
-tiny-data = table: x :: Number, y :: Number  row: 1, 1  end
-  g = numerical-gradient(tiny-net, tiny-data, [list: "x"], "y", 0.001)
-  L.length(g) is L.length(tiny-net)                              # same #layers
-  L.length(g.first) is L.length(tiny-net.first)                  # same #neurons
 end
 
 
@@ -1794,19 +1636,6 @@ fun apply-gradient(
           }
         end, layer, grad-layer)
     end, net, grad)
-where:
-  # A zero gradient leaves the network unchanged.
-  n = make-neuron(
-  table: input-name :: String, weight :: Number row: "x", 0.7 end,
-    0.2, "sigmoid")
-  net = [list: [list: n]]
-  zero-grad = make-neuron(
-  table: input-name :: String, weight :: Number row: "x", 0 end,
-    0, "sigmoid")
-  zero-grad-net = [list: [list: zero-grad]]
-  stepped = apply-gradient(net, zero-grad-net, 1)
-  stepped.first.first.bias is 0.2
-  stepped.first.first.weights.column("weight") is [list: 0.7]
 end
 
 ############################################################
@@ -1849,24 +1678,4 @@ fun train(
     row: 0, initial-loss
   end
   loop(net, 0, initial-history)
-where:
-  # A one-neuron sigmoid network learning y = sigmoid(2x).
-  # Initial weight 0, bias 0 → initial output 0.5 for every x.
-  start = make-neuron(
-  table: input-name :: String, weight :: Number row: "x", 0 end,
-    0, "sigmoid")
-  start-net = [list: [list: start]]
-  toy-data = table: x :: Number, y :: Number
-    row:  2, 0.98
-    row:  1, 0.88
-    row:  0, 0.5
-    row: -1, 0.12
-    row: -2, 0.02
-  end
-  result = train(start-net, toy-data, [list: "x"], "y", 1, 200)
-  initial-loss = dataset-loss(start-net,     toy-data, [list: "x"], "y")
-  final-loss   = dataset-loss(result.trained, toy-data, [list: "x"], "y")
-  # Training has to drive the loss meaningfully downward.
-  (final-loss < initial-loss) is true
-  (final-loss < 0.01)         is true
 end
