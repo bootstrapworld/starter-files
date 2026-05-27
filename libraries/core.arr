@@ -2457,6 +2457,11 @@ fun num-syllables(txt):
     0)
 end
 
+fun sort-strings-ci(lst :: List<String>) -> List<String>:
+  lst.sort-by(
+    {(a, b): string-to-lower(a) < string-to-lower(b)}, 
+    {(a, b): string-to-lower(a) == string-to-lower(b)})
+end
 
 ################################################################
 ###################### INEQUALITIES SIMULATOR ##################

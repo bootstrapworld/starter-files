@@ -50,12 +50,12 @@ fun add-col(t, doc-col, col-name, doc-fn):
   build-column(t, col-name, lam(r): doc-fn(r[doc-col]) end)
 end
 
-fun add-width(t, doc-col): add-col(t, doc-col, "width", image-width) end
-fun add-height(t, doc-col): add-col(t, doc-col, "height", image-height) end
-fun add-entropy(t, doc-col): add-col(t, doc-col, "entropy", image-entropy) end
-fun add-luminance(t, doc-col): add-col(t, doc-col, "luminance", image-luminance) end
-fun add-symmetry-v(t, doc-col): add-col(t, doc-col, "symmetry-v", image-symmetry-vertical) end
-fun add-symmetry-h(t, doc-col): add-col(t, doc-col, "symmetry-h", image-symmetry-horizontal) end
+fun add-width(t, doc-col): add-col(t, doc-col, "WIDTH", image-width) end
+fun add-height(t, doc-col): add-col(t, doc-col, "HEIGHT", image-height) end
+fun add-entropy(t, doc-col): add-col(t, doc-col, "ENTROPY", image-entropy) end
+fun add-luminance(t, doc-col): add-col(t, doc-col, "LUMINANCE", image-luminance) end
+fun add-symmetry-v(t, doc-col): add-col(t, doc-col, "SYMMETRY-V", image-symmetry-vertical) end
+fun add-symmetry-h(t, doc-col): add-col(t, doc-col, "SYMMETRY-H", image-symmetry-horizontal) end
 fun add-color-names(t, doc-col): add-col(t, doc-col, "COLOR-NAMES", image-color-names) end
 
 fun decorate-image-table(t, doc-col):
@@ -63,10 +63,6 @@ fun decorate-image-table(t, doc-col):
   L.fold(lam(shadow t, f): f(t, doc-col) end, t, fns)
 end
 
-fun add-grade(t): add-col(t, "grade", text-grade) end
-fun add-cleaned(t, remove-stops):  
-  add-col(t, "cleaned", lam(doc): text-clean(doc, remove-stops) end) 
-end
 
 # Given a string, produce the grade level according to Flesch-Kincaid:
 # Grade = .39(words/sentences)+11.8(syllables/words)-15.59
@@ -96,36 +92,61 @@ fun text-streak(str :: String, target :: String) -> Number:
   final-stats.max-seen
 end
 
+fun add-length(t, doc-col): add-col(t, doc-col, "LENGTH", string-length) end
+fun add-words(t, doc-col): add-col(t, doc-col, "WORDS", num-words) end
+fun add-syllables(t, doc-col): add-col(t, doc-col, "SYLLABLES", num-syllables) end
+fun add-sentences(t, doc-col): add-col(t, doc-col, "SENTENCES", num-sentences) end
+fun add-grade(t, doc-col): add-col(t, doc-col, "GRADE-LEVEL", text-grade) end
+
+fun decorate-text-table(t, doc-col):
+  fns = [list: add-length, add-words, add-syllables, add-sentences, add-grade]
+  L.fold(lam(shadow t, f): f(t, doc-col) end, t, fns)
+end
+
+fun is-non-empty-string(w :: String) -> Boolean:  w <> '' end
 fun is-non-punct(c :: String) -> Boolean block:
-  # Code points for 'a' and 'z', used to test if a char is a lowercase ASCII letter
-  lower-case-a-cp = string-to-code-point('a')
-  lower-case-z-cp = string-to-code-point('z')
-  if (c == ' ') or (c == '\n'): true
-  else:
-    c-cp = string-to-code-point(c)
-    (c-cp >= lower-case-a-cp) and (c-cp <= lower-case-z-cp)
+    # Spaces are fine, anything between a-z and A-Z is fine
+    lower-case-a-cp = string-to-code-point('a')
+    lower-case-z-cp = string-to-code-point('z')
+    upper-case-a-cp = string-to-code-point('A')
+    upper-case-z-cp = string-to-code-point('Z')
+    if (c == ' ') or (c == '\n'): true
+    else:
+      c-cp = string-to-code-point(c)
+      ((c-cp >= lower-case-a-cp) and (c-cp <= lower-case-z-cp)) or
+      ((c-cp >= upper-case-a-cp) and (c-cp <= upper-case-z-cp))
+    end
   end
+
+fun lowercase-(t :: Table, col :: String) -> Table:
+  t.transform-column(
+    col, 
+    {(s): string-explode(string-to-lower(s)).join-str("")})
+end
+
+fun remove-punct(t :: Table, col :: String) -> Table:
+  t.transform-column(
+    col, 
+    {(s): string-explode(s)
+        .filter(is-non-punct)
+        .filter(is-non-empty-string)
+        .join-str("")
+    })
+end
+
+fun remove-stops(t :: Table, col :: String) -> Table:
+  t.transform-column(
+    col,
+    {(s): string-split-all(s, " ")
+        .filter({(w): not(stop-words.member(w))})
+        .filter(is-non-empty-string)
+        .join-str(" ")
+    })
 end
 
 fun massage-string(w :: String) -> String block:
   lowercase-chars = string-explode(string-to-lower(w))
   fold({(a, b): a + b }, '', lowercase-chars.filter(is-non-punct))
-end
-
-fun is-non-empty-string(w :: String) -> Boolean:  w <> '' end
-
-# 1) massaging the string (lowercase + remove punctuation)
-# 2) splitting on spaces
-# 3) filtering out any empty strings
-fun text-clean(txt :: String, remove-stops :: Boolean) -> String block:
-
-  string-split-all(massage-string(txt), ' ')
-    .filter(is-non-empty-string)
-    .filter({(w):
-      if remove-stops: not(stop-words.member(w))
-      else: true
-      end})
-    .join-str(' ')
 end
 
 
@@ -215,7 +236,8 @@ fun add-bag-cols(t, col :: String) -> Table block:
   # per-row frequency of that word. We recompute the word-frequency
   # dict inside each build-column call since build-column only gives
   # us the row, not the row index.
-  unique-words.foldl(
+
+  sort-strings-ci(unique-words).foldl(
     lam(word, shadow t):
       t.build-column(word, lam(r):
           words = string-split-all(r[col], ' ')
@@ -247,11 +269,21 @@ end
 
 
 
+fun decorate-song-table(t, doc-col):
+  fns = [list: add-longest-snap, add-longest-clap]
+  L.fold(lam(shadow t, f): f(t, doc-col) end, t, fns)
+end
+
+
 ###################################################################################
 # Ratings, Recommendations, and Search
 
 fun liked-ids(t):    t.filter({(r): r["LIKED"]    }).column("ID") end
 fun disliked-ids(t): t.filter({(r): r["DISLIKED"] }).column("ID") end
+fun tagged-ids(t, tag):   t
+    .filter({(r): string-split-all(r["TAGS"], ",").member(tag) })
+    .column("ID")
+end
 
 # Given a table, recursively build the centroid as a StringDict
 # by averaging each non-restricted column. Use exactnum to allow
@@ -273,7 +305,7 @@ fun add-centroid(t :: Table, name :: String, ids :: List<String>) -> Table block
       end
     })
   centroid = T.raw-row.make(raw-array-from-list(tuples))
-  
+
   t.add-row(centroid)
 end
 
@@ -309,11 +341,11 @@ fun recommend(t :: Table, cols) -> Table block:
   else:
     t.build-column("DISLIKE-DIST", {(r): 0})
   end
-  
+
   # remove any already-rated rows, and both centroids
   unrated = t
     .filter({(r): (r["ID"] <> "LIKE CENTROID") and (r["ID"] <> "DISLIKE CENTROID")})
-  
+
   # for every unlabeled DOC, compute the similarity from both
   # centroids. Then subtract dislike from like for a general
   # recommendation score, and sort from most-recommended to least
@@ -327,9 +359,7 @@ end
 # build a centroid for every row w/this tag, then use that find similar images
 # be sure to remove the centroid when finished
 fun search-by-tag(t, tag, cols) block:
-  matching-ids = t
-    .filter({(r): string-split-all(r["TAGS"], ",").member(tag) })
-    .column("ID")
+  matching-ids = tagged-ids(t, tag)
   t-w-centroid = add-centroid(t, "TAG", matching-ids)
   cosine-similarity(t-w-centroid, "TAG CENTROID", cols)
     .filter({(r): r["ID"] <> "TAG CENTROID"})
@@ -423,18 +453,10 @@ end
 # with the same frequencies (regardless of order). Otherwise 0.
 fun bag-similarity(t :: Table, id) block:
   cols = get-unrestricted-cols(t.row-n(0))
-  fun helper(r1 :: Row, r2 :: Row) -> Number block:
-    when cols.length() == 0:
-      raise(Err.message-exception("Bag similarity ignores certain columns (" + restricted-cols.join-str(", ") + "), but no other columns were found"))
-    end
-    sd1 = row-to-dict(cols, r1)
-    sd2 = row-to-dict(cols, r2)
-
-    if (sd1 == sd2): 1 else: 0 end
+  when cols.length() == 0:
+    raise(Err.message-exception("Bag similarity ignores certain columns (" + restricted-cols.join-str(", ") + "), but no other columns were found"))
   end
-  compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
-  fun compare-row(r): helper(r, compare-to) end
-  t.build-column("bag-similarity", compare-row).order-by("bag-similarity", false)
+  cosine-similarity(t, id, cols)
 end
 
 

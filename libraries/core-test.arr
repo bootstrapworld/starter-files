@@ -22,6 +22,12 @@ examples "string-trim":
   string-trim("")            is ""
 end
 
+examples "sort-strings-ci":
+  sort-strings-ci([list: "Banana", "apple", "Cherry"]) is [list: "apple", "Banana", "Cherry"]
+  sort-strings-ci([list: "Z", "a", "M"])               is [list: "a", "M", "Z"]
+end
+
+
 examples "variance":
   pop-variance(height, "inches") is 12.24
   sample-variance(height, "inches") is 13.6
