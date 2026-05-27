@@ -26,22 +26,14 @@ music-training = load-music-sheet("training")
 music-testing  = load-music-sheet("testing")
 
 ######################################################################
-# icons for various genres
-country-img = text("🐴", 20, "black")
-rock-img    = text("🎸", 20, "black")
-rnb-img     = text("🎤", 20, "black")
-reggae-img  = text("🇯🇲", 20, "black")
-kpop-img    = text("🇰🇷", 20, "black")
+# genre-img :: Row -> Image
+# given a row from the table, produce an emoji representing the song's genre
 
-######################################################################
-# animal-img :: Row -> Image
-# given a row from the animals table, produce an image of that species
 fun genre-img(r): 
-  if      (r["genre"] == "country"):     country-img
-  else if (r["genre"] == "rock-n-roll"): rock-img
-  else if (r["genre"] == "r-n-b"):       rnb-img
-  else if (r["genre"] == "reggae"):      reggae-img
-  else if (r["genre"] == "k-pop"):       kpop-img
+  if      (r["genre"] == "country"):     text("🐴", 20, "black")
+  else if (r["genre"] == "rock-n-roll"): text("🎸", 20, "black")
+  else if (r["genre"] == "r-n-b"):       text("🎤", 20, "black")
+  else if (r["genre"] == "reggae"):      text("🇯🇲", 20, "black")
+  else if (r["genre"] == "k-pop"):       text("🇰🇷", 20, "black")
   end
 end
-
