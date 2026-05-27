@@ -1,8 +1,8 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/", "libraries/ai-library.arr")
+
 music-sheet = load-spreadsheet("https://docs.google.com/spreadsheets/d/1iQpfRr3aN4HErX73B66EKszMAMdmquWfamR7q_9cT4c/")
 
-# a function that takes in the name of a sheet, and loads the table
-# from that sheet
+# a function that takes in the name of a sheet, and loads the table from that sheet
 fun load-music-sheet(sheet-name):
   load-table: 
     ID,
@@ -25,13 +25,13 @@ end
 music-training = load-music-sheet("training")
 music-testing  = load-music-sheet("testing")
 
-# images of various species
+######################################################################
+# icons for various genres
 country-img = text("🐴", 20, "black")
 rock-img    = text("🎸", 20, "black")
 rnb-img     = text("🎤", 20, "black")
 reggae-img  = text("🇯🇲", 20, "black")
 kpop-img    = text("🇰🇷", 20, "black")
-
 
 ######################################################################
 # animal-img :: Row -> Image
