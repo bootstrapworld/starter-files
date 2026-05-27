@@ -118,30 +118,29 @@ fun is-non-punct(c :: String) -> Boolean block:
     end
   end
 
-fun lowercase(t :: Table, col :: String) -> Table:
-  t.transform-column(
-    col, 
-    {(s): string-explode(string-to-lower(s)).join-str("")})
+fun lowercase(s :: String) -> String:
+  string-explode(string-to-lower(s)).join-str("")
 end
 
-fun remove-punct(t :: Table, col :: String) -> Table:
-  t.transform-column(
-    col, 
-    {(s): string-explode(s)
-        .filter(is-non-punct)
-        .filter(is-non-empty-string)
-        .join-str("")
-    })
+fun remove-punct(s :: String) -> String:
+  string-explode(s)
+    .filter(is-non-punct)
+    .filter(is-non-empty-string)
+    .join-str("")
 end
 
-fun remove-stops(t :: Table, col :: String) -> Table:
+fun remove-stops(s :: String) -> String:
+  string-split-all(s, " ")
+    .filter({(w): not(stop-words.member(w))})
+    .filter(is-non-empty-string)
+    .join-str(" ")
+end
+
+fun normalize-text-table(t :: Table, col :: String) -> Table:
   t.transform-column(
     col,
-    {(s): string-split-all(s, " ")
-        .filter({(w): not(stop-words.member(w))})
-        .filter(is-non-empty-string)
-        .join-str(" ")
-    })
+    {(txt): remove-stops(remove-punct(lowercase(txt)))}
+    )
 end
 
 fun massage-string(w :: String) -> String block:
@@ -406,13 +405,13 @@ end
 # on String inputs directly.
 # The four comparison approaches are:
 #
-# 1. simple-similarity — exact word-for-word match (order matters)
-# 2. bag-similarity    — same words in any order (frequency matters)
-# 3. cosine-similarity — a continuous score from 0 to 1 measuring
+# 1. simple-similarity — perfect equality
+# 2. cosine-similarity — a continuous score from 0 to 1 measuring
 #                        how similar the word frequency vectors are
-# 4. angle-similarity  — converts cosine similarity to an angle (0-90°),
+# 3. angle-similarity  — converts cosine similarity to an angle (0-90°),
 #                        where 0° means identical and 90° means nothing
 #                        in common.
+# 4. all-cols-similarity — same as cosine similarity, but auto-chooses the cols
 ################################################################
 
 # simple-similarity: true iff the specified cols of the two rows 
@@ -449,12 +448,13 @@ fun distance-similarity(t :: Table, id, cols :: List<String>) block:
   t.build-column("distance-similarity", compare-row).order-by("distance-similarity", true)
 end
 
-# bag-similarity: returns 1 the two bags contain the same words
+# all-cols-similarity: returns 1 if the two bags contain the same words
 # with the same frequencies (regardless of order). Otherwise 0.
-fun bag-similarity(t :: Table, id) block:
-  cols = get-unrestricted-cols(t.row-n(0))
+fun all-cols-similarity(t :: Table, id) block:
+  r = t.row-n(0)
+  cols = get-unrestricted-cols(r).filter({(c): is-number(r[c])})
   when cols.length() == 0:
-    raise(Err.message-exception("Bag similarity ignores certain columns (" + restricted-cols.join-str(", ") + "), but no other columns were found"))
+    raise(Err.message-exception("all-cols-similarity ignores certain columns (" + restricted-cols.join-str(", ") + "), but no other numeric columns were found"))
   end
   cosine-similarity(t, id, cols)
 end
