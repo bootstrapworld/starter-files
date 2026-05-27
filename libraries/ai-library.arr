@@ -118,7 +118,7 @@ fun is-non-punct(c :: String) -> Boolean block:
     end
   end
 
-fun lowercase-(t :: Table, col :: String) -> Table:
+fun lowercase(t :: Table, col :: String) -> Table:
   t.transform-column(
     col, 
     {(s): string-explode(string-to-lower(s)).join-str("")})
