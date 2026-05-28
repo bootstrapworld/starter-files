@@ -665,6 +665,7 @@ end
 # own to pick the rendering style and overlay the banner.
 fun run-training(frames-per-second, draw-fn):
   initial = fresh-game()
+  shadow fmt = lam(n): num-exact(num-round-to(n, 3)) end
   fun tick-fn(g): game-step(g, ramp-steering, true) end
   r = reactor:
     init:             initial,
@@ -679,11 +680,11 @@ fun run-training(frames-per-second, draw-fn):
   states = alive.all-rows().map({(row): row["state"].car})
   [Tables.table-from-columns:
     {"id";              alive.column("tick")},
-    {"speed";           states.map({(s): s.speed-val         })},
-    {"curve-sharpness"; states.map({(s): s.sharpness-val     })},
-    {"offset";          states.map({(s): s.offset-val        })},
-    {"heading-error";   states.map({(s): s.heading-error-val })},
-    {"steering-angle";  states.map({(s): s.steer-val         })}]
+    {"speed";           states.map({(s): fmt(s.speed-val)         })},
+    {"curve-sharpness"; states.map({(s): fmt(s.sharpness-val)     })},
+    {"offset";          states.map({(s): fmt(s.offset-val)        })},
+    {"heading-error";   states.map({(s): fmt(s.heading-error-val) })},
+    {"steering-angle";  states.map({(s): fmt(s.steer-val)         })}]
 end
 # Birds-eye training: track viewed from above.
 fun train-bev(frames-per-second):
