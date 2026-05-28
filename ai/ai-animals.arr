@@ -23,10 +23,10 @@ scatter-plot(animals-table, "ID", "pounds", "weeks")
 scatter-plot(animals-table, "ID", "age", "weeks")
 
 fun pounds-predictor(pounds): (... * pounds) + ... end
-fun   age-predictor(age):     (... *  age  ) + ... end
+fun age-predictor(age):       (... * age) + ... end
 
 # Once you've filled in the blanks above, uncomment these lines of code to fit your models!
 # fit-model(animals-table, "name", "pounds", "weeks", pounds-predictor)
 # fit-model(animals-table, "name", "age", "weeks", pounds-predictor)
 
-fun age-pound-predictor(r): (... * pounds) + (... * age) + ... end
+fun age-pounds-predictor(r): (... * r["pounds"]) + (... * r["age"]) + ... end
