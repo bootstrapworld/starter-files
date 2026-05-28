@@ -105,18 +105,22 @@ end
 
 fun is-non-empty-string(w :: String) -> Boolean:  w <> '' end
 fun is-non-punct(c :: String) -> Boolean block:
-    # Spaces are fine, anything between a-z and A-Z is fine
-    lower-case-a-cp = string-to-code-point('a')
-    lower-case-z-cp = string-to-code-point('z')
-    upper-case-a-cp = string-to-code-point('A')
-    upper-case-z-cp = string-to-code-point('Z')
-    if (c == ' ') or (c == '\n'): true
-    else:
-      c-cp = string-to-code-point(c)
-      ((c-cp >= lower-case-a-cp) and (c-cp <= lower-case-z-cp)) or
-      ((c-cp >= upper-case-a-cp) and (c-cp <= upper-case-z-cp))
-    end
+  # Spaces are fine, anything between a-z and A-Z is fine
+  lower-case-a-cp = string-to-code-point('a')
+  lower-case-z-cp = string-to-code-point('z')
+  upper-case-a-cp = string-to-code-point('A')
+  upper-case-z-cp = string-to-code-point('Z')
+  if (c == ' ') or (c == '\n'): true
+  else:
+    c-cp = string-to-code-point(c)
+    ((c-cp >= lower-case-a-cp) and (c-cp <= lower-case-z-cp)) or
+    ((c-cp >= upper-case-a-cp) and (c-cp <= upper-case-z-cp))
   end
+end
+
+fun replace-newlines(s): 
+  if s == '\n': " " else: s end
+end
 
 fun lowercase(s :: String) -> String:
   string-explode(string-to-lower(s)).join-str("")
@@ -144,7 +148,7 @@ fun normalize-text-table(t :: Table, col :: String) -> Table:
 end
 
 fun massage-string(w :: String) -> String block:
-  lowercase-chars = string-explode(string-to-lower(w))
+    lowercase-chars = string-explode(string-to-lower(w)).map(replace-newlines)
   fold({(a, b): a + b }, '', lowercase-chars.filter(is-non-punct))
 end
 
@@ -1075,22 +1079,15 @@ fun generate-ngram-table(corpus :: String, n :: Number) block:
     raise(Err.message-exception("I have been programmed not to make n-grams larger than " + to-string(MAX-GRAM-SIZE)))
   end
 
-  # Split the text into a list of individual words
   words = string-split-all(massage-string(corpus), " ")
     .filter(is-non-empty-string)
 
-  # Helper: Joins a list of strings into a single space-separated string
   fun join-words(w-list):
     for fold(acc from "", w from w-list):
-      if acc == "": 
-        w 
-      else: 
-        acc + " " + w 
-      end
+      if acc == "": w else: acc + " " + w end
     end
   end
 
-  # Helper: Recursively extracts N-grams of length 'n'
   fun get-ngrams(w-list):
     if w-list.length() < n:
       empty
@@ -1102,7 +1099,6 @@ fun generate-ngram-table(corpus :: String, n :: Number) block:
 
   ngrams = get-ngrams(words)
 
-  # Count the frequencies of each N-gram using a String Dictionary
   counts = for fold(dict from [string-dict:], ngram from ngrams):
     if dict.has-key(ngram):
       dict.set(ngram, dict.get-value(ngram) + 1)
@@ -1111,17 +1107,32 @@ fun generate-ngram-table(corpus :: String, n :: Number) block:
     end
   end
 
-  # Map the dictionary keys and values into a list of records
   rows = for map(key from counts.keys().to-list()):
-    [T.raw-row: 
-      {"n-gram"; key}, 
-      {"count"; counts.get-value(key) }]
+    [T.raw-row: {"n-gram"; key}, {"count"; counts.get-value(key)}]
   end
-
 
   T.table-from-rows
     .make(raw-array-from-list(rows))
     .order-by("count", false)
+end
+
+fun build-lang-model(corpus-str :: String) -> Table:
+  doc: "Precomputes all n-gram tables and combines them into one table with a 'size' column."
+  word-count = string-split-all(massage-string(corpus-str), " ")
+    .filter(is-non-empty-string)
+    .length()
+
+  all-rows = for fold(acc from empty, n from L.range(1, MAX-GRAM-SIZE + 1)):
+    these-rows = for fold(rows from empty, r from generate-ngram-table(corpus-str, n).all-rows()):
+      link([T.raw-row: {"size"; n}, {"n-gram"; r["n-gram"]}, {"count"; r["count"]}], rows)
+    end
+    acc + these-rows
+  end
+
+  T.table-from-rows
+    .make(raw-array-from-list(all-rows))
+    .order-by("count", false)
+
 end
 
 fun completions(corpus, input) block:
@@ -1129,16 +1140,10 @@ fun completions(corpus, input) block:
     .filter(is-non-empty-string)
 
   input-length = input-lst.length()
-  corpus-length = string-split-all(massage-string(corpus), " ")
-    .filter(is-non-empty-string)
-    .length()
-  max-length = num-min(corpus-length, MAX-GRAM-SIZE)
 
-  # if the input-length is longer than
-  # the corpus just take the end
-  shadow input = if input-length >= max-length:
+  shadow input = if input-length >= MAX-GRAM-SIZE:
     input-lst.reverse()
-      .take(num-min(corpus-length, max-length - 1))
+      .take(MAX-GRAM-SIZE)
       .reverse()
       .join-str(" ")
   else: input-lst.join-str(" ")
@@ -1146,20 +1151,21 @@ fun completions(corpus, input) block:
 
   gram-size = num-min(string-split-all(input, " ").length() + 1, MAX-GRAM-SIZE)
 
-  n-grams = generate-ngram-table(corpus, gram-size)
-    .filter({(r): string-starts-with(r["n-gram"], input)})
+  corpus
+    .filter({(r): (r["size"] == gram-size) and string-starts-with(r["n-gram"], input)})
     .transform-column("n-gram", {(ngram): string-split-all(ngram, " ").reverse().get(0)})
-  n-grams
 end
 
 fun best-completion(corpus, input):
+  words = string-split-all(massage-string(input), " ")
+    .filter(is-non-empty-string)
+  last-word = if words.length() == 0: "" else: words.reverse().get(0) end
+
   choices = completions(corpus, input)
+    .filter({(r): r["n-gram"] <> last-word})
   row-count = choices.length()
 
   if row-count == 0:
-    # Back off: drop the oldest word and try with shorter context
-    words = string-split-all(massage-string(input), " ")
-      .filter(is-non-empty-string)
     best-completion(corpus, words.rest.join-str(" "))
   else if row-count == 1:
     choices.row-n(0)["n-gram"]
@@ -1168,12 +1174,16 @@ fun best-completion(corpus, input):
   end
 end
 
-fun add-next-word(corpus, input): 
-  next-word = best-completion(corpus, input) 
-  input + " " + next-word
+fun add-next-word(corpus, input) -> String:
+  input + " " + best-completion(corpus, input)
 end
 
 fun draw-lines(txt):
+  fun build-image(str):
+    overlay(text(str, 20, "black"), 
+      square(25, "solid", "transparent"))
+  end
+  
   words = string-split-all(txt, " ")
   fun build-lines(remaining, current-line):
     cases (List) remaining:
@@ -1181,18 +1191,17 @@ fun draw-lines(txt):
         if current-line == "":
           empty
         else:
-          [list: text(current-line, 20, "black")]
+          [list: build-image(current-line)]
         end
       | link(word, rest) =>
         candidate =
           if current-line == "": word
           else: current-line + " " + word
           end
-        # Always accept if current-line is empty (handles words > 80 chars gracefully)
         if (current-line == "") or (string-length(candidate) <= 80):
           build-lines(rest, candidate)
         else:
-          link(text(current-line, 20, "black"), build-lines(rest, word))
+          link(build-image(current-line), build-lines(rest, word))
         end
     end
   end
