@@ -1072,7 +1072,7 @@ end
 ### N-GRAMS ##################################
 MAX-GRAM-SIZE = 5
 
-fun generate-ngram-table(corpus :: String, n :: Number) block:
+fun generate-ngrams(corpus :: String, n :: Number) block:
   doc: "Consumes a string and N, and produces a list of records with N-grams and their counts."
 
   when n > MAX-GRAM-SIZE:
@@ -1123,7 +1123,7 @@ fun build-lang-model(corpus-str :: String) -> Table:
     .length()
 
   all-rows = for fold(acc from empty, n from L.range(1, MAX-GRAM-SIZE + 1)):
-    these-rows = for fold(rows from empty, r from generate-ngram-table(corpus-str, n).all-rows()):
+    these-rows = for fold(rows from empty, r from generate-ngrams(corpus-str, n).all-rows()):
       link([T.raw-row: {"size"; n}, {"n-gram"; r["n-gram"]}, {"count"; r["count"]}], rows)
     end
     acc + these-rows
@@ -1135,7 +1135,7 @@ fun build-lang-model(corpus-str :: String) -> Table:
 
 end
 
-fun completions(corpus, input) block:
+fun completions(model :: Table, input :: String) block:
   input-lst = string-split-all(massage-string(input), " ")
     .filter(is-non-empty-string)
 
@@ -1151,22 +1151,42 @@ fun completions(corpus, input) block:
 
   gram-size = num-min(string-split-all(input, " ").length() + 1, MAX-GRAM-SIZE)
 
-  corpus
+  model
     .filter({(r): (r["size"] == gram-size) and string-starts-with(r["n-gram"], input)})
     .transform-column("n-gram", {(ngram): string-split-all(ngram, " ").reverse().get(0)})
 end
 
-fun best-completion(corpus, input):
+fun next-word-probability(model :: Table, first :: String, second :: String):
+  choices = completions(model, first)
+
+  total = for fold(acc from 0, r from choices.all-rows()):
+    acc + r["count"]
+  end
+
+  if total == 0:
+    0
+  else:
+    matching = choices.filter({(r): r["n-gram"] == massage-string(second)})
+    if matching.length() == 0:
+      0
+    else:
+      matching.row-n(0)["count"] / total
+    end
+  end
+end
+
+
+fun choose-completion(model :: Table, input :: String):
   words = string-split-all(massage-string(input), " ")
     .filter(is-non-empty-string)
   last-word = if words.length() == 0: "" else: words.reverse().get(0) end
 
-  choices = completions(corpus, input)
+  choices = completions(model, input)
     .filter({(r): r["n-gram"] <> last-word})
   row-count = choices.length()
 
   if row-count == 0:
-    best-completion(corpus, words.rest.join-str(" "))
+    choose-completion(model, words.rest.join-str(" "))
   else if row-count == 1:
     choices.row-n(0)["n-gram"]
   else:
@@ -1174,8 +1194,13 @@ fun best-completion(corpus, input):
   end
 end
 
-fun add-next-word(corpus, input) -> String:
-  input + " " + best-completion(corpus, input)
+# truncate the input to the last MAX-GRAM-SIZE words, 
+# and choose a completion
+fun add-next-word(model :: Table, input :: String) -> String:
+  words = string-split-all(input, " ")
+    
+  start = words.reverse().take(num-min(words.length(), MAX-GRAM-SIZE)).reverse().join-str(" ")
+  input + " " + choose-completion(model, start)
 end
 
 fun draw-lines(txt):
@@ -1208,12 +1233,12 @@ fun draw-lines(txt):
   above-align-list("left", build-lines(words, ""))
 end
 
-fun generate-from(corpus, input):
+fun generate-from(model :: Table, input):
   reactor:
     init: input,
     to-draw: draw-lines,
-    on-tick: lam(i): add-next-word(corpus, i) end,
-    seconds-per-tick: 0.01
+    on-tick: lam(i): add-next-word(model, i) end,
+    seconds-per-tick: 0.1
   end
     .interact()
     .get-value()
