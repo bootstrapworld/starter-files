@@ -13,6 +13,13 @@ testing =
   end
 
 #####################################################################
+# define firepaw to be the first row in the table
+firepaw = row-n(training, 0)
+
+# define frisky to be the sixth row in the table
+
+
+#####################################################################
 # tail-classifier :: Row -> String
 # consumes an animal, and predicts the species
 fun tail-classifier(r):
@@ -25,12 +32,6 @@ end
 
 # You can test out any classifier function using the `classify` function
 # classify(testing, "species", tail-classifier)
-
-#####################################################################
-# define firepaw to be the first row in the table
-firepaw = row-n(training, 0)
-
-# define frisky to be the sixth row in the table
 
 #####################################################################
 # images of various species
