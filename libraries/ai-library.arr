@@ -1156,10 +1156,15 @@ fun best-completion(corpus, input):
   choices = completions(corpus, input)
   row-count = choices.length()
 
-  if row-count == 1:
+  if row-count == 0:
+    # Back off: drop the oldest word and try with shorter context
+    words = string-split-all(massage-string(input), " ")
+      .filter(is-non-empty-string)
+    best-completion(corpus, words.rest.join-str(" "))
+  else if row-count == 1:
     choices.row-n(0)["n-gram"]
   else:
-    choices.row-n(random(row-count))["n-gram"]
+    choices.row-n(random(row-count - 1))["n-gram"]
   end
 end
 
@@ -1168,11 +1173,38 @@ fun add-next-word(corpus, input):
   input + " " + next-word
 end
 
+fun draw-lines(txt):
+  words = string-split-all(txt, " ")
+  fun build-lines(remaining, current-line):
+    cases (List) remaining:
+      | empty =>
+        if current-line == "":
+          empty
+        else:
+          [list: text(current-line, 20, "black")]
+        end
+      | link(word, rest) =>
+        candidate =
+          if current-line == "": word
+          else: current-line + " " + word
+          end
+        # Always accept if current-line is empty (handles words > 80 chars gracefully)
+        if (current-line == "") or (string-length(candidate) <= 80):
+          build-lines(rest, candidate)
+        else:
+          link(text(current-line, 20, "black"), build-lines(rest, word))
+        end
+    end
+  end
+  above-align-list("left", build-lines(words, ""))
+end
+
 fun generate-from(corpus, input):
   reactor:
     init: input,
+    to-draw: draw-lines,
     on-tick: lam(i): add-next-word(corpus, i) end,
-    seconds-per-tick: 0.3
+    seconds-per-tick: 0.01
   end
     .interact()
     .get-value()
