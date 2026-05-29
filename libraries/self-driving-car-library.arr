@@ -54,14 +54,6 @@ MAX-STEER       = 90        # max |steering angle| (degrees) the wheel can reach
 STEER-RATE      = 8         # how fast the wheel ramps toward its target each tick
 MAX-SHARPNESS   = 6.0       # max |dθ/dt| allowed at any point on the track
 
-# Training-mode auto-assist gains.  When neither arrow key is held,
-# the wheel targets a corrective angle computed from the current
-# sensors using these coefficients (same shape as the hand-tuned
-# stub controller).  Set them all to 0 to turn the assist off and
-# go back to "wheel just centres when keys are released."
-ASSIST-K-SHARP   = 1.001     # feedforward on track curvature
-ASSIST-K-OFFSET  = 0.05      # pull toward the centerline
-ASSIST-K-HEADING = 0.001     # rotate back into alignment with the track
 
 # Speed dynamics — speed creeps up toward MAX-SPEED while the wheel
 # is within ±STEER-DEAD-BAND of centre, and creeps back down toward
@@ -468,20 +460,11 @@ fun game-step(g :: Game, get-steering, survival :: Boolean) -> Game:
 end
 fun ramp-steering(s :: CarState, sharp :: Number, off :: Number,
                   he :: Number) -> Number:
-  # When a key is held the wheel ramps toward ±MAX-STEER as before.
-  # When no key is held, instead of just centring the wheel, target
-  # a corrective angle: feed-forward on curvature plus pull-back on
-  # offset and heading-error.  Net effect: the car gently rights
-  # itself when the student lets go, but holding a key still
-  # overrides everything.
   target =
     ask:
       | s.key-left  and not(s.key-right) then: 0 - MAX-STEER
       | s.key-right and not(s.key-left)  then: MAX-STEER
-      | otherwise:
-          (sharp * ASSIST-K-SHARP)
-            - (off * ASSIST-K-OFFSET)
-            - (he  * ASSIST-K-HEADING)
+      | otherwise: 0
     end
   approach(s.steer-val, target, STEER-RATE)
 end
@@ -587,7 +570,7 @@ end
 # `frames-per-second` is your knob for slow machines: recommend
 # 20fps on fast machines, and 12fps on slow ones
 # ============================================================
-fun drive(frames-per-second, predictor) block:
+fun drive(predictor, frames-per-second):
   initial = fresh-game()
   fun get-steering(s, sharpness, offset, heading-err):
     r = [Tables.raw-row:
@@ -611,7 +594,6 @@ fun drive(frames-per-second, predictor) block:
     title:            "ML-driven car"
   end
   r.interact()
-  nothing
 end
 # ============================================================
 # TRAINING REACTOR FACTORIES
@@ -665,7 +647,6 @@ end
 # own to pick the rendering style and overlay the banner.
 fun run-training(frames-per-second, draw-fn):
   initial = fresh-game()
-  shadow fmt = lam(n): num-exact(num-round-to(n, 3)) end
   fun tick-fn(g): game-step(g, ramp-steering, true) end
   r = reactor:
     init:             initial,
@@ -680,11 +661,11 @@ fun run-training(frames-per-second, draw-fn):
   states = alive.all-rows().map({(row): row["state"].car})
   [Tables.table-from-columns:
     {"id";              alive.column("tick")},
-    {"speed";           states.map({(s): fmt(s.speed-val)         })},
-    {"curve-sharpness"; states.map({(s): fmt(s.sharpness-val)     })},
-    {"offset";          states.map({(s): fmt(s.offset-val)        })},
-    {"heading-error";   states.map({(s): fmt(s.heading-error-val) })},
-    {"steering-angle";  states.map({(s): fmt(s.steer-val)         })}]
+    {"speed";           states.map({(s): s.speed-val         })},
+    {"curve-sharpness"; states.map({(s): s.sharpness-val     })},
+    {"offset";          states.map({(s): s.offset-val        })},
+    {"heading-error";   states.map({(s): s.heading-error-val })},
+    {"steering-angle";  states.map({(s): s.steer-val         })}]
 end
 # Birds-eye training: track viewed from above.
 fun train-bev(frames-per-second):
