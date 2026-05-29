@@ -35,8 +35,8 @@ provide from L: * hiding(filter, range, sort), type *, data * end
 #
 #     (Row -> Number)
 #
-# where the row has columns [speed, curve-sharpness, offset,
-# heading-error] and the return value is the steering-wheel
+# where the row has columns [speed, curve, offset,
+# skew] and the return value is the steering-wheel
 # angle in degrees (positive = right).
 # ============================================================
 # Display Constants
@@ -208,7 +208,7 @@ end
 fun sharpness-at-t(trk :: TrackParams, t :: Number) -> Number:
   wrap-angle(track-heading(trk, t + LOOKAHEAD) - track-heading(trk, t)) / LOOKAHEAD
 end
-fun heading-error-at-t(trk :: TrackParams, t :: Number,
+fun skew-at-t(trk :: TrackParams, t :: Number,
                        car-h :: Number) -> Number:
   wrap-angle(car-h - track-heading(trk, t)) * (180 / PI)
 end
@@ -248,13 +248,13 @@ end
 # ============================================================
 HUD-LABELS = above-list(
   [list:
-    text("speed:           ", 13, "white"),
+    text("speed:      ", 13, "white"),
     square(TEXT-SPACING, "solid", "transparent"),
-    text("curve-sharpness: ", 13, "white"),
+    text("curve:      ", 13, "white"),
     square(TEXT-SPACING, "solid", "transparent"),
-    text("offset:          ", 13, "white"),
+    text("offset:     ", 13, "white"),
     square(TEXT-SPACING, "solid", "transparent"),
-    text("heading-error:   ", 13, "white"),
+    text("skew:       ", 13, "white"),
     square(TEXT-SPACING, "solid", "transparent"),
     text("steering-angle:  ", 13, "yellow")])
 fun fmt(v :: Number) -> String:
@@ -329,7 +329,7 @@ data CarState:
       speed-val         :: Number,
       sharpness-val     :: Number,
       offset-val        :: Number,
-      heading-error-val :: Number,
+      skew-val :: Number,
       steer-val         :: Number,
       key-left          :: Boolean,
       key-right         :: Boolean,
@@ -400,7 +400,7 @@ fun make-tick(trk :: TrackParams, get-steering, survival :: Boolean):
       t           = (t-i / CLOSEST-T-STEPS) * 2 * PI
       offset      = offset-at-t(trk, s.x, s.y, t)
       sharpness   = sharpness-at-t(trk, t)
-      heading-err = heading-error-at-t(trk, t, s.heading)
+      heading-err = skew-at-t(trk, t, s.heading)
       if num-abs(offset) >= ROAD-HALF-WIDTH:
         if survival:
           snap-back(trk, t-i, s, sharpness, offset)
@@ -489,7 +489,7 @@ fun draw-car(s :: CarState, alive-color, crashed-color, hud-top, crash-msg, road
       square(TEXT-SPACING, "solid", "transparent"),
       text(fmt(s.offset-val), 13, "white"),
       square(TEXT-SPACING, "solid", "transparent"),
-      text(fmt(s.heading-error-val), 13, "white"),
+      text(fmt(s.skew-val), 13, "white"),
       square(TEXT-SPACING, "solid", "transparent"),
       text(fmt(s.steer-val),  13, "yellow")])
   sensor-lines = beside(HUD-LABELS, values)
@@ -553,7 +553,7 @@ fun draw-pov(s :: CarState, trk :: TrackParams, hud-top, crash-msg):
       square(TEXT-SPACING, "solid", "transparent"),
       text(fmt(s.offset-val),        13, "white"),
       square(TEXT-SPACING, "solid", "transparent"),
-      text(fmt(s.heading-error-val), 13, "white"),
+      text(fmt(s.skew-val), 13, "white"),
       square(TEXT-SPACING, "solid", "transparent"),
       text(fmt(s.steer-val),         13, "yellow")])
   sensor-lines = beside(HUD-LABELS, values)
@@ -570,14 +570,14 @@ end
 # `frames-per-second` is your knob for slow machines: recommend
 # 20fps on fast machines, and 12fps on slow ones
 # ============================================================
-fun drive(predictor, frames-per-second):
+fun drive(predictor) block:
   initial = fresh-game()
   fun get-steering(s, sharpness, offset, heading-err):
     r = [Tables.raw-row:
-      {"speed";           s.speed-val},
-      {"curve-sharpness"; sharpness},
-      {"offset";          offset},
-      {"heading-error";   heading-err}]
+      {"speed";   s.speed-val},
+      {"curve";   sharpness},
+      {"offset";  offset},
+      {"skew";    heading-err}]
     predictor(r)
   end
   fun tick-fn(g): game-step(g, get-steering, false) end
@@ -588,12 +588,13 @@ fun drive(predictor, frames-per-second):
   r = reactor:
     init:             initial,
     on-tick:          tick-fn,
-    seconds-per-tick: 1 / frames-per-second,
+    seconds-per-tick: 1 / 15,
     to-draw:          draw-fn,
     stop-when:        game-done,
     title:            "ML-driven car"
   end
   r.interact()
+  nothing
 end
 # ============================================================
 # TRAINING REACTOR FACTORIES
@@ -604,7 +605,7 @@ fun handle-train-key(s :: CarState, event) -> CarState:
   if (event.key == "escape") and is-down:
     car(s.x, s.y, s.heading, false,
       s.speed-val, s.sharpness-val, s.offset-val,
-      s.heading-error-val, s.steer-val,
+      s.skew-val, s.steer-val,
       s.key-left, s.key-right, s.t-prev)
   else:
     new-left =
@@ -621,7 +622,7 @@ fun handle-train-key(s :: CarState, event) -> CarState:
       end
     car(s.x, s.y, s.heading, s.alive,
       s.speed-val, s.sharpness-val, s.offset-val,
-      s.heading-error-val, s.steer-val,
+      s.skew-val, s.steer-val,
       new-left, new-right, s.t-prev)
   end
 end
@@ -660,11 +661,11 @@ fun run-training(frames-per-second, draw-fn):
   alive  = r.interact-trace().filter({(row): row["state"].car.alive})
   states = alive.all-rows().map({(row): row["state"].car})
   [Tables.table-from-columns:
-    {"id";              alive.column("tick")},
-    {"speed";           states.map({(s): s.speed-val         })},
-    {"curve-sharpness"; states.map({(s): s.sharpness-val     })},
-    {"offset";          states.map({(s): s.offset-val        })},
-    {"heading-error";   states.map({(s): s.heading-error-val })},
+    {"id";     alive.column("tick")},
+    {"speed";  states.map({(s): s.speed-val         })},
+    {"curve";  states.map({(s): s.sharpness-val     })},
+    {"offset"; states.map({(s): s.offset-val        })},
+    {"skew";   states.map({(s): s.skew-val })},
     {"steering-angle";  states.map({(s): s.steer-val         })}]
 end
 # Birds-eye training: track viewed from above.
@@ -704,11 +705,11 @@ fun moving-average(xs, window):
 end
 fun smooth(t):
   [Tables.table-from-columns:
-    {"id";              t.column("id")},
-    {"speed";           t.column("speed")},
-    {"curve-sharpness"; t.column("curve-sharpness")},
-    {"offset";          t.column("offset")},
-    {"heading-error";   t.column("heading-error")},
+    {"id";      t.column("id")},
+    {"speed";   t.column("speed")},
+    {"curve";   t.column("curve")},
+    {"offset";  t.column("offset")},
+    {"skew";    t.column("skew")},
     {"steering-angle";  moving-average(t.column("steering-angle"), 5)}]
 end
 # ============================================================
@@ -716,7 +717,7 @@ end
 # ============================================================
 fun get-awesome-data():
   url = "https://docs.google.com/spreadsheets/d/1G6zAS1QS7OTRLaLMCm3yO_ug45VJJNxAK8_uTyY1sYo/export?format=csv"
-  load-table: id, curve-sharpness, speed, offset, heading-error, steering-angle
+  load-table: id, curve, speed, offset, skew, steering-angle
     source: csv.csv-table-url(url, {
           header-row: true,
           infer-content: true
@@ -731,8 +732,8 @@ end
    # ============================================================
    fun stub-trained(r) -> Number:
      off   = r["offset"]
-     sharp = r["curve-sharpness"]
-     he    = r["heading-error"]
+     sharp = r["curve"]
+     he    = r["skew"]
      # Steer toward the centerline + feed-forward on track curvature
      # + drift-angle correction.  Gains 22 / -3.0 / -2.5 from offline
      # grid search; complete laps with peak deviation ~27 px on a
