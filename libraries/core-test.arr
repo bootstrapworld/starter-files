@@ -220,8 +220,8 @@ end
 
 
 examples "S in Num->Num and Row->Num form":
-  simple-S(animals-table, "age", "weeks", lam(x):  (0.78925 * x) + 2.309 end) is-roughly ~5.539741245494801
-  S(animals-table, [list:"age"], "weeks", lam(r):  (0.78925 * r["age"]) + 2.309 end) is-roughly ~5.539741245494801
+  S(animals-table, "age", "weeks", lam(x):  (0.78925 * x) + 2.309 end) is-roughly ~5.539741245494801
+  reg-model-S(animals-table, [list:"age"], "weeks", lam(r):  (0.78925 * r["age"]) + 2.309 end) is-roughly ~5.539741245494801
 end
 
 f = lr-fun(animals-table, "age", "weeks")

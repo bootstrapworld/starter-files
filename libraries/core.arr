@@ -1375,7 +1375,7 @@ fun lr-plot(t, ls, xs, ys) block:
     fn-plot = from-list.function-plot(fn)
       .legend("Model")
     # wrap the xs in a list, and fn in a row-consuming fn
-    s-num = S(t, [list: xs], ys, {(r): fn(r[xs])})
+    s-num = reg-model-S(t, [list: xs], ys, {(r): fn(r[xs])})
     r-sqr-num = Stats.r-squared(t.column(xs), t.column(ys), fn)
     chart = render-charts([list: scatter, fn-plot]).width(600).height(400)
       .title(make-lr-title(fn, r-sqr-num, s-num))
@@ -1401,7 +1401,7 @@ fun simple-lr-plot(t, xs, ys) block:
     fn = Stats.linear-regression(t.column(xs), t.column(ys))
     fn-plot = from-list.function-plot(fn)
     # wrap the xs in a list, and fn in a row-consuming fn
-    s-num = S(t, [list: xs], ys, {(r): fn(r[xs])})
+    s-num = reg-model-S(t, [list: xs], ys, {(r): fn(r[xs])})
     r-sqr-num = Stats.r-squared(t.column(xs), t.column(ys), fn)
     chart = render-charts([list: scatter, fn-plot]).width(600).height(400)
       .title(make-lr-title(fn, r-sqr-num, s-num))
@@ -1431,7 +1431,7 @@ fun image-lr-plot(t, xs, ys, f) block:
     fn-plot = from-list.function-plot(fn)
       .legend("Model")
     # wrap the xs in a list, and fn in a row-consuming fn
-    s-num = S(t, [list: xs], ys, {(r): fn(r[xs])})
+    s-num = reg-model-S(t, [list: xs], ys, {(r): fn(r[xs])})
     r-sqr-num = Stats.r-squared(t.column(xs), t.column(ys), fn)
     chart = render-charts([list: scatter, fn-plot]).width(600).height(400)
       .title(make-lr-title(fn, r-sqr-num, s-num))
@@ -1444,8 +1444,8 @@ fun image-lr-plot(t, xs, ys, f) block:
   end
 end
 
-mr-coeffs :: (t :: Table, params :: List<String>, response :: String) -> Table
-fun mr-coeffs(t, params, response) block:
+reg-model-coeffs :: (t :: Table, params :: List<String>, response :: String) -> Table
+fun reg-model-coeffs(t, params, response) block:
   all-cols = link(response, params)
   check-integrity(t, all-cols)
   # check to make sure the cols exist
@@ -1465,12 +1465,12 @@ fun mr-coeffs(t, params, response) block:
 end
 
 lr-coeffs :: (t :: Table, param :: String, response :: String) -> Table
-fun lr-coeffs(t, param, response): mr-coeffs(t, [list: param], response) end
+fun lr-coeffs(t, param, response): reg-model-coeffs(t, [list: param], response) end
 
-mr-fun :: (t :: Table, params :: List<String>, response :: String) -> (Row -> Number)
-fun mr-fun(t, params, response) block:
+reg-model-fun :: (t :: Table, params :: List<String>, response :: String) -> (Row -> Number)
+fun reg-model-fun(t, params, response) block:
   # generate the coefficients table
-  coeffs = mr-coeffs(t, params, response)
+  coeffs = reg-model-coeffs(t, params, response)
   # return a wrapped function, which consumes a row of the 
   # table, extracts the values in explanation-order, and 
   # passes them to the raw function
@@ -1493,13 +1493,13 @@ lr-fun :: (t :: Table, param :: String, response :: String) ->  (Row -> Number)
 # just a special-case wrapper for multiple-regression-fun, which produces
 # a function consuming a row and producing a number
 fun lr-fun(t, param, response):
-  mr-fun(t, [list: param], response)
+  reg-model-fun(t, [list: param], response)
 end
 
-mr-code :: (t :: Table, params :: List<String>, response :: String) -> Nothing
-fun mr-code(t, params, response) block:
+reg-model-code :: (t :: Table, params :: List<String>, response :: String) -> Nothing
+fun reg-model-code(t, params, response) block:
   # generate the coefficients table
-  coeffs = mr-coeffs(t, params, response)
+  coeffs = reg-model-coeffs(t, params, response)
   # return a wrapped function, which consumes a row of the 
   # table, extracts the values in explanation-order, and 
   # passes them to the raw function
@@ -1514,12 +1514,14 @@ fun mr-code(t, params, response) block:
   nothing
 end
 
+#|
 lr-code :: (t :: Table, param :: String, response :: String) -> Nothing
 # just a special-case wrapper for multiple-regression-fun, which produces
 # a function consuming a row and producing a number
 fun lr-code(t, param, response):
-  mr-code(t, [list: param], response)
+  reg-model-code(t, [list: param], response)
 end
+|#
 
 predict-col :: (t :: Table, target-col :: String, predictor :: (Row -> Number)) -> Table
 # Move the target column to the end of the table, alongside new 'predicted' and 'error' columns
@@ -1558,8 +1560,8 @@ fun residuals(t, explanation, response, model):
   mr-residuals(t, [list: explanation], response, f)
 end
 
-S :: (t :: Table, explanations :: List<String>, response :: String, model :: (Row -> Number)) -> Number
-fun S(t, explanations, response, model) block:
+reg-model-S :: (t :: Table, explanations :: List<String>, response :: String, model :: (Row -> Number)) -> Number
+fun reg-model-S(t, explanations, response, model) block:
 
   # error-checking
   all-cols = link(response, explanations)
@@ -1581,9 +1583,9 @@ fun S(t, explanations, response, model) block:
   num-sqrt(Math.sum(residuals-sqr) / degrees-of-freedom)
 end
 
-simple-S :: (t :: Table, explanation :: String, response :: String, model :: (Row -> Number)) -> Number
-fun simple-S(t, explanation, response, model):
-  S(t, [list: explanation], response, {(r): model(r[explanation])})
+S :: (t :: Table, explanation :: String, response :: String, model :: (Row -> Number)) -> Number
+fun S(t, explanation, response, model):
+  reg-model-S(t, [list: explanation], response, {(r): model(r[explanation])})
 end
 
 fit-model :: (t :: Table, ls :: String, xs :: String, ys :: String, fn :: (Number -> Number)) -> Image
@@ -1593,7 +1595,7 @@ fun fit-model(t, ls, xs, ys, fn) block:
 
   # the line below calls S, which does our error-checking
   # wrap the xs in a list, and fn in a row-consuming fn
-  s-num = S(t, [list: xs], ys, {(r): fn(r[xs])})
+  s-num = reg-model-S(t, [list: xs], ys, {(r): fn(r[xs])})
   R-sqr-value = Stats.r-squared(t.column(xs), t.column(ys), fn)
   S-str       = easy-num-repr(s-num, 10)
   #r-str       = if (R-sqr-value > 0): easy-num-repr(num-sqrt(R-sqr-value)) else: "N/A" end
