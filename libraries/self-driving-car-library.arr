@@ -27,6 +27,10 @@ provide from Starter:
     * hiding(translate, filter, range, sort, sin, cos, tan)
 end
 provide from L: * hiding(filter, range, sort), type *, data * end
+
+# a pedagogically-sound training dataset
+training-data = get-awesome-data()
+
 # ============================================================
 # ML-DRIVEN CAR REACTOR
 #

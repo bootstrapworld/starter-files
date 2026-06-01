@@ -11,13 +11,3 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 #  uses a model to drive the car
 
 # In both cases, the Number is the *animation speed*. Higher = Faster
-
-
-# If you're having trouble driving, we have some good training data you can use:
-#  great-data = get-awesome-data()
-
-
-# Or you could try to write the model by hand!
-
-# fun predictor(r): (r["curve-sharpness"] * 15) + (r["offset"] * 1) end
-# drive(20, predictor)
