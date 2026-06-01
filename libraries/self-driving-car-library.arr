@@ -553,7 +553,7 @@ end
 # `frames-per-second` is your knob for slow machines: recommend
 # 20fps on fast machines, and 12fps on slow ones
 # ============================================================
-fun drive(predictor) block:
+fun drive(predictor :: (Row -> Number)) block:
   initial = fresh-game()
   fun get-steering(s, sharpness, offset, heading-err):
     r = [Tables.raw-row:
