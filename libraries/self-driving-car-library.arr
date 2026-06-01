@@ -27,6 +27,8 @@ provide from Starter:
     * hiding(translate, filter, range, sort, sin, cos, tan)
 end
 provide from L: * hiding(filter, range, sort), type *, data * end
+
+
 # ============================================================
 # ML-DRIVEN CAR REACTOR
 #
@@ -107,9 +109,9 @@ end
 fun random-track() -> TrackParams:
   trk = track-params(
     150 + num-random(101),
-     20 + num-random(51),
+    20 + num-random(51),
     100 + num-random(81),
-     15 + num-random(46),
+    15 + num-random(46),
     num-random(629) / 100,
     num-random(629) / 100,
     num-random(629) / 100)
@@ -171,7 +173,7 @@ fun closest-t(trk :: TrackParams, px :: Number, py :: Number) -> Number:
   search(0, 0, 1.0e10)
 end
 fun closest-t-near(trk :: TrackParams, px :: Number, py :: Number,
-                   hint-i :: Number) -> Number:
+    hint-i :: Number) -> Number:
   fun search(k :: Number, best-i :: Number, best-d2 :: Number) -> Number:
     if k > (2 * CLOSEST-T-WINDOW):
       best-i
@@ -199,7 +201,7 @@ end
 # SENSORS
 # ============================================================
 fun offset-at-t(trk :: TrackParams, px :: Number, py :: Number,
-                t :: Number) -> Number:
+    t :: Number) -> Number:
   h = track-heading(trk, t)
   ((py - track-cy(trk, t)) * num-cos(h)) - ((px - track-cx(trk, t)) * num-sin(h))
 end
@@ -207,7 +209,7 @@ fun sharpness-at-t(trk :: TrackParams, t :: Number) -> Number:
   wrap-angle(track-heading(trk, t + LOOKAHEAD) - track-heading(trk, t)) / LOOKAHEAD
 end
 fun skew-at-t(trk :: TrackParams, t :: Number,
-                       car-h :: Number) -> Number:
+    car-h :: Number) -> Number:
   wrap-angle(car-h - track-heading(trk, t)) * (180 / PI)
 end
 fun compute-offset(trk :: TrackParams, px :: Number, py :: Number) -> Number:
@@ -341,8 +343,8 @@ fun fresh-game() -> Game:
   trk      = random-track()
   road-img = make-road-image(trk)
   c = car(track-cx(trk, 0), track-cy(trk, 0), track-heading(trk, 0),
-          true, CAR-SPEED, 0, 0, 0, 0,
-          false, false, 0)
+    true, CAR-SPEED, 0, 0, 0, 0,
+    false, false, 0)
   game(c, trk, road-img)
 end
 # ============================================================
@@ -363,14 +365,14 @@ fun crossed-start(old-t :: Number, new-t :: Number) -> Boolean:
   (old-t > new-t) and ((old-t - new-t) > (CLOSEST-T-STEPS / 2))
 end
 fun snap-back(trk :: TrackParams, t-i :: Number, s :: CarState,
-              sharpness :: Number, offset :: Number) -> CarState:
+    sharpness :: Number, offset :: Number) -> CarState:
   t           = (t-i / CLOSEST-T-STEPS) * 2 * PI
   cx          = track-cx(trk, t)
   cy          = track-cy(trk, t)
   h           = track-heading(trk, t)
   signed-snap = if offset >= 0: ROAD-HALF-WIDTH * 0.6
-                else:           0 - (ROAD-HALF-WIDTH * 0.6)
-                end
+  else:           0 - (ROAD-HALF-WIDTH * 0.6)
+  end
   new-x       = cx - (signed-snap * num-sin(h))
   new-y       = cy + (signed-snap * num-cos(h))
   car(new-x, new-y, h, true,
@@ -440,7 +442,7 @@ fun game-step(g :: Game, get-steering, survival :: Boolean) -> Game:
   end
 end
 fun ramp-steering(s :: CarState, sharp :: Number, off :: Number,
-                  he :: Number) -> Number:
+    he :: Number) -> Number:
   target =
     ask:
       | s.key-left  and not(s.key-right) then: 0 - MAX-STEER
@@ -696,14 +698,12 @@ end
 # ============================================================
 # Load some really good, pre-trained data
 # ============================================================
-fun get-awesome-data():
-  url = "https://docs.google.com/spreadsheets/d/1G6zAS1QS7OTRLaLMCm3yO_ug45VJJNxAK8_uTyY1sYo/export?format=csv"
-  load-table: id, curve, speed, offset, skew, steering-angle
-    source: csv.csv-table-url(url, {
-          header-row: true,
-          infer-content: true
-        })
-  end
+training-url = "https://docs.google.com/spreadsheets/d/1G6zAS1QS7OTRLaLMCm3yO_ug45VJJNxAK8_uTyY1sYo/export?format=csv"
+training-data = load-table: id, curve, speed, offset, skew, steering-angle
+  source: csv.csv-table-url(training-url, {
+        header-row: true,
+        infer-content: true
+      })
 end
 #|
    # ============================================================
