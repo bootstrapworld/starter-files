@@ -2,7 +2,7 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 fast-food-sheet = load-spreadsheet("https://docs.google.com/spreadsheets/d/1INp_O7oOwY68694lScyEUNbbHTpOCQA0RPQQXQR9URo/")
 
 fast-food = load-table: 
-  id, 
+  ID, 
   restaurant,  
   price, 
   fries, 
