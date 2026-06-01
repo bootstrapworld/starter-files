@@ -27,10 +27,6 @@ provide from Starter:
     * hiding(translate, filter, range, sort, sin, cos, tan)
 end
 provide from L: * hiding(filter, range, sort), type *, data * end
-
-# a pedagogically-sound training dataset
-training-data = get-awesome-data()
-
 # ============================================================
 # ML-DRIVEN CAR REACTOR
 #
@@ -79,8 +75,6 @@ POV-CAM-HEIGHT  =  60
 POV-LOOKAHEAD   =  60
 POV-STEP        = 0.05
 POV-NEAR-D      =  15
-# Lap counter — banner counts down from this; track regenerates at 0
-LAPS-PER-TRACK  =   2
 # ============================================================
 # TRACK PARAMETERS
 # ============================================================
@@ -266,36 +260,29 @@ fun fmt(v :: Number) -> String:
 end
 # ============================================================
 # BANNER
-# A yellow rectangle showing the current laps-left number, drawn
-# at the start of the track (parameter t=0).  The same banner is
-# rendered in both views — birds-eye places it at world coords;
-# POV projects it through the same pinhole-camera math the road
-# uses, so it shrinks with distance.
+# A yellow rectangle marking the start/finish line at t=0.
+# Birds-eye places it at world coords; POV projects it through
+# the same pinhole-camera math so it shrinks with distance.
 # ============================================================
-fun make-banner(n :: Number):
-  bg     = rectangle(80, 30, "solid", "yellow")
-  number = text(num-to-string(n), 24, "black")
-  overlay(number, bg)
+fun make-banner():
+  overlay(
+    rotate(180, text("FINISH", 20, "black")), 
+    rectangle(80, 30, "solid", "yellow"))
 end
-fun make-banner-sized(n :: Number, w :: Number, h :: Number):
-  text-size = num-min(num-max(8, num-floor(h * 0.6)), 255)
-  bg        = rectangle(w, h, "solid", "yellow")
-  number    = text(num-to-string(n), text-size, "black")
-  overlay(number, bg)
+fun make-banner-sized(w :: Number, h :: Number):
+  rectangle(w, h, "solid", "yellow")
 end
 # Place the banner at the track's start point, rotated so its long
 # axis spans the road perpendicular to the track tangent.
-fun add-banner-birds-eye(scene, trk :: TrackParams,
-                         laps-left :: Number):
-  bnr     = make-banner(laps-left)
+fun add-banner-birds-eye(scene, trk :: TrackParams):
+  bnr     = make-banner()
   th-deg  = track-heading(trk, 0) * (180 / PI)
   rotated = rotate(90 - th-deg, bnr)
   place-image(rotated, track-cx(trk, 0), track-cy(trk, 0), scene)
 end
 # Project the start-line position into screen space and place a
 # perspective-scaled banner hovering above the projected road.
-fun add-banner-pov(scene, s, trk :: TrackParams,
-                   laps-left :: Number):
+fun add-banner-pov(scene, s, trk :: TrackParams):
   fx = num-cos(s.heading)
   fy = num-sin(s.heading)
   bx = track-cx(trk, 0)
@@ -316,7 +303,7 @@ fun add-banner-pov(scene, s, trk :: TrackParams,
     if (bnr-w > (3 * WIDTH)) or (sy-banner < (0 - bnr-h)):
       scene
     else:
-      bnr = make-banner-sized(laps-left, bnr-w, bnr-h)
+      bnr = make-banner-sized(bnr-w, bnr-h)
       place-image(bnr, sx, sy-banner, scene)
     end
   end
@@ -341,16 +328,14 @@ data CarState:
 end
 # ============================================================
 # GAME STATE
-# Wraps a CarState with the world it lives in: the current track,
-# its precomputed road image, and how many laps remain on this
-# track before regeneration.
+# Wraps a CarState with the world it lives in: the current track
+# and its precomputed road image.
 # ============================================================
 data Game:
   | game(
-      car       :: CarState,
-      trk       :: TrackParams,
-      road-img,
-      laps-left :: Number)
+      car      :: CarState,
+      trk      :: TrackParams,
+      road-img)
 end
 fun fresh-game() -> Game:
   trk      = random-track()
@@ -358,7 +343,7 @@ fun fresh-game() -> Game:
   c = car(track-cx(trk, 0), track-cy(trk, 0), track-heading(trk, 0),
           true, CAR-SPEED, 0, 0, 0, 0,
           false, false, 0)
-  game(c, trk, road-img, LAPS-PER-TRACK)
+  game(c, trk, road-img)
 end
 # ============================================================
 # SHARED REACTOR HELPERS
@@ -433,32 +418,24 @@ fun make-tick(trk :: TrackParams, get-steering, survival :: Boolean):
   end
 end
 # Per-tick Game update.  Runs the underlying car-state update,
-# then:
-#   - if the car just crossed the start line, decrement laps-left;
-#   - if laps-left would drop to 0 (or below), regenerate the
-#     track, place the car at the new start, and reset the counter.
-# The student's `key-left` / `key-right` flags carry across the
-# regeneration so they don't have to release-and-re-press keys.
+# then regenerates the track whenever the car crosses the start
+# line.  Key state carries across regeneration so the driver
+# doesn't have to release-and-re-press keys.
 fun game-step(g :: Game, get-steering, survival :: Boolean) -> Game:
   if not(g.car.alive):
     g
   else:
     new-car = make-tick(g.trk, get-steering, survival)(g.car)
     if new-car.alive and crossed-start(g.car.t-prev, new-car.t-prev):
-      new-laps = g.laps-left - 1
-      if new-laps <= 0:
-        new-trk      = random-track()
-        new-road-img = make-road-image(new-trk)
-        fresh-car = car(
-          track-cx(new-trk, 0), track-cy(new-trk, 0), track-heading(new-trk, 0),
-          true, CAR-SPEED, 0, 0, 0, 0,
-          new-car.key-left, new-car.key-right, 0)
-        game(fresh-car, new-trk, new-road-img, LAPS-PER-TRACK)
-      else:
-        game(new-car, g.trk, g.road-img, new-laps)
-      end
+      new-trk      = random-track()
+      new-road-img = make-road-image(new-trk)
+      fresh-car = car(
+        track-cx(new-trk, 0), track-cy(new-trk, 0), track-heading(new-trk, 0),
+        true, CAR-SPEED, 0, 0, 0, 0,
+        new-car.key-left, new-car.key-right, 0)
+      game(fresh-car, new-trk, new-road-img)
     else:
-      game(new-car, g.trk, g.road-img, g.laps-left)
+      game(new-car, g.trk, g.road-img)
     end
   end
 end
@@ -587,7 +564,7 @@ fun drive(predictor) block:
   fun tick-fn(g): game-step(g, get-steering, false) end
   fun draw-fn(g):
     base = draw-car(g.car, "red", "darkred", empty-image, "CRASHED", g.road-img)
-    add-banner-birds-eye(base, g.trk, g.laps-left)
+    add-banner-birds-eye(base, g.trk)
   end
   r = reactor:
     init:             initial,
@@ -632,7 +609,7 @@ fun handle-train-key(s :: CarState, event) -> CarState:
 end
 # Lift the CarState handler to operate on the surrounding Game.
 fun handle-train-key-game(g :: Game, event) -> Game:
-  game(handle-train-key(g.car, event), g.trk, g.road-img, g.laps-left)
+  game(handle-train-key(g.car, event), g.trk, g.road-img)
 end
 fun training-hud-top(s :: CarState):
   steer-label = ask:
@@ -679,7 +656,7 @@ fun train-bev(frames-per-second):
       training-hud-top(g.car),
       "Training session ended — data saved",
       g.road-img)
-    add-banner-birds-eye(base, g.trk, g.laps-left)
+    add-banner-birds-eye(base, g.trk)
   end
   run-training(frames-per-second, draw-fn)
 end
@@ -689,7 +666,7 @@ fun train-pov(frames-per-second):
     base = draw-pov(g.car, g.trk,
       training-hud-top(g.car),
       "Training session ended — data saved")
-    add-banner-pov(base, g.car, g.trk, g.laps-left)
+    add-banner-pov(base, g.car, g.trk)
   end
   run-training(frames-per-second, draw-fn)
 end
