@@ -7,7 +7,11 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 #  train-pov :: Number -> Table
 #  starts a driving simulator in "Point of View", to train your model
 
-#  drive :: Number, Driving-Function -> Table
+# In both training functions, the Number is the *animation speed*. Higher = Faster!
+
+
+#  drive :: Driving-Function -> Table
 #  uses a model to drive the car
 
-# In both cases, the Number is the *animation speed*. Higher = Faster
+
+# training-data is a predefined table of high-quality training data
