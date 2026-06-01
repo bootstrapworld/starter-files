@@ -214,8 +214,8 @@ fit-model(animals-table, "name", "pounds", "weeks", lam(x): x + 1 end)
    
 examples "making regression functions":
   lr-fun(animals-table, "age", "name") raises "One or more of the columns (age or name) does not contain numeric data."
-  mr-fun(animals-table, [list: "age","pounds"], "name") raises "One or more of the columns (age, pounds or name) does not contain numeric data."
-  mr-fun(animals-table, [list: "age","species"], "weeks") raises "One or more of the columns (age, species or weeks) does not contain numeric data."
+  reg-model-fun(animals-table, [list: "age","pounds"], "name") raises "One or more of the columns (age, pounds or name) does not contain numeric data."
+  reg-model-fun(animals-table, [list: "age","species"], "weeks") raises "One or more of the columns (age, species or weeks) does not contain numeric data."
 end
 
 
