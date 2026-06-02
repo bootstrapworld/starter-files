@@ -13,5 +13,14 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 #  drive :: Driving-Function -> Table
 #  uses a model to drive the car
 
-
 # training-data is a predefined table of high-quality training data
+
+
+#######################################################################
+# Trained Models
+
+fun curve-predictor(curve): (...  * curve ) + ... end
+
+fun offset-predictor(r):  (...  * r["offset"]) + ... end
+fun skew-predictor(r):    (...  * r["skew"]  ) + ... end
+fun speed-predictor(r):   (...  * r["speed"] ) + ... end
