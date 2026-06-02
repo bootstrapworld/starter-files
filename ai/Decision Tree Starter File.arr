@@ -34,24 +34,16 @@ end
 # classify(testing, "species", tail-classifier)
 
 #####################################################################
-# images of various species
-dog-img      = text("🐶", 20, "black")
-cat-img      = text("😺", 20, "black")
-lizard-img   = text("🦎", 20, "black")
-tarantula-img= text("🕷️", 20, "black")
-snail-img    = text("🐌", 20, "black")
-rabbit-img   = text("🐇", 20, "black")
-
-#####################################################################
 # animal-img :: Row -> Image
-# given a row from the animals table, produce an image of that species
+# given a row from the animals table, produce an emoji of that species
+
 fun animal-img(r): 
-  if      (r["species"] == "dog"):       dog-img
-  else if (r["species"] == "cat"):       cat-img
-  else if (r["species"] == "tarantula"): tarantula-img
-  else if (r["species"] == "lizard"):    lizard-img
-  else if (r["species"] == "snail"):     snail-img
-  else if (r["species"] == "rabbit"):    rabbit-img
+  if      (r["species"] == "dog"):       text("🐶", 20, "black")
+  else if (r["species"] == "cat"):       text("😺", 20, "black")
+  else if (r["species"] == "lizard"):    text("🦎", 20, "black")
+  else if (r["species"] == "rabbit"):    text("🐇", 20, "black")
+  else if (r["species"] == "snail"):     text("🐌", 20, "black")
+  else if (r["species"] == "tarantula"): text("🕷️", 20, "black")
   end
 end
 
