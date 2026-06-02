@@ -149,7 +149,7 @@ fun draw-being(b :: Being, background):
   else:
     background
   end
-  translate(b.costume, b.posn.x, b.posn.y, dbg-bkgnd)
+  place-image(b.costume, cx, cy, dbg-bkgnd)
 end
 
 fun draw-game(w :: world):
