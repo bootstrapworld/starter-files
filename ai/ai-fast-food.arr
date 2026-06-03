@@ -35,6 +35,10 @@ end
 ##################################
 # Similarity Functions
 # simple-similarity   :: Table, String, List<String> -> Table
+# simple-similarity(fast-food, "I", [list: "price"])
+
 # distance-similarity :: Table, String, List<String> -> Table
+# distance-similarity(fast-food, "I", [list: "burgers", "fries"])
+
 # angle-similarity    :: Table, String, List<String> -> Table
 # cosine-similarity   :: Table, String, List<String> -> Table
