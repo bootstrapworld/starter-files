@@ -11,26 +11,26 @@ fast-food = load-table:
 end
 
 ##################################
+# Define some rows
+mcdonalds  = row-n(fast-food, 0)
+in-n-out   = row-n(fast-food, 5)
+
+##################################
 # restaurant-img :: Row -> Image
 # given a row from the fast-food table, produce a distinct dot
 
 fun restaurant-img(r): 
-  if      (r["restaurant"]  ==  "In-N-Out")    :  circle(6, "solid", "sea-green")  
-  else if (r["restaurant"]  ==  "McDonalds")   :  circle(2, "solid", "black")
-  else if (r["restaurant"]  ==  "Burger King") :  circle(4, "solid", "black")
-  else if (r["restaurant"]  ==  "Wendy's")     :  circle(6, "solid", "black")
-  else if (r["restaurant"]  ==  "Five Guys")   :  circle(8, "solid", "black")
-  else if (r["restaurant"]  ==  "Dairy Queen") :  circle(10,"solid", "black")
+  if      (r["restaurant"] == "In-N-Out")    : circle(6, "solid", "sea-green")  
+  else if (r["restaurant"] == "McDonalds")   : circle(2, "solid", "black")
+  else if (r["restaurant"] == "Burger King") : circle(4, "solid", "black")
+  else if (r["restaurant"] == "Wendy's")     : circle(6, "solid", "black")
+  else if (r["restaurant"] == "Five Guys")   : circle(8, "solid", "black")
+  else if (r["restaurant"] == "Dairy Queen") : circle(10,"solid", "black")
   end
 end
 
 # Use animal-img to make an image-scatter-plot
 # image-scatter-plot(fast-food, "fries", "price", restaurant-img)
-
-##################################
-# Define some rows
-mcdonalds  = row-n(fast-food, 0)
-in-n-out   = row-n(fast-food, 5)
 
 ##################################
 # Similarity Functions
