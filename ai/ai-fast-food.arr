@@ -34,7 +34,7 @@ end
 
 ##################################
 # Similarity Functions
-# simple-similarity   :: Table, Number, List<String> -> Table
-# distance-similarity :: Table, Number, List<String> -> Table
-# angle-similarity    :: Table, Number, List<String> -> Table
-# cosine-similarity   :: Table, Number, List<String> -> Table
+# simple-similarity   :: Table, String, List<String> -> Table
+# distance-similarity :: Table, String, List<String> -> Table
+# angle-similarity    :: Table, String, List<String> -> Table
+# cosine-similarity   :: Table, String, List<String> -> Table
