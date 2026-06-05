@@ -2234,6 +2234,7 @@ end
 fun image-color-names(img :: Image) -> String block:
   fun dominant-color(pixel) -> String:
     if (pixel.alpha == 0): "" 
+    else if (pixel.red == pixel.green) and (pixel.red == pixel.blue): ""
     else if (pixel.red >= pixel.green) and (pixel.red >= pixel.blue): "red"
     else if (pixel.green >= pixel.red) and (pixel.green >= pixel.blue): "green"
     else: "blue"
