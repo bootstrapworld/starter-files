@@ -1,4 +1,14 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/", "libraries/ai-library.arr")
+# define some simple images
+white-sq = square(10, "solid", "white")
+black-sq = square(10, "solid", "black")
+half-and-half = beside(white-sq, black-sq)
+red-sq  = square(10, "solid", "red")
+big-red-sq = square(100, "solid", "red")
+blue-c   = circle(10, "solid", "blue")
+green-t  = triangle(15, "solid", "green")
+
+
 # import some images - you can change these to whatever images you find on the web!
 lesson-folder = "https://www.bootstrapworld.org/materials/fall2026/en-us/lessons/measuring-similarity-2/mountains/"
 img1 = image-url(lesson-folder + "adirondacks.png")
@@ -11,38 +21,36 @@ img7 = image-url(lesson-folder + "sunny-grass-mountains.png")
 img8 = image-url(lesson-folder + "sunrise-mountains.png")
 img9 = image-url(lesson-folder + "sunset-mountains.png")
 
+mountains =   image-url(lesson-folder + "all-mountains.webp")
+
 # define the image table, leaving rating and tags empty
 images = 
-  table: ID,  DOC,  LIKED, DISLIKED, TAGS
-    row: "0", img1, false,   false,  ""
-    row: "1", img2, false,   false,  ""
-    row: "2", img3, false,   false,  ""
-    row: "3", img4, false,   false,  ""
-    row: "4", img5, false,   false,  ""
-    row: "5", img6, false,   false,  ""
-    row: "6", img7, false,   false,  ""
-    row: "7", img8, false,   false,  ""
-    row: "8", img9, false,   false,  ""
+  table: ID,         DOC,       LIKED, DISLIKED, TAGS
+    row: "0", scale(1/2, img1), false,   false,  ""
+    row: "1", scale(1/2, img2), false,   false,  ""
+    row: "2", scale(1/2, img3), false,   false,  ""
+    row: "3", scale(1/2, img4), false,   false,  ""
+    row: "4", scale(1/2, img5), false,   false,  ""
+    row: "5", scale(1/2, img6), false,   false,  ""
+    row: "6", scale(1/2, img7), false,   false,  ""
+    row: "7", scale(1/2, img8), false,   false,  ""
+    row: "8", scale(1/2, img9), false,   false,  ""
+    row: "9",       red-sq,     false,   false,  ""
+    row: "10",   big-red-sq,    false,   false,  ""
   end
 
-# given an Image, make it half the size
-fun shrink(img): 
-  scale(1/2, img) 
-end
 
-# shrink every image in image-table, and make a new table
-small-images = transform-column(images, "DOC", shrink)
-decorated = decorate-image-table(small-images, "DOC")
+# add columns to our image corpus, computed using the "DOC" column
+decorated = decorate-image-table(images, "DOC")
 
-# Four rows where the sun is visible
-sun1 = row-n(decorated, 0)
-sun2 = row-n(decorated, 6)
-sun3 = row-n(decorated, 7)
-sun4 = row-n(decorated, 8)
+# Replace our COLOR-NAMES string with columns that count each word
+decorated-bag = add-bag-cols(decorated, "COLOR-NAMES")
 
+# Some sample rows
+sun1 = row-n(decorated-bag, 0)
+sun2 = row-n(decorated-bag, 6)
 
-# given a Row, produce an image with width=80
+# given a Row, produce an image that's one-half the size
 fun doc-thumbnail(r): 
-  factor = 100 / image-width(r["DOC"])
-  scale(factor, r["DOC"])
+  scale(1/2, r["DOC"])
 end
