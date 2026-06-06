@@ -10,7 +10,7 @@ green-t  = triangle(15, "solid", "green")
 
 
 # import some images - you can change these to whatever images you find on the web!
-lesson-folder = "https://www.bootstrapworld.org/materials/fall2026/en-us/lessons/measuring-similarity-2/mountains/"
+lesson-folder = "https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/ai/mountain-imgs/"
 img1 = image-url(lesson-folder + "adirondacks.png")
 img2 = image-url(lesson-folder + "arizona-mountains.png")
 img3 = image-url(lesson-folder + "bear-lake.png")
