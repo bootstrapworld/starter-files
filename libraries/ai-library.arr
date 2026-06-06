@@ -1151,9 +1151,23 @@ fun completions(model :: Table, input :: String) block:
 
   gram-size = num-min(string-split-all(input, " ").length() + 1, MAX-GRAM-SIZE)
 
-  model
+  filtered = model
     .filter({(r): (r["size"] == gram-size) and string-starts-with(r["n-gram"], input)})
     .transform-column("n-gram", {(ngram): string-split-all(ngram, " ").reverse().get(0)})
+
+  # Calculate total count to compute percentages
+  total-count = for fold(shadow sum from 0, r from filtered.all-rows()):
+    sum + r["count"]
+  end
+
+  # Add percentage column
+  filtered.build-column("probability", {(r):
+    if total-count == 0:
+      0
+    else:
+      rounded-exact((r["count"] / total-count))
+    end
+  })
 end
 
 fun next-word-probability(model :: Table, first :: String, second :: String):
