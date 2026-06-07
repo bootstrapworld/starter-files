@@ -21,6 +21,10 @@ provide from Core:
   module L,
   module Stats
 end
+
+import either as Eth
+import error as Err_
+
 # export every symbol from starter2024 except for those we override
 import starter2024 as Starter
 provide from Starter:
@@ -554,6 +558,14 @@ end
 # 20fps on fast machines, and 12fps on slow ones
 # ============================================================
 fun drive(predictor :: (Row -> Number)) block:
+  test-row = [Tables.raw-row: {"speed"; 0}, {"curve"; 0}, {"offset"; 0}, {"skew"; 0}]
+  cases(Eth.Either) run-task(lam(): predictor(test-row) end):
+    | left(v) => v
+    | right(v) => 
+      raise(Err_.message-exception("The driving simulator makes speed, curve, offset, AND skew accessible to the predictor function, so all predictors must consume a Row with those four values - even if they only use one of them. Check to make sure your driving function consumes Rows."))
+  end
+  
+  
   initial = fresh-game()
   fun get-steering(s, sharpness, offset, heading-err):
     r = [Tables.raw-row:
