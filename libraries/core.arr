@@ -1510,7 +1510,10 @@ fun reg-model-code(t, params, response) block:
         + easy-num-repr(row["coefficient-value"], 6) + ") + "
     end
   end
-  print("fun predictor(r):\n  " + L.foldr(fold-code, "", coeffs.all-rows()) + "\nend")
+  print("# predictor :: (r :: Row) -> Number\n" +
+    "# Consumes a Row of explanatory variables, and produces the predicted result\nfun predictor(r):\n" + 
+    "  " + L.foldr(fold-code, "", coeffs.all-rows()) + "\n" +
+    "end")
   nothing
 end
 
