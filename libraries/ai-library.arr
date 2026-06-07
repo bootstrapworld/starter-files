@@ -300,7 +300,7 @@ fun add-centroid(t :: Table, name :: String, ids :: List<String>) -> Table block
   #    compute the average of anything else
   tuples = matching.column-names().map({(c):
       if c == "ID": {"ID";  name + " CENTROID"}
-      else if c == "DOC":   {"DOC"; ""}
+      else if c == "DOC":   {"DOC"; nothing}
       else if c == "LIKED":    {"LIKED"; false}
       else if c == "DISLIKED": {"DISLIKED"; false}
       else if restricted-cols.member(c): {c; ""}
@@ -317,7 +317,7 @@ end
 # if they exist. If neither does, raise an error.
 # Otherwise, find the unlabeled row that is MOST similar
 # to the like-centroid and the LEAST similar to the dislike one
-fun recommend(t :: Table, cols) -> Table block:
+fun recommend(t :: Table) -> Table block:
   likes    = liked-ids(t)
   dislikes  = disliked-ids(t)
 
@@ -325,6 +325,8 @@ fun recommend(t :: Table, cols) -> Table block:
   when (likes.length() + dislikes.length()) == 0:
     raise(Err.message-exception("No recommendations could be computed without at least one RATING"))
   end
+  
+  cols = get-unrestricted-cols(t.row-n(0))
 
   # Add "LIKE-DIST" and "DISLIKE-DIST"
   # If we have likes, build the centroid and populate LIKE-DIST
@@ -361,11 +363,13 @@ end
 
 # build a centroid for every row w/this tag, then use that find similar images
 # be sure to remove the centroid when finished
-fun search-by-tag(t, tag, cols) block:
+fun search-by-tag(t, tag) block:
   matching-ids = tagged-ids(t, tag)
+  cols = get-unrestricted-cols(t.row-n(0))
   t-w-centroid = add-centroid(t, "TAG", matching-ids)
-  cosine-similarity(t-w-centroid, "TAG CENTROID", cols)
+  angle-similarity(t-w-centroid, "TAG CENTROID", cols)
     .filter({(r): r["ID"] <> "TAG CENTROID"})
+  #    .filter({(r): r["angle-similarity"] < 30})
 end
 
 

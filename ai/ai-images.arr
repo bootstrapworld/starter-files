@@ -1,12 +1,12 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/", "libraries/ai-library.arr")
 # define some simple images
-white-sq = square(10, "solid", "white")
-black-sq = square(10, "solid", "black")
-half-and-half = beside(white-sq, black-sq)
-red-sq  = square(10, "solid", "red")
+white-sq   = square(10, "solid", "white")
+black-sq   = square(10, "solid", "black")
+red-sq     = square(10, "solid", "red")
+blue-c     = circle(10, "solid", "blue")
+green-t    = triangle(15, "solid", "green")
 big-red-sq = square(100, "solid", "red")
-blue-c   = circle(10, "solid", "blue")
-green-t  = triangle(15, "solid", "green")
+half-and-half = beside(white-sq, black-sq)
 
 
 # import some images - you can change these to whatever images you find on the web!
@@ -43,7 +43,7 @@ images =
 # add columns to our image corpus, computed using the "DOC" column
 decorated = decorate-image-table(images, "DOC")
 
-# Replace our COLOR-NAMES string with columns that count each word
+# Use a Bag-of-Words summary to replace our COLOR-NAMES string with columns that count each word
 decorated-bag = add-bag-cols(decorated, "COLOR-NAMES")
 
 # Some sample rows
