@@ -1496,23 +1496,38 @@ fun lr-fun(t, param, response):
   reg-model-fun(t, [list: param], response)
 end
 
-reg-model-code :: (t :: Table, params :: List<String>, response :: String) -> Nothing
-fun reg-model-code(t, params, response) block:
+regression-model-code :: (t :: Table, params :: List<String>, response :: String) -> Nothing
+fun regression-model-code(t, params, response) block:
   # generate the coefficients table
   coeffs = reg-model-coeffs(t, params, response)
+  
+  fun truncated-string(n :: Number):
+    to-string(num-to-fixnum(round-digits(n, 2)))
+  end
+  
+  fn-name = params.join-str("-") + "-predictor"
+
+  params-string = if params.length() == 1: "a value for " + params.join-str("")
+  else: "values for " + L.take(params.length() - 1, params).join-str(", ") + " and " + params.last()
+  end
+  
   # return a wrapped function, which consumes a row of the 
   # table, extracts the values in explanation-order, and 
   # passes them to the raw function
   fun fold-code(acc, row): 
-    if row["coefficient-name"] == "intercept": acc + easy-num-repr(row["coefficient-value"], 6)
+    if row["coefficient-name"] == "intercept": 
+      acc + truncated-string(row["coefficient-value"])
     else: 
-      acc + "(" + easy-num-repr(row["coefficient-value"], 6) +
+      acc + "(" + truncated-string(row["coefficient-value"]) +
       " * " + "r[\"" + row["coefficient-name"] + "\"]" +
       ") + "
     end
   end
-  print("# predictor :: (r :: Row) -> Number\n" +
-    "# Consumes a Row of explanatory variables, and produces the predicted result\nfun predictor(r):\n" + 
+  print(
+    "# " + fn-name + " :: (r :: Row) -> Number\n" +
+    "# Consumes a Row of containing " + params-string + "\n" +
+    "# and produces the predicted " + response + "\n" +
+    "fun " + fn-name + "(r):\n" + 
     "  " + L.foldr(fold-code, "", coeffs.all-rows()) + "\n" +
     "end")
   nothing
@@ -1523,7 +1538,7 @@ lr-code :: (t :: Table, param :: String, response :: String) -> Nothing
 # just a special-case wrapper for multiple-regression-fun, which produces
 # a function consuming a row and producing a number
 fun lr-code(t, param, response):
-  reg-model-code(t, [list: param], response)
+  regression-model-code(t, [list: param], response)
 end
 |#
 

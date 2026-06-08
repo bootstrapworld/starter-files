@@ -20,9 +20,4 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 fun curve-predictor(curve): (...  * curve ) + ... end
 
 # More Trained Models
-# reg-model-code(training-data, [list: "curve"], "steering-angle")
-
-fun curve-predictor2(r):  (...  * r["curve"] ) + ... end
-fun offset-predictor(r):  (...  * r["offset"]) + ... end
-fun skew-predictor(r):    (...  * r["skew"]  ) + ... end
-fun speed-predictor(r):   (...  * r["speed"] ) + ... end
+# regression-model-code(training-data, [list: "curve"], "steering-angle")
