@@ -1506,8 +1506,9 @@ fun reg-model-code(t, params, response) block:
   fun fold-code(acc, row): 
     if row["coefficient-name"] == "intercept": acc + easy-num-repr(row["coefficient-value"], 6)
     else: 
-      acc + "(r[\"" + row["coefficient-name"] + "\"] * " 
-        + easy-num-repr(row["coefficient-value"], 6) + ") + "
+      acc + "(" + easy-num-repr(row["coefficient-value"], 6) +
+      " * " + "r[\"" + row["coefficient-name"] + "\"]" +
+      ") + "
     end
   end
   print("# predictor :: (r :: Row) -> Number\n" +

@@ -46,17 +46,42 @@ end
 # DOCs for similarity. From Fox (1990).
 stop-words = [list: "the", "and", "a", "that", "was", "for", "with", "not", "on", "at", "i", "had", "are", "or", "an", "they", "one", "would", "all", "there", "their", "him", "has", "when", "if", "out", "what", "up", "about", "into", "can", "other", "some", "time", "two", "then", "do", "now", "such", "man", "our", "even", "made", "after", "many", "must", "years", "much", "your", "down", "should", "of", "to", "in", "is", "he", "it", "as", "his", "be", "by", "this", "but", "from", "have", "you", "which", "were", "her", "she", "will", "we", "been", "who", "more", "no", "so", "said", "its", "than", "them", "only", "new", "could", "these", "may", "first", "any", "my", "like", "over", "me", "most", "also", "did", "before", "through", "where", "back", "way", "well", "because", "each", "people", "state", "mr", "how", "make", "still", "own", "work", "long", "both", "under", "never", "same", "while", "last", "might", "day", "since", "come", "great", "three", "go", "few", "use", "without", "place", "old", "small", "home", "went", "once", "school", "every", "united", "number", "does", "away", "water", "fact", "though", "enough", "almost", "took", "night", "system", "general", "better", "why", "end", "find", "asked", "going", "knew", "toward", "just", "those", "too", "world", "very", "good", "see", "men", "here", "get", "between", "year", "another", "being", "life", "know", "us", "off", "against", "came", "right", "states", "take", "himself", "during", "again", "around", "however", "mrs", "thought", "part", "high", "upon", "say", "used", "war", "until", "always", "something", "public", "put", "think", "head", "far", "hand", "set", "nothing", "point", "house", "later", "eyes", "next", "program", "give", "white", "room", "social", "young", "present", "order", "second", "possible", "light", "face", "important", "among", "early", "need", "within", "business", "felt", "best", "ever", "least", "got", "mind", "want", "others", "although", "open", "area", "done", "certain", "door", "different", "sense", "help", "perhaps", "group", "side", "several", "let", "national", "given", "rather", "per", "often", "god", "things", "large", "big", "become", "case", "along", "four", "power", "saw", "less", "thing", "today", "interest", "turned", "members", "family", "problem", "kind", "began", "thus", "seemed", "whole", "itself"]
 
+MODEL_DIGITS = 4
+
 fun add-col(t, doc-col, col-name, doc-fn):
   build-column(t, col-name, lam(r): doc-fn(r[doc-col]) end)
 end
 
-fun add-width(t, doc-col): add-col(t, doc-col, "WIDTH", image-width) end
-fun add-height(t, doc-col): add-col(t, doc-col, "HEIGHT", image-height) end
-fun add-entropy(t, doc-col): add-col(t, doc-col, "ENTROPY", image-entropy) end
-fun add-luminance(t, doc-col): add-col(t, doc-col, "LUMINANCE", image-luminance) end
-fun add-symmetry-v(t, doc-col): add-col(t, doc-col, "SYMMETRY-V", image-symmetry-vertical) end
-fun add-symmetry-h(t, doc-col): add-col(t, doc-col, "SYMMETRY-H", image-symmetry-horizontal) end
-fun add-color-names(t, doc-col): add-col(t, doc-col, "COLOR-NAMES", image-color-names) end
+fun add-width(t, doc-col): 
+  add-col(t, doc-col, "WIDTH", image-width) 
+end
+fun add-height(t, doc-col): 
+  add-col(t, doc-col, "HEIGHT", image-height) 
+end
+fun add-entropy(t, doc-col): 
+  add-col(t, doc-col, "ENTROPY", {(img): 
+      round-digits(num-exact(image-entropy(img)),
+          MODEL_DIGITS)}) 
+end
+fun add-luminance(t, doc-col): 
+  add-col(t, doc-col, "LUMINANCE", {(img): 
+      round-digits(num-exact(image-luminance(img)),
+          MODEL_DIGITS)}) 
+end
+fun add-symmetry-v(t, doc-col): 
+  add-col(t, doc-col, "SYMMETRY-V", {(img): 
+      round-digits(num-exact(image-symmetry-vertical(img)),
+          MODEL_DIGITS)}) 
+end
+fun add-symmetry-h(t, doc-col): 
+  add-col(t, doc-col, "SYMMETRY-H", {(img): 
+      round-digits(num-exact(
+image-symmetry-horizontal(img)),
+          MODEL_DIGITS)}) 
+end
+fun add-color-names(t, doc-col): 
+  add-col(t, doc-col, "COLOR-NAMES", image-color-names) 
+end
 
 fun decorate-image-table(t, doc-col):
   fns = [list: add-width, add-height, add-luminance, add-entropy, add-symmetry-v, add-symmetry-h, add-color-names]
