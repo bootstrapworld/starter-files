@@ -1,8 +1,8 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/", "libraries/ai-library.arr")
 
 # define some simple images
-white-sq   = square(10, "solid", "white")
 black-sq   = square(10, "solid", "black")
+white-sq   = square(10, "solid", "white")
 red-sq     = square(10, "solid", "red")
 blue-c     = circle(10, "solid", "blue")
 green-t    = triangle(15, "solid", "green")
