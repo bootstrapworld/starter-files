@@ -16,8 +16,8 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 
 
 #######################################################################
-# Trained Models
-fun curve-predictor(curve): (...  * curve ) + ... end
+# Model
+fun c-predictor(curve): (...  * curve ) + ... end
 
-# More Trained Models
+# Trained Models from curve, skew, offset, speed and steering-angle
 # regression-model-code(training-data, [list: "curve"], "steering-angle")
