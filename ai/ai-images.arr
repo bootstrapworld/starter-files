@@ -1,4 +1,5 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/", "libraries/ai-library.arr")
+
 # define some simple images
 white-sq   = square(10, "solid", "white")
 black-sq   = square(10, "solid", "black")
@@ -7,7 +8,6 @@ blue-c     = circle(10, "solid", "blue")
 green-t    = triangle(15, "solid", "green")
 big-red-sq = square(100, "solid", "red")
 half-and-half = beside(white-sq, black-sq)
-
 
 # import some images - you can change these to whatever images you find on the web!
 lesson-folder = "https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/ai/mountain-imgs/"
@@ -38,7 +38,6 @@ images =
     row: "9",       red-sq,     false,   false,  ""
     row: "10",   big-red-sq,    false,   false,  ""
   end
-
 
 # add columns to our image corpus, computed using the "DOC" column
 decorated = decorate-image-table(images, "DOC")
