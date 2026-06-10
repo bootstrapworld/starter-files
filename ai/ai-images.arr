@@ -9,6 +9,10 @@ big-red-sq = square(100, "solid", "red")
 half-and-half = beside(white-sq, black-sq)
 red-blue-tile = overlay(square(4, "solid", "blue"), square(10, "solid", "red"))
 
+# pixels -> model
+pixel = image-to-color-list(red-blue-tile)
+pixel-dominant-rgb = dominant-rgb-colors(red-blue-tile)
+
 # import some images - you can change these to whatever images you find on the web!
 lesson-folder = "https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/ai/mountain-imgs/"
 img1 = image-url(lesson-folder + "adirondacks.png")
@@ -35,19 +39,17 @@ image-corpus =
     row: "grass2", scale(1/2, img7), false,   false,  ""
     row: "sun1",   scale(1/2, img8), false,   false,  ""
     row: "sun2",   scale(1/2, img9), false,   false,  ""
+    row: "pixel",  red-blue-tile,    false,   true,   ""
     row: "red1",   red-sq,           false,   true,   ""
     row: "red2",   big-red-sq,       false,   true,   ""
   end
 
-# add columns to our image corpus, computed using the "DOC" column
+# using the "DOC" column to compute DOMINANT-RGB-COLORS, SYMMETRY, LUMINANCE, etc. 
+# and add columns to our image-corpus
 model-with-color-names = decorate-image-table(image-corpus, "DOC")
 
 # Use a Bag-of-Words summary to replace our DOMINANT-RGB-COLORS string with columns that count each word
 model = add-bag-cols(model-with-color-names, "DOMINANT-RGB-COLORS")
-
-# Some sample rows
-sun1 = row-n(model, 0)
-sun2 = row-n(model, 6)
 
 # given a Row, produce an image that's one-half the size
 fun thumbnail(r): 
