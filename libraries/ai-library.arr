@@ -80,7 +80,7 @@ image-symmetry-horizontal(img)),
           MODEL_DIGITS)}) 
 end
 fun add-color-names(t, doc-col): 
-  add-col(t, doc-col, "COLOR-NAMES", image-color-names) 
+  add-col(t, doc-col, "COLOR-NAMES", dominant-rgb-colors) 
 end
 
 fun decorate-image-table(t, doc-col):
@@ -309,7 +309,7 @@ end
 fun liked-ids(t):    t.filter({(r): r["LIKED"]    }).column("ID") end
 fun disliked-ids(t): t.filter({(r): r["DISLIKED"] }).column("ID") end
 fun tagged-ids(t, tag):   t
-    .filter({(r): string-split-all(r["TAGS"], ",").member(tag) })
+    .filter({(r): string-split-all(r["TAGS"], ",").map(string-trim).member(tag) })
     .column("ID")
 end
 

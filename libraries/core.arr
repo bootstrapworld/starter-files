@@ -2248,11 +2248,11 @@ fun pixels-to-image(pixels, width, height) -> Image:
   color-list-to-image(pixels, width, height, num-round(width / 2), num-round(height / 2))
 end
 
-# image-color-names :: Image -> String
+# dominant-rgb-colors :: Image -> String
 # Given an image, it to a string of space-separated color names 
 # ("red", "green", or "blue"), representing the dominant channel 
 # of each non-transparent pixel
-fun image-color-names(img :: Image) -> String block:
+fun dominant-rgb-colors(img :: Image) -> String block:
   fun dominant-color(pixel) -> String:
     if (pixel.red == pixel.green) and (pixel.red == pixel.blue): ""
     else if (pixel.red >= pixel.green) and (pixel.red >= pixel.blue): "red"
