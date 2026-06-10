@@ -80,7 +80,7 @@ image-symmetry-horizontal(img)),
           MODEL_DIGITS)}) 
 end
 fun add-color-names(t, doc-col): 
-  add-col(t, doc-col, "COLOR-NAMES", dominant-rgb-colors) 
+  add-col(t, doc-col, "DOMINANT-RGB-COLORS", dominant-rgb-colors) 
 end
 
 fun decorate-image-table(t, doc-col):
