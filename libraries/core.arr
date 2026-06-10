@@ -1602,7 +1602,7 @@ fun regression-model-S(t, explanations, response, model) block:
   num-sqrt(Math.sum(residuals-sqr) / degrees-of-freedom)
 end
 
-regession-model-s = regression-model-S
+rec regession-model-s = regression-model-S
 
 S :: (t :: Table, explanation :: String, response :: String, model :: (Row -> Number)) -> Number
 fun S(t, explanation, response, model):
