@@ -40,10 +40,10 @@ image-corpus =
   end
 
 # add columns to our image corpus, computed using the "DOC" column
-model-with-color-names = decorate-image-table(image-corpus, "DOC")
+model-with-color-list = decorate-image-table(image-corpus, "DOC")
 
-# Use a Bag-of-Words summary to replace our COLOR-NAMES string with columns that count each word
-model = add-bag-cols(model-with-color-names, "COLOR-NAMES")
+# Use a Bag-of-Words summary to replace our DOMINANT-RGB-COLOR string with columns that count each word
+model = add-bag-cols(model-with-color-names, "DOMINANT-RGB-COLOR")
 
 # Some sample rows
 sun1 = row-n(model, 0)
