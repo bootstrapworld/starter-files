@@ -705,51 +705,6 @@ fun get-5-num-summary(t :: Table, col :: String) block:
 end
 
 
-
-
-fun group(tab, col):
-  values = Sets.list-to-list-set(tab.get-column(col)).to-list()
-  for fold(shadow grouped from table: value, subtable end, v from values):
-    grouped.stack(table: value, subtable
-        row: v, tab.filter-by(col, {(val): val == v})
-      end)
-  end
-end
-
-fun count(tab, col):
-  g = group(tab, col).build-column("frequency", {(r): r["subtable"].length()}).drop("subtable")
-  if is-boolean(g.column("value").get(0)): g
-  else: order g: value ascending end
-  end
-    .rename-column("value", col)
-end
-
-
-fun group-and-subgroup(t :: Table, col :: String, subcol :: String) block:
-  subgroups = Sets.list-to-set(t.get-column(subcol))
-  tab = group(t, col)
-    .rename-column("value", "group")
-    .build-column(
-    "data",
-    # take a count of the subgroups, then see which subgroups are missing
-    # for each one, add a row with a count of zero. Then order the rows
-    # and extract the count as a list
-    lam(r) block:
-      segments = count(r["subtable"], subcol)
-      missing = subgroups.difference(Sets.list-to-set(segments.get-column(subcol)))
-      missing.fold(
-        lam(table, subgroup):
-          table.add-row([T.raw-row: {subcol; subgroup}, {"frequency"; 0}])
-        end,
-        segments)
-        .build-column("sortable", lam(shadow r): to-repr(r[subcol]) end)
-        .order-by("sortable", true)
-        .get-column("frequency")
-    end)
-  # sort groups alphabetically
-  sort(tab, "group", true)
-end
-
 fun row-n(t :: Table, n :: Number) block:
   check-integrity(t, [list: ])
   t.row-n(n)
@@ -1966,6 +1921,23 @@ fun last-n-rows(t, n):
 end
 
 
+fun group(tab, col):
+  values = Sets.list-to-list-set(tab.get-column(col)).to-list()
+  for fold(shadow grouped from table: value, subtable end, v from values):
+    grouped.stack(table: value, subtable
+        row: v, tab.filter-by(col, {(val): val == v})
+      end)
+  end
+end
+
+fun count(tab, col):
+  g = group(tab, col).build-column("frequency", {(r): r["subtable"].length()}).drop("subtable")
+  if is-boolean(g.column("value").get(0)): g
+  else: order g: value ascending end
+  end
+    .rename-column("value", col)
+end
+
 #|
    fun count-many(tab, cols):
   for fold(shadow grouped from table: col, subtable end, c from cols):
@@ -1976,6 +1948,30 @@ end
    end
 |#
 
+fun group-and-subgroup(t :: Table, col :: String, subcol :: String) block:
+  subgroups = Sets.list-to-set(t.get-column(subcol))
+  tab = group(t, col)
+    .rename-column("value", "group")
+    .build-column(
+    "data",
+    # take a count of the subgroups, then see which subgroups are missing
+    # for each one, add a row with a count of zero. Then order the rows
+    # and extract the count as a list
+    lam(r) block:
+      segments = count(r["subtable"], subcol)
+      missing = subgroups.difference(Sets.list-to-set(segments.get-column(subcol)))
+      missing.fold(
+        lam(table, subgroup):
+          table.add-row([T.raw-row: {subcol; subgroup}, {"frequency"; 0}])
+        end,
+        segments)
+        .build-column("sortable", lam(shadow r): to-repr(r[subcol]) end)
+        .order-by("sortable", true)
+        .get-column("frequency")
+    end)
+  # sort groups alphabetically
+  sort(tab, "group", true)
+end
 
 
 # pivot-row :: r :: Row -> Table
