@@ -1602,7 +1602,9 @@ fun regression-model-S(t, explanations, response, model) block:
   num-sqrt(Math.sum(residuals-sqr) / degrees-of-freedom)
 end
 
-rec regession-model-s = regression-model-S
+fun regression-model-s(a, b, c, v):
+  raise(Err.message-exception("In statistics, the S-value is always capitalized. Pyret does the same thing! Did you mean to use `regression-model-S`?"))
+end
 
 S :: (t :: Table, explanation :: String, response :: String, model :: (Row -> Number)) -> Number
 fun S(t, explanation, response, model):
