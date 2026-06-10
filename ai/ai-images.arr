@@ -4,10 +4,10 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 black-sq   = square(10, "solid", "black")
 white-sq   = square(10, "solid", "white")
 red-sq     = square(10, "solid", "red")
-blue-c     = circle(10, "solid", "blue")
 green-t    = triangle(15, "solid", "green")
 big-red-sq = square(100, "solid", "red")
 half-and-half = beside(white-sq, black-sq)
+red-blue-tile = overlay(square(4, "solid", "blue"), square(10, "solid", "red"))
 
 # import some images - you can change these to whatever images you find on the web!
 lesson-folder = "https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/ai/mountain-imgs/"
