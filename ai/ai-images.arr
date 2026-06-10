@@ -7,9 +7,9 @@ red-sq     = square(10, "solid", "red")
 green-t    = triangle(15, "solid", "green")
 big-red-sq = square(100, "solid", "red")
 half-and-half = beside(white-sq, black-sq)
-red-blue-tile = overlay(square(4, "solid", "blue"), square(10, "solid", "red"))
 
 # pixels -> model
+red-blue-tile = overlay(square(5, "solid", "blue"), square(10, "solid", "red"))
 pixel = image-to-color-list(red-blue-tile)
 pixel-dominant-rgb = dominant-rgb-colors(red-blue-tile)
 
@@ -29,19 +29,19 @@ mountains =   image-url(lesson-folder + "all-mountains.webp")
 
 # define the image table
 image-corpus = 
-  table: ID,       DOC,              LIKED, DISLIKED, TAGS
-    row: "day1",   scale(1/2, img1), false,   false,  ""
-    row: "day2",   scale(1/2, img2), true,    false,  ""
-    row: "day3",   scale(1/2, img3), false,   false,  ""
-    row: "grass1", scale(1/2, img4), false,   false,  ""
-    row: "snow1",  scale(1/2, img5), false,   false,  ""
-    row: "snow2",  scale(1/2, img6), false,   false,  "water"
-    row: "grass2", scale(1/2, img7), false,   false,  ""
-    row: "sun1",   scale(1/2, img8), false,   false,  ""
-    row: "sun2",   scale(1/2, img9), false,   false,  ""
-    row: "pixel",  red-blue-tile,    false,   true,   ""
-    row: "red1",   red-sq,           false,   true,   ""
-    row: "red2",   big-red-sq,       false,   true,   ""
+  table: ID,         DOC,              LIKED, DISLIKED, TAGS
+    row: "day1",     scale(1/2, img1), false,   false,  ""
+    row: "day2",     scale(1/2, img2), true,    false,  ""
+    row: "day3",     scale(1/2, img3), false,   false,  ""
+    row: "grass1",   scale(1/2, img4), false,   false,  ""
+    row: "snow1",    scale(1/2, img5), false,   false,  ""
+    row: "snow2",    scale(1/2, img6), false,   false,  "water"
+    row: "grass2",   scale(1/2, img7), false,   false,  ""
+    row: "sun1",     scale(1/2, img8), false,   false,  ""
+    row: "sun2",     scale(1/2, img9), false,   false,  ""
+    row: "red-blue", red-blue-tile,    false,   true,   ""
+    row: "red1",     red-sq,           false,   true,   ""
+    row: "red2",     big-red-sq,       false,   true,   ""
   end
 
 # using the "DOC" column to compute DOMINANT-RGB-COLORS, SYMMETRY, LUMINANCE, etc. 
