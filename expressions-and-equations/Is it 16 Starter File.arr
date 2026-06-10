@@ -1,8 +1,8 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations", "../libraries/core.arr")
 
-########### Section 1 ###########################
+########### Section A ###########################
 
-examples:
+examples "A":
   
   expt(2, 4)           == 16 is true
   (expt(2, 3) + 10)    == 16 is true
@@ -16,9 +16,9 @@ examples:
 end
 
 
-########### Section 2 ###########################
+########### Section B ###########################
 
-examples:
+examples "B":
   
   (expt(6, 2) - 11) == 25 is true
 
