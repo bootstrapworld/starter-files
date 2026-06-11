@@ -444,7 +444,7 @@ end
 # 3. angle-similarity  — converts cosine similarity to an angle (0-90°),
 #                        where 0° means identical and 90° means nothing
 #                        in common.
-# 4. all-cols-similarity — same as cosine similarity, but auto-chooses the cols
+# 4. all-cols-similarity — same as angle similarity, but auto-chooses the cols
 ################################################################
 
 # simple-similarity: true iff the specified cols of the two rows 
@@ -489,7 +489,7 @@ fun all-cols-similarity(t :: Table, id) block:
   when cols.length() == 0:
     raise(Err.message-exception("all-cols-similarity ignores certain columns (" + restricted-cols.join-str(", ") + "), but no other numeric columns were found"))
   end
-  cosine-similarity(t, id, cols)
+  angle-similarity(t, id, cols)
 end
 
 
