@@ -450,6 +450,9 @@ end
 # simple-similarity: true iff the specified cols of the two rows 
 # are identical
 fun simple-similarity(t :: Table, id, cols :: List<String>) block:
+  when not(t.column("ID").member(id)):
+    raise(Err.message-exception("Could not find ID '" + id + "' in this table" ))
+  end
   fun helper(r1 :: Row, r2 :: Row) -> Number block:
     vals1 = cols.map({(c): r1[c]})
     vals2 = cols.map({(c): r2[c]})
@@ -463,6 +466,10 @@ end
 # distance-similarity: returns the euclidean distance between
 # points defined by the cols
 fun distance-similarity(t :: Table, id, cols :: List<String>) block:
+  when not(t.column("ID").member(id)):
+    raise(Err.message-exception("Could not find ID '" + id + "' in this table" ))
+  end
+  
   fun helper(r1 :: Row, r2 :: Row) -> Number block:
     vals1 = cols.map({(c): r1[c]})
     vals2 = cols.map({(c): r2[c]})
@@ -476,6 +483,7 @@ fun distance-similarity(t :: Table, id, cols :: List<String>) block:
       rounded-exact(sqrt(sum-of-squares))
     end
   end
+  
   compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
   fun compare-row(r): helper(r, compare-to) end
   t.build-column("distance-similarity", compare-row).order-by("distance-similarity", true)
@@ -488,6 +496,9 @@ fun all-cols-similarity(t :: Table, id) block:
   cols = get-unrestricted-cols(r).filter({(c): is-number(r[c])})
   when cols.length() == 0:
     raise(Err.message-exception("all-cols-similarity ignores certain columns (" + restricted-cols.join-str(", ") + "), but no other numeric columns were found"))
+  end
+  when not(t.column("ID").member(id)):
+    raise(Err.message-exception("Could not find ID '" + id + "' in this table" ))
   end
   angle-similarity(t, id, cols)
 end
@@ -514,6 +525,9 @@ end
 # 0 = no words in common. Uses the standard cosine similarity formula:
 #   cos(θ) = (A · B) / (|A| * |B|)
 fun cosine-similarity(t :: Table, id, cols :: List<String>) block:
+  when not(t.column("ID").member(id)):
+    raise(Err.message-exception("Could not find ID '" + id + "' in this table" ))
+  end
   compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
   fun compare-row(r): row-cosine-similarity(r, compare-to, cols) end
   t.build-column("cosine-similarity", compare-row).order-by("cosine-similarity", false)
@@ -523,6 +537,9 @@ end
 # angle-similarity-lists: converts cosine similarity to degrees (0-90°).
 # 0° means the DOCs are identical; 90° means completely dissimilar.
 fun angle-similarity(t :: Table, id, cols :: List<String>) block:
+  when not(t.column("ID").member(id)):
+    raise(Err.message-exception("Could not find ID '" + id + "' in this table" ))
+  end
   fun helper(r1 :: Row, r2 :: Row) -> Number:
     rounded-exact((num-acos(row-cosine-similarity(r1, r2, cols)) * 180) / PI)
   end
