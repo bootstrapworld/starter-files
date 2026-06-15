@@ -37,6 +37,6 @@ essays =
     row: "K", "❓", mystery,    false,   false,  ""
   end
           
-whale-essay = row-n(essays, 0)
+whale-essay = row-n(essays, 1)
 
-fun essay-img(r): text(r["EMOJI"], 24, "black") end
+fun title-img(r): text(r["EMOJI"], 24, "black") end
