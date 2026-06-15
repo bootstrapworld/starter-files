@@ -397,6 +397,31 @@ fun search-by-tag(t, tag) block:
   #    .filter({(r): r["angle-similarity"] < 30})
 end
 
+fun search-by-tags(t, tags :: List<String>) block:
+  cols = get-unrestricted-cols(t.row-n(0))
+
+  # For each tag, build its centroid and compute angle-similarity scores,
+  # then accumulate a running total in a "score" column.
+  # Lower angle = more similar, so we negate to make higher = better.
+  fun add-tag-score(tag, shadow t):
+    matching-ids = tagged-ids(t, tag)
+    t-w-centroid = add-centroid(t, "TAG", matching-ids)
+    scored = angle-similarity(t-w-centroid, "TAG CENTROID", cols)
+      .filter({(r): r["ID"] <> "TAG CENTROID"})
+    if t.column-names().member("score"):
+      scored.build-column("score2", {(r): r["score"] + r["angle-similarity"]})
+        .drop("angle-similarity")
+        .drop("score")
+        .rename-column("score2", "score")
+    else:
+      scored.rename-column("angle-similarity", "score")
+    end
+  end
+
+  tags.foldl(add-tag-score, t)
+    .order-by("score", true)  # ascending: lower total angle = better match
+end
+
 
 ##################################################################################
 # Similarity Tools
