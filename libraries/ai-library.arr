@@ -61,23 +61,23 @@ end
 fun add-entropy(t, doc-col): 
   add-col(t, doc-col, "ENTROPY", {(img): 
       round-digits(num-exact(image-entropy(img)),
-          MODEL_DIGITS)}) 
+        MODEL_DIGITS)}) 
 end
 fun add-luminance(t, doc-col): 
   add-col(t, doc-col, "LUMINANCE", {(img): 
       round-digits(num-exact(image-luminance(img)),
-          MODEL_DIGITS)}) 
+        MODEL_DIGITS)}) 
 end
 fun add-symmetry-v(t, doc-col): 
   add-col(t, doc-col, "SYMMETRY-V", {(img): 
       round-digits(num-exact(image-symmetry-vertical(img)),
-          MODEL_DIGITS)}) 
+        MODEL_DIGITS)}) 
 end
 fun add-symmetry-h(t, doc-col): 
   add-col(t, doc-col, "SYMMETRY-H", {(img): 
       round-digits(num-exact(
-image-symmetry-horizontal(img)),
-          MODEL_DIGITS)}) 
+          image-symmetry-horizontal(img)),
+        MODEL_DIGITS)}) 
 end
 fun add-color-names(t, doc-col): 
   add-col(t, doc-col, "DOMINANT-RGB-COLORS", dominant-rgb-colors) 
@@ -173,7 +173,7 @@ fun normalize-text-table(t :: Table, col :: String) -> Table:
 end
 
 fun massage-string(w :: String) -> String block:
-    lowercase-chars = string-explode(string-to-lower(w)).map(replace-newlines)
+  lowercase-chars = string-explode(string-to-lower(w)).map(replace-newlines)
   fold({(a, b): a + b }, '', lowercase-chars.filter(is-non-punct))
 end
 
@@ -350,7 +350,7 @@ fun recommend(t :: Table) -> Table block:
   when (likes.length() + dislikes.length()) == 0:
     raise(Err.message-exception("No recommendations could be computed without at least one RATING"))
   end
-  
+
   cols = get-unrestricted-cols(t.row-n(0))
 
   # Add "LIKE-DIST" and "DISLIKE-DIST"
@@ -388,21 +388,11 @@ end
 
 # build a centroid for every row w/this tag, then use that find similar images
 # be sure to remove the centroid when finished
-fun search-by-tag(t, tag) block:
-  matching-ids = tagged-ids(t, tag)
-  cols = get-unrestricted-cols(t.row-n(0))
-  t-w-centroid = add-centroid(t, "TAG", matching-ids)
-  angle-similarity(t-w-centroid, "TAG CENTROID", cols)
-    .filter({(r): r["ID"] <> "TAG CENTROID"})
-  #    .filter({(r): r["angle-similarity"] < 30})
-end
-
 fun search-by-tags(t, tags :: List<String>) block:
   cols = get-unrestricted-cols(t.row-n(0))
 
-  # For each tag, build its centroid and compute angle-similarity scores,
-  # then accumulate a running total in a "score" column.
-  # Lower angle = more similar, so we negate to make higher = better.
+  # For each tag: build its centroid, score every row by angle-similarity,
+  # and accumulate into a running "score" column.
   fun add-tag-score(tag, shadow t):
     matching-ids = tagged-ids(t, tag)
     t-w-centroid = add-centroid(t, "TAG", matching-ids)
@@ -418,10 +408,16 @@ fun search-by-tags(t, tags :: List<String>) block:
     end
   end
 
-  tags.foldl(add-tag-score, t)
-    .order-by("score", true)  # ascending: lower total angle = better match
-end
+  # IDs of rows directly tagged with at least one of the search tags
+  matched-ids = tags.foldl(lam(tag, acc): acc + tagged-ids(t, tag) end, [list: ])
 
+  scored = tags.foldl(add-tag-score, t)
+
+  direct = scored.filter({(r): matched-ids.member(r["ID"])}).order-by("score", true)
+  rest   = scored.filter({(r): not(matched-ids.member(r["ID"]))}).order-by("score", true)
+
+  direct.stack(rest).drop("score")
+end
 
 ##################################################################################
 # Similarity Tools
@@ -494,7 +490,7 @@ fun distance-similarity(t :: Table, id, cols :: List<String>) block:
   when not(t.column("ID").member(id)):
     raise(Err.message-exception("Could not find ID '" + id + "' in this table" ))
   end
-  
+
   fun helper(r1 :: Row, r2 :: Row) -> Number block:
     vals1 = cols.map({(c): r1[c]})
     vals2 = cols.map({(c): r2[c]})
@@ -508,7 +504,7 @@ fun distance-similarity(t :: Table, id, cols :: List<String>) block:
       rounded-exact(sqrt(sum-of-squares))
     end
   end
-  
+
   compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
   fun compare-row(r): helper(r, compare-to) end
   t.build-column("distance-similarity", compare-row).order-by("distance-similarity", true)
@@ -1233,12 +1229,12 @@ fun completions(model :: Table, input :: String) block:
 
   # Add percentage column
   filtered.build-column("probability", {(r):
-    if total-count == 0:
-      0
-    else:
-      rounded-exact((r["count"] / total-count))
-    end
-  })
+      if total-count == 0:
+        0
+      else:
+        rounded-exact((r["count"] / total-count))
+      end
+    })
 end
 
 fun next-word-probability(model :: Table, first :: String, second :: String):
@@ -1283,7 +1279,7 @@ end
 # and choose a completion
 fun add-next-word(model :: Table, input :: String) -> String:
   words = string-split-all(input, " ")
-    
+
   start = words.reverse().take(num-min(words.length(), MAX-GRAM-SIZE)).reverse().join-str(" ")
   input + " " + choose-completion(model, start)
 end
@@ -1293,7 +1289,7 @@ fun draw-lines(txt):
     overlay(text(str, 20, "black"), 
       square(25, "solid", "transparent"))
   end
-  
+
   words = string-split-all(txt, " ")
   fun build-lines(remaining, current-line):
     cases (List) remaining:
