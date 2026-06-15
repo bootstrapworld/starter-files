@@ -388,7 +388,7 @@ end
 
 # build a centroid for every row w/this tag, then use that find similar images
 # be sure to remove the centroid when finished
-fun search-by-tags(t, tags :: List<String>) block:
+fun search-by-tag(t, tags :: List<String>) block:
   cols = get-unrestricted-cols(t.row-n(0))
 
   # For each tag: build its centroid, score every row by angle-similarity,
