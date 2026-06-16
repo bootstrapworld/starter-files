@@ -70,7 +70,15 @@ data BKNode:
   | bk-node(word :: String, children :: SD.MutableStringDict) with:
   
   method _output(self) block:
-      vs-value(scale(0.5, DICTIONARY-IMG))
+      count-str = num-to-string(count-words(self))
+      count-img = rotate(-7, text(count-str, 12, "white"))
+      vs-value(
+        put-image(
+          count-img,
+          38, 45,
+          scale(0.5, DICTIONARY-IMG)
+          )
+        )
   end
 end
 
@@ -84,6 +92,14 @@ fun bk-search(node :: BKNode, query :: String, n :: Number) -> List<WordResult>:
       | none => acc
       | some(child) => acc + bk-search(child, query, n)
     end
+  end
+end
+
+fun count-words(node :: BKNode) -> Number:
+  child-keys = node.children.keys-now().to-list()
+  for fold(total from 1, key from child-keys):
+    child = node.children.get-value-now(key)
+    total + count-words(child)
   end
 end
 
