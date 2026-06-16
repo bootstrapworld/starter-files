@@ -21,7 +21,7 @@ whale = "The blue whale is a marine mammal and a baleen whale. Reaching a maximu
 mystery	= "The elephant is a contributor to Thai society. It has been an icon of Thai life for many centuries. The elephant, which it is possible to see found in every part of Thailand, is the Indian elephant, which is a subspecies of the Asian elephant. The Thai elephant has a considerable impact on culture. The elephant is the official national animal of Thailand."
           
 # define the essay table, leaving rating and tags empty
-essays = 
+corpus = 
   table:  ID, EMOJI,    DOC,    LIKED, DISLIKED, TAGS
     row: "B", "🦡", badger,     false,   false,  ""
     row: "C", "🐒", chimpanzee, false,   false,  ""
@@ -36,14 +36,14 @@ essays =
     row: "?", "❓", mystery,    false,   false,  ""
   end
           
-badger-essay = row-n(essays, 0)
-whale-essay = row-n(essays, 9)
+badger-essay = row-n(corpus, 0)
+whale-essay = row-n(corpus, 9)
 
 fun essay-img(r): text(r["EMOJI"], 24, "black") end
 
-decorated = decorate-text-table(essays, "DOC")
+decorated = decorate-text-table(corpus, "DOC")
 
-bags = add-bag-cols(essays, "DOC")
+calc = add-bag-cols(corpus, "DOC")
 
 # Some functions for normalizing natural language
 # lowercase :: String -> String
@@ -56,10 +56,10 @@ bags = add-bag-cols(essays, "DOC")
 # We can compose these functions to work together. 
 # lowercase(remove-punct(remove-stops("")))
 
-norm = normalize-text-table(essays, "DOC")
+norm = normalize-text-table(corpus, "DOC")
 
-model = add-bag-cols(norm, "DOC")
+norm-calc = add-bag-cols(norm, "DOC")
 
 # Measuring Similiarity
-# all-cols-similarity(bags, "?")
-# all-cols-similarity(model, "?")
+# all-cols-similarity(calc, "?")
+# all-cols-similarity(norm-calc, "?")
