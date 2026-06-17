@@ -455,8 +455,9 @@ fun row-to-dict(cols :: List<String>, r :: Row) -> SD.StringDict<Number>:
 end
 
 ################################################################
-# The library offers three levels of comparison, each operating
-# on String inputs directly.
+# The library offers three levels of comparison, in which all 
+# rows are ranked according to their similarity to a given row ID
+# 
 # The four comparison approaches are:
 #
 # 1. simple-similarity — perfect equality
@@ -466,7 +467,17 @@ end
 #                        where 0° means identical and 90° means nothing
 #                        in common.
 # 4. all-cols-similarity — same as angle similarity, but auto-chooses the cols
+#
+# All four algorithms have been hand-tweaked to pull the row with the 
+# given ID to the top, making that row "most similar" to itself even if
+# other rows have the exact same score.
 ################################################################
+
+fun pull-seed-to-top(t :: Table, id) -> Table block:
+  t-w-seed = t.filter({(r): r["ID"] == id})
+  rest     = t.filter({(r): r["ID"] <> id})
+  t-w-seed.stack(rest)
+end
 
 # simple-similarity: true iff the specified cols of the two rows 
 # are identical
@@ -481,7 +492,8 @@ fun simple-similarity(t :: Table, id, cols :: List<String>) block:
   end
   compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
   fun compare-row(r): helper(r, compare-to) end
-  t.build-column("simple-similarity", compare-row).order-by("simple-similarity", false)
+  results = t.build-column("simple-similarity", compare-row).order-by("simple-similarity", false)
+  pull-seed-to-top(results, id)
 end
 
 # distance-similarity: returns the euclidean distance between
@@ -507,7 +519,8 @@ fun distance-similarity(t :: Table, id, cols :: List<String>) block:
 
   compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
   fun compare-row(r): helper(r, compare-to) end
-  t.build-column("distance-similarity", compare-row).order-by("distance-similarity", true)
+  results = t.build-column("distance-similarity", compare-row).order-by("distance-similarity", true)
+  pull-seed-to-top(results, id)
 end
 
 # all-cols-similarity: returns 1 if the two bags contain the same words
@@ -521,7 +534,8 @@ fun all-cols-similarity(t :: Table, id) block:
   when not(t.column("ID").member(id)):
     raise(Err.message-exception("Could not find ID '" + id + "' in this table" ))
   end
-  angle-similarity(t, id, cols)
+  results = angle-similarity(t, id, cols)
+  pull-seed-to-top(results, id)
 end
 
 
@@ -551,7 +565,8 @@ fun cosine-similarity(t :: Table, id, cols :: List<String>) block:
   end
   compare-to = t.filter({(r): r["ID"] == id}).row-n(0)
   fun compare-row(r): row-cosine-similarity(r, compare-to, cols) end
-  t.build-column("cosine-similarity", compare-row).order-by("cosine-similarity", false)
+  results = t.build-column("cosine-similarity", compare-row).order-by("cosine-similarity", false)
+  pull-seed-to-top(results, id)
 end
 
 
