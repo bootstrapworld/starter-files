@@ -1041,7 +1041,7 @@ fun dot-plot(t, labels, vals) block:
   series = if is-quant:
     from-list.labeled-num-dot-chart(ls, vs)
   else:
-    from-list.labeled-dot-chart(ls, vs)
+    from-list.dot-chart(vs)
   end
   chart = render-chart(series).width(600).height(400)
     .x-axis(vals)
