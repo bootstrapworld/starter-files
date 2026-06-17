@@ -43,7 +43,7 @@ fun essay-img(r): text(r["EMOJI"], 24, "black") end
 
 decorated = decorate-text-table(corpus, "DOC")
 
-calc = add-bag-cols(corpus, "DOC")
+computed = add-bag-cols(corpus, "DOC")
 
 # Some functions for normalizing natural language
 # lowercase :: String -> String
@@ -58,9 +58,9 @@ vacation = "Vacation is fun! One of my favorite things about vacation is that I 
 
 norm = normalize-text-table(corpus, "DOC")
 
-norm-calc = add-bag-cols(norm, "DOC")
+norm-computed = add-bag-cols(norm, "DOC")
 
 # A new function for measuring similarity using all quantitative columns
 # all-cols-similarity :: Table, String -> Table
-# all-cols-similarity(calc, "?")
-# all-cols-similarity(norm-calc, "?")
+# all-cols-similarity(computed, "?")
+# all-cols-similarity(norm-computed, "?")
