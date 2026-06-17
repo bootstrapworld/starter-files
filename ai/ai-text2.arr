@@ -51,7 +51,7 @@ calc = add-bag-cols(corpus, "DOC")
 # remove-stops :: String -> String
 
 # A String for testing these functions with. 
-# "Vacation is fun! One of my favorite things about vacation is that I have time for breakfast. I also love the beach."
+vacation = "Vacation is fun! One of my favorite things about vacation is that I have time for breakfast. What do you love about vacation?"
 
 # We can compose these functions to work together. 
 # lowercase(remove-punct(remove-stops("")))
