@@ -60,6 +60,7 @@ norm = normalize-text-table(corpus, "DOC")
 
 norm-calc = add-bag-cols(norm, "DOC")
 
-# Measuring Similiarity
+# A new function for measuring similarity using all quantitative columns
+# all-cols-similarity :: Table, String -> Table
 # all-cols-similarity(calc, "?")
 # all-cols-similarity(norm-calc, "?")
