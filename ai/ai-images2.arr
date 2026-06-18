@@ -46,10 +46,10 @@ image-corpus =
 
 # using the "DOC" column to compute DOMINANT-RGB-COLORS, SYMMETRY, LUMINANCE, etc. 
 # and add columns to our image-corpus
-model-with-color-names = decorate-image-table(image-corpus, "DOC")
+computed-with-color-names = decorate-image-table(image-corpus, "DOC")
 
 # Use a Bag-of-Words summary to replace our DOMINANT-RGB-COLORS string with columns that count each word
-model = add-bag-cols(model-with-color-names, "DOMINANT-RGB-COLORS")
+computed = add-bag-cols(computed-with-color-names, "DOMINANT-RGB-COLORS")
 
 # given a Row, produce an image that's one-half the size
 fun thumbnail(r): 
