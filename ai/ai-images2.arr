@@ -30,15 +30,15 @@ mountains =   image-url(lesson-folder + "all-mountains.webp")
 # define the image table
 image-corpus = 
   table: ID,          DOC,              LIKED, DISLIKED, TAGS
-    row: "day1",      scale(1/2, img1), false,   false,  ""
-    row: "day2",      scale(1/2, img2), true,    false,  ""
-    row: "day3",      scale(1/2, img3), false,   false,  ""
-    row: "grass1",     scale(1/2, img4), false,   false,  ""
+    row: "sun1",      scale(1/2, img1), false,   false,  ""
+    row: "day1",      scale(1/2, img2), true,    false,  ""
+    row: "day2",      scale(1/2, img3), false,   false,  ""
+    row: "grass",     scale(1/2, img4), false,   false,  ""
     row: "snow1",     scale(1/2, img5), false,   false,  ""
     row: "snow2",     scale(1/2, img6), false,   false,  "water"
-    row: "grass2", scale(1/2, img7), false,   false,  ""
-    row: "sun1",      scale(1/2, img8), false,   false,  ""
-    row: "sun2",    scale(1/2, img9), false,   false,  ""
+    row: "grass-sun", scale(1/2, img7), false,   false,  ""
+    row: "sun2",      scale(1/2, img8), false,   false,  ""
+    row: "sunset",    scale(1/2, img9), false,   false,  ""
     row: "red-blue",  red-blue-tile,    false,   true,   ""
     row: "red1",      red-sq,           false,   true,   ""
     row: "red2",      big-red-sq,       false,   true,   ""
