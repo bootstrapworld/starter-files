@@ -50,13 +50,13 @@ computed = add-bag-cols(corpus, "DOC")
 # Some functions for normalizing natural language
 # lowercase :: String -> String
 # remove-punct :: String -> String
-# remove-stops :: String -> String
+# remove-stop-words :: String -> String
 
 # A String for testing these functions with. 
 vacation = "Vacation is fun! One of my favorite things about vacation is that I have time for breakfast. What do you love about vacation?"
 
 # We can compose these functions to work together. 
-# lowercase(remove-punct(remove-stops("")))
+# lowercase(remove-punct(remove-stop-words("")))
 
 norm = normalize-text-table(corpus, "DOC")
 

@@ -158,7 +158,13 @@ fun remove-punct(s :: String) -> String:
     .join-str("")
 end
 
-fun remove-stops(s :: String) -> String:
+fun find-punct-list(s :: String) -> List<String>:
+  string-explode(s)
+    .filter(lam(x): not(is-non-punct(x)) end)
+    .filter(is-non-empty-string)
+end
+
+fun remove-stop-words(s :: String) -> String:
   string-split-all(s, " ")
     .filter({(w): not(stop-words.member(w))})
     .filter(is-non-empty-string)
@@ -168,7 +174,7 @@ end
 fun normalize-text-table(t :: Table, col :: String) -> Table:
   t.transform-column(
     col,
-    {(txt): remove-stops(remove-punct(lowercase(txt)))}
+    {(txt): remove-stop-words(remove-punct(lowercase(txt)))}
     )
 end
 
