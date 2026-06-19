@@ -30,15 +30,15 @@ mountains =   image-url(lesson-folder + "all-mountains.webp")
 # define the image table
 image-corpus = 
   table: ID,          DOC,              LIKED, DISLIKED, TAGS
-    row: "day1",      scale(1/2, img1), false,   false,  ""
-    row: "day2",      scale(1/2, img2), true,    false,  ""
-    row: "day3",      scale(1/2, img3), false,   false,  ""
-    row: "grass1",     scale(1/2, img4), false,   false,  ""
+    row: "sun1",      scale(1/2, img1), false,   false,  ""
+    row: "day1",      scale(1/2, img2), true,    false,  ""
+    row: "day2",      scale(1/2, img3), false,   false,  ""
+    row: "grass",     scale(1/2, img4), false,   false,  ""
     row: "snow1",     scale(1/2, img5), false,   false,  ""
     row: "snow2",     scale(1/2, img6), false,   false,  "water"
-    row: "grass2", scale(1/2, img7), false,   false,  ""
-    row: "sun1",      scale(1/2, img8), false,   false,  ""
-    row: "sun2",    scale(1/2, img9), false,   false,  ""
+    row: "grass-sun", scale(1/2, img7), false,   false,  ""
+    row: "sun2",      scale(1/2, img8), false,   false,  ""
+    row: "sunset",    scale(1/2, img9), false,   false,  ""
     row: "red-blue",  red-blue-tile,    false,   true,   ""
     row: "red1",      red-sq,           false,   true,   ""
     row: "red2",      big-red-sq,       false,   true,   ""
@@ -46,10 +46,10 @@ image-corpus =
 
 # using the "DOC" column to compute DOMINANT-RGB-COLORS, SYMMETRY, LUMINANCE, etc. 
 # and add columns to our image-corpus
-model-with-color-names = decorate-image-table(image-corpus, "DOC")
+computed-with-color-names = decorate-image-table(image-corpus, "DOC")
 
 # Use a Bag-of-Words summary to replace our DOMINANT-RGB-COLORS string with columns that count each word
-model = add-bag-cols(model-with-color-names, "DOMINANT-RGB-COLORS")
+computed = add-bag-cols(computed-with-color-names, "DOMINANT-RGB-COLORS")
 
 # given a Row, produce an image that's one-half the size
 fun thumbnail(r): 
