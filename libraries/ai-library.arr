@@ -1240,7 +1240,11 @@ fun completions(model :: Table, input :: String) block:
   gram-size = num-min(string-split-all(input, " ").length() + 1, MAX-GRAM-SIZE)
 
   filtered = model
-    .filter({(r): (r["size"] == gram-size) and string-starts-with(r["n-gram"], input)})
+    # Match on a word boundary: require the input followed by a space, so e.g.
+    # "she" matches "she swallowed" but not "shell die" (she'll). The empty-input
+    # case (used by choose-completion's back-off) still matches every n-gram.
+    .filter({(r): (r["size"] == gram-size) and
+        ((input == "") or string-starts-with(r["n-gram"], input + " "))})
     .transform-column("n-gram", {(ngram): string-split-all(ngram, " ").reverse().get(0)})
 
   # Calculate total count to compute percentages
