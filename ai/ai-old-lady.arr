@@ -32,5 +32,5 @@ corpus = ```
 # generate-ngrams :: String, Number -> Table
 # build-lang-model :: String -> Model
 # completions :: Model, String -> Table
-# choose-completion :: Model, String -> String
+# choose-completion :: Model, String, Number -> String
 # generate-from :: Model, String -> String
