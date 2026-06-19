@@ -1283,6 +1283,14 @@ end
 
 
 fun choose-completion(model :: Table, input :: String, n :: Number) -> String:
+  # An order-MAX-GRAM-SIZE model can only condition on the previous
+  # MAX-GRAM-SIZE - 1 (= 4) tokens, so reduce any input to just its last
+  # that-many tokens (the most recent context) before generating.
+  fun last-tokens(str):
+    toks = string-split-all(str, " ").filter(is-non-empty-string)
+    toks.reverse().take(num-min(toks.length(), MAX-GRAM-SIZE - 1)).reverse().join-str(" ")
+  end
+
   # Choose a single next word for `context`, backing off to a shorter context
   # (dropping the oldest word) when no n-gram matches the full context.
   fun choose-one(context):
@@ -1317,21 +1325,18 @@ fun choose-completion(model :: Table, input :: String, n :: Number) -> String:
       if word == "":
         empty
       else:
-        link(word, choose-n(context + " " + word, k - 1))
+        link(word, choose-n(last-tokens(context + " " + word), k - 1))
       end
     end
   end
 
-  choose-n(input, n).join-str(" ")
+  choose-n(last-tokens(input), n).join-str(" ")
 end
 
-# truncate the input to the last MAX-GRAM-SIZE words, 
-# and choose a completion
+# append one generated word; choose-completion reduces the input to the last
+# few tokens itself, so just pass the whole string through.
 fun add-next-word(model :: Table, input :: String) -> String:
-  words = string-split-all(input, " ")
-
-  start = words.reverse().take(num-min(words.length(), MAX-GRAM-SIZE)).reverse().join-str(" ")
-  input + " " + choose-completion(model, start, 1)
+  input + " " + choose-completion(model, input, 1)
 end
 
 fun draw-lines(txt):
