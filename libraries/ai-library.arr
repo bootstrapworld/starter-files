@@ -1278,22 +1278,47 @@ fun next-word-probability(model :: Table, first :: String, second :: String):
 end
 
 
-fun choose-completion(model :: Table, input :: String):
-  words = string-split-all(massage-string(input), " ")
-    .filter(is-non-empty-string)
-  last-word = if words.length() == 0: "" else: words.reverse().get(0) end
+fun choose-completion(model :: Table, input :: String, n :: Number) -> String:
+  # Choose a single next word for `context`, backing off to a shorter context
+  # (dropping the oldest word) when no n-gram matches the full context.
+  fun choose-one(context):
+    words = string-split-all(massage-string(context), " ")
+      .filter(is-non-empty-string)
+    last-word = if words.length() == 0: "" else: words.reverse().get(0) end
 
-  choices = completions(model, input)
-    .filter({(r): r["n-gram"] <> last-word})
-  row-count = choices.length()
+    choices = completions(model, context)
+      .filter({(r): r["n-gram"] <> last-word})
+    row-count = choices.length()
 
-  if row-count == 0:
-    choose-completion(model, words.rest.join-str(" "))
-  else if row-count == 1:
-    choices.row-n(0)["n-gram"]
-  else:
-    choices.row-n(random(row-count - 1))["n-gram"]
+    if row-count == 0:
+      if words.length() == 0:
+        ""   # no context left to back off to
+      else:
+        choose-one(words.rest.join-str(" "))
+      end
+    else if row-count == 1:
+      choices.row-n(0)["n-gram"]
+    else:
+      choices.row-n(random(row-count))["n-gram"]   # random(k) is in [0, k)
+    end
   end
+
+  # Choose n words in sequence, feeding each choice back in as context for the
+  # next, and stopping early if we hit a dead end.
+  fun choose-n(context, k):
+    if k <= 0:
+      empty
+    else:
+      word = choose-one(context)
+      if word == "":
+        empty
+      else:
+        link(word, choose-n(context + " " + word, k - 1))
+      end
+    end
+  end
+
+  choose-n(input, n).join-str(" ")
 end
 
 # truncate the input to the last MAX-GRAM-SIZE words, 
@@ -1302,7 +1327,7 @@ fun add-next-word(model :: Table, input :: String) -> String:
   words = string-split-all(input, " ")
 
   start = words.reverse().take(num-min(words.length(), MAX-GRAM-SIZE)).reverse().join-str(" ")
-  input + " " + choose-completion(model, start)
+  input + " " + choose-completion(model, start, 1)
 end
 
 fun draw-lines(txt):
