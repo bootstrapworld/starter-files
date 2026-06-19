@@ -33,4 +33,4 @@ corpus = ```
 # build-lang-model :: String -> Model
 # completions :: Model, String -> Table
 # choose-completion :: Model, String -> String
-# generate-from :: Model, String -> Image
+# generate-from :: Model, String -> String
