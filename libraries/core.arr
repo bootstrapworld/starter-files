@@ -655,10 +655,17 @@ fun make-title(str-list):
 end
 
 
-# if the column is a boolean, convert to a number and sort
+# if the column is a boolean, sort by its repr; if it's a string, sort
+# case-insensitively; otherwise sort directly
 shadow sort = lam(t :: Table, col :: String, asc :: Boolean):
-  if ((t.all-rows().length() > 0) and is-boolean(t.row-n(0)[col])): t.build-column("tmp", lam(r):to-repr(r[col]) end).order-by("tmp", asc).drop("tmp")
-  else: t.order-by(col, asc)
+  if (t.all-rows().length() == 0):
+    t.order-by(col, asc)
+  else if is-boolean(t.row-n(0)[col]):
+    t.build-column("tmp", lam(r): to-repr(r[col]) end).order-by("tmp", asc).drop("tmp")
+  else if is-string(t.row-n(0)[col]):
+    t.build-column("tmp", lam(r): string-to-lower(r[col]) end).order-by("tmp", asc).drop("tmp")
+  else:
+    t.order-by(col, asc)
   end
 end
 
