@@ -707,6 +707,13 @@ fun smooth(t):
     {"skew";    t.column("skew")},
     {"steering-angle";  moving-average(t.column("steering-angle"), 5)}]
 end
+fun trim(t, col :: String, lo :: Number, hi :: Number):
+  t.filter(lam(r): (r[col] >= lo) and (r[col] <= hi) end)
+end
+fun sample-rows(t, n :: Number):
+  kept = t.all-rows().filter(lam(r): num-modulo(r["id"], n) == 0 end)
+  Tables.table-from-rows(kept)
+end
 # ============================================================
 # Load some really good, pre-trained data
 # ============================================================
