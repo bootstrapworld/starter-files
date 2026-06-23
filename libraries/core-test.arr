@@ -214,14 +214,14 @@ fit-model(animals-table, "name", "pounds", "weeks", lam(x): x + 1 end)
    
 examples "making regression functions":
   lr-fun(animals-table, "age", "name") raises "One or more of the columns (age or name) does not contain numeric data."
-  reg-model-fun(animals-table, [list: "age","pounds"], "name") raises "One or more of the columns (age, pounds or name) does not contain numeric data."
-  reg-model-fun(animals-table, [list: "age","species"], "weeks") raises "One or more of the columns (age, species or weeks) does not contain numeric data."
+  regression-model-fun(animals-table, [list: "age","pounds"], "name") raises "One or more of the columns (age, pounds or name) does not contain numeric data."
+  regression-model-fun(animals-table, [list: "age","species"], "weeks") raises "One or more of the columns (age, species or weeks) does not contain numeric data."
 end
 
 
 examples "S in Num->Num and Row->Num form":
   S(animals-table, "age", "weeks", lam(x):  (0.78925 * x) + 2.309 end) is-roughly ~5.539741245494801
-  reg-model-S(animals-table, [list:"age"], "weeks", lam(r):  (0.78925 * r["age"]) + 2.309 end) is-roughly ~5.539741245494801
+  regression-model-S(animals-table, [list:"age"], "weeks", lam(r):  (0.78925 * r["age"]) + 2.309 end) is-roughly ~5.539741245494801
 end
 
 f = lr-fun(animals-table, "age", "weeks")
