@@ -1148,7 +1148,7 @@ fun confusion-matrix(t :: Table, col :: String, classifier) -> Table:
   end
   matrix-rows = labels.map(lam(lbl):
       contents = L.link({col; lbl}, labels.map(lam(pred):
-            {"predicted-" + pred; count-normalized(lbl, pred)}
+            {"predicted-" + to-string(pred); count-normalized(lbl, pred)}
           end))
       T.raw-row.make(raw-array-from-list(contents))
     end)
