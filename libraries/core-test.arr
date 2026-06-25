@@ -210,6 +210,8 @@ split-and-reduce(animals-table, "species", "pounds", sum)
 group-and-subgroup(animals-table, "species", "sex")
 group(animals-table, "sex")
 fit-model(animals-table, "name", "pounds", "weeks", lam(x): x + 1 end)
+stacked-bar-chart(animals-table, "species", "fixed")
+
    
    
 examples "making regression functions":
