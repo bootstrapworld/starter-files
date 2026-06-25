@@ -31,6 +31,7 @@ I don't know why she swallowed a fly - perhaps she'll die!
 
 # generate-ngrams :: String, Number -> Table
 # build-lang-model :: String -> Model
+# next-word-probability :: Model, String, String -> Number
 # completions :: Model, String -> Table
 # choose-completion :: Model, String, Number -> String
 # generate-from :: Model, String -> String
