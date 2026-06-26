@@ -2,7 +2,7 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 
 badger = "The American badger is a North American badger similar in appearance to the European badger, although not closely related. It is found in the western, central, and northeastern United States, northern Mexico, and south-central Canada to certain areas of southwestern British Columbia. The American badger's habitat is typified by open grasslands with available prey (such as mice, squirrels, and groundhogs)."
 
-chimpanzee = "The chimpanzee lives in groups that range in size from 15 to 150 members, although individuals travel and forage in much smaller groups during the day. The species lives in a strict male-dominated hierarchy, where disputes are generally settled without the need for violence. Nearly all chimpanzee populations have been recorded using tools, modifying sticks, rocks, grass and leaves and using them for hunting and acquiring honey, termites, ants, nuts and water."
+kangaroo = "The kangaroo is a contributor to Australian society and the official national emblem of Australia. It has been an icon of Australian folklore for many centuries. It is one of the best of them all, and has been for as long as any can say. There are not many like it, and there may never be again."
 
 elephant = "The elephant has been a contributor to Thai society and its icon for many centuries. The elephant has had a considerable impact on Thai culture. The Thai elephant is the official national animal of Thailand. The elephant found in Thailand is the Indian elephant, a subspecies of the Asian elephant."
 
@@ -20,13 +20,12 @@ snail = "Snails can be found in a very wide range of environments, including dit
 
 whale = "The blue whale is a marine mammal and a baleen whale. Reaching a maximum confirmed length of 29.9 m and weighing up to 199 tons, it is the largest animal known ever to have existed. The blue whale's long and slender body can be of various shades of greyish-blue on its upper surface and somewhat lighter underneath."
 
-mystery	= "The elephant is a contributor to Thai society. It has been an icon of Thai life for many centuries. The elephant, which it is possible to see found in every part of Thailand, is the Indian elephant, which is a subspecies of the Asian elephant. The Thai elephant has a considerable impact on culture. The elephant is the official national animal of Thailand."
+mystery	= "The elephant is a contributor to Thai society and the official national animal of Thailand. It has been an icon of Thai culture for many centuries. It is one of the best of them all, and has been for as long as any can say. There are not many like it, and there may never be again."
           
 # define the essay table, leaving rating and tags empty
 corpus = 
   table:  ID, EMOJI,    DOC,    LIKED, DISLIKED, TAGS
     row: "B", "🦡", badger,     false,   false,  ""
-    row: "C", "🐒", chimpanzee, false,   false,  ""
     row: "E", "🐘", elephant,   false,   false,  ""
     row: "G", "🦒", giraffe,    false,   false,  ""
     row: "H", "🐹", hamster,    false,   false,  ""
@@ -35,6 +34,7 @@ corpus =
     row: "R", "🦏", rhino,      false,   false,  ""
     row: "S", "🐌", snail,      false,   false,  ""
     row: "W", "🐳", whale,      false,   false,  ""
+    row: "K", "🦘", kangaroo,   false,   false,  ""
     row: "?", "❓", mystery,    false,   false,  ""
   end
           
