@@ -191,10 +191,9 @@ end
 
 # columns that should always be ignored
 restricted-cols = [list: "ID", "DOC", "LIKED", "DISLIKED", "TAGS", "SIMILARITTY", "STRENGTH", "COLOR-NAMES", "NORMALIZED"]
-fun is-restricted(c): restricted-cols.any({(rc): string-contains(c, rc)}) end
-
 fun get-unrestricted-cols(r):
-  r.get-column-names().filter({(c): not(is-restricted(c)) and is-all-uppercase(c)})
+  r.get-column-names().filter({(c):
+      not(restricted-cols.any({(rc): string-contains(c, rc) or is-all-uppercase(c)}))})
 end
 
 
