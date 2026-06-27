@@ -1499,10 +1499,6 @@ fun regression-model-code(t, params, response) block:
   # generate the coefficients table
   coeffs = regression-model-coeffs(t, params, response)
   
-  fun truncated-string(n :: Number):
-    to-string(num-to-fixnum(round-digits(n, 2)))
-  end
-  
   fn-name = params.join-str("-") + "-predictor"
 
   params-string = if params.length() == 1: "a value for " + params.join-str("")
@@ -1514,9 +1510,9 @@ fun regression-model-code(t, params, response) block:
   # passes them to the raw function
   fun fold-code(acc, row): 
     if row["coefficient-name"] == "intercept": 
-      acc + truncated-string(row["coefficient-value"])
+      acc + num-to-string-digits(row["coefficient-value"], 2)
     else: 
-      acc + "(" + truncated-string(row["coefficient-value"]) +
+      acc + "(" + num-to-string-digits(row["coefficient-value"], 2) +
       " * " + "r[\"" + row["coefficient-name"] + "\"]" +
       ") + "
     end
