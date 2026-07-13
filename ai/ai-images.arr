@@ -28,7 +28,7 @@ img9 = image-url(lesson-folder + "sunset-mountains.png")
 mountains =   image-url(lesson-folder + "all-mountains.webp")
 
 # define the image table
-image-corpus = 
+corpus = 
   table: ID,          DOC,              LIKED, DISLIKED, TAGS
     row: "sun1",      scale(1/2, img1), false,   false,  ""
     row: "day1",      scale(1/2, img2), true,    false,  ""
@@ -46,7 +46,7 @@ image-corpus =
 
 # using the "DOC" column to compute DOMINANT-RGB-COLORS, SYMMETRY, LUMINANCE, etc. 
 # and add columns to our image-corpus
-computed-with-color-names = decorate-image-table(image-corpus, "DOC")
+computed-with-color-names = decorate-image-table(corpus, "DOC")
 
 # Use a Bag-of-Words summary to replace our DOMINANT-RGB-COLORS string with columns that count each word
 computed = add-bag-cols(computed-with-color-names, "DOMINANT-RGB-COLORS")
