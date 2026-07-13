@@ -12,7 +12,7 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 #  use a model to drive the car
 #  drive :: Driving-Function -> Table
 
-# training-data is a predefined table of high-quality training data
+# training is a predefined table of high-quality training data
 
 
 #######################################################################
@@ -20,4 +20,4 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 fun c-predictor(curve): (...  * curve ) + ... end
 
 # Trained Models from curve, skew, offset, speed and steering-angle
-# regression-model-code(training-data, [list: "curve"], "steering-angle")
+# regression-model-code(training, [list: "curve"], "steering-angle")

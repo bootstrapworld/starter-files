@@ -718,7 +718,7 @@ end
 # Load some really good, pre-trained data
 # ============================================================
 training-url = "https://docs.google.com/spreadsheets/d/1G6zAS1QS7OTRLaLMCm3yO_ug45VJJNxAK8_uTyY1sYo/export?format=csv"
-training-data = load-table: id, curve, speed, offset, skew, steering-angle
+training = load-table: id, curve, speed, offset, skew, steering-angle
   source: csv.csv-table-url(training-url, {
         header-row: true,
         infer-content: true
