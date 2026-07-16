@@ -1240,8 +1240,9 @@ fun line-graph(t, labels, xs, ys) block:
   l2 = ensure-numbers(t.column(ys))
   ls = get-labels(t, labels)
   sorted = t.order-by(xs, true) # sort the table by x-axis
-  series = from-list.labeled-line-plot(ls, sorted.column(xs), sorted.column(ys))
-  chart = render-chart(series).width(600).height(400)
+  series = from-list.line-plot(sorted.column(xs), sorted.column(ys))
+  scatter-series= from-list.labeled-scatter-plot(ls, sorted.column(xs), sorted.column(ys))
+  chart = render-charts([list: series, scatter-series]).width(600).height(400)
     .x-axis(xs)
     .y-axis(ys)
   img = display-chart(chart)
