@@ -1629,6 +1629,8 @@ fun fit-model(t, ls, xs, ys, fn) block:
   fn-plot = from-list.function-plot(fn)
     .color(C.red)
     .legend("Model")
+  fun f(r): fn(r[xs]) end
+  predictions = map(f, t.all-rows())
   intervals = from-list.interval-chart(
     t.column(xs),
     t.column(ys),
@@ -1644,7 +1646,7 @@ fun fit-model(t, ls, xs, ys, fn) block:
     .title(title-str)
     .x-axis(xs)
     .y-axis(ys)
-    .y-min(Math.min(t.column(ys)) - padding)
+    .y-min(Math.min(predictions) - padding)
   img = display-chart(chart)
   title = make-title([list:"", ys, "vs.", xs])
   above(title, add-margin(img))
