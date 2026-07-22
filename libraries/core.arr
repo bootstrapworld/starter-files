@@ -1646,7 +1646,7 @@ fun fit-model(t, ls, xs, ys, fn) block:
     .title(title-str)
     .x-axis(xs)
     .y-axis(ys)
-    .y-min(Math.min(predictions) - padding)
+    .y-min(num-min(Math.min(t.column(ys)), Math.min(predictions)) - padding)
   img = display-chart(chart)
   title = make-title([list:"", ys, "vs.", xs])
   above(title, add-margin(img))
