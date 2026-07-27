@@ -1,7 +1,7 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/ai", "../libraries/self-driving-car-library.arr")
 
-# This file includes three functions: 
-# In both training functions, the Number is the *animation speed*. Higher = Faster!
+# This file includes three functions. In both of the training functions...
+# Number is the *animation speed* in frames per second. Higher = Faster!
 
 #  start a "Bird's Eye View" driving simulator (looking down from above), to train your model
 #  train-bev :: Number -> Table
