@@ -2,7 +2,7 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 
 #Question 1
 Image = text("Azara", 150, "yellow")
-A1 = flip-vertical(Image)
+A1 = flip-horizontal(Image)
 A2 = rotate(90, Image)
 
 #Question2
