@@ -6,6 +6,7 @@ orange-dot     =  circle(30, "solid", "orange")
 purple-square  =  square(100, "solid", "purple")
 white-dot      =  circle(30, "solid", "white")
 yellow-rect    =  rectangle(120, 60, "solid", "yellow")
+red-rect       =  rectangle(120, 60, "solid", "red")
 blue-ellipse   =  ellipse(60, 30, "solid", "blue")
 bootstrap      =  text("Bootstrap", 50, "green")
 
