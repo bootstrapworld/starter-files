@@ -1037,7 +1037,7 @@ fun dot-plot(t, labels, vals) block:
   is-quant = is-number(t.column(vals).get(0))
   vs = if is-quant: t.column(vals) else: t.column(vals).map(to-string) end
   series = if is-quant:
-    from-list.labeled-num-dot-chart(ls, vs)
+    from-list.num-dot-chart(vs).labels(ls)
   else:
     from-list.dot-chart(vs).labels(ls)
   end
@@ -1100,7 +1100,8 @@ fun histogram(t, labels, vals, bin-width) block:
   if not(is-number(t.column(vals).get(0))):
     raise(Err.message-exception("Cannot make a histogram, because the '" + vals + "' column does not contain quantitative data"))
   else:
-    series = from-list.labeled-histogram(t.column(labels).map(to-repr), ensure-numbers(t.column(vals)))
+    series = from-list.histogram(ensure-numbers(t.column(vals)))
+      .labels(t.column(labels).map(to-repr))
       .bin-width(bin-width)
     chart = render-chart(series).width(600).height(400)
       .x-axis(vals)
@@ -1241,7 +1242,7 @@ fun line-graph(t, labels, xs, ys) block:
   ls = get-labels(t, labels)
   sorted = t.order-by(xs, true) # sort the table by x-axis
   series = from-list.line-plot(sorted.column(xs), sorted.column(ys))
-  scatter-series= from-list.labeled-scatter-plot(ls, sorted.column(xs), sorted.column(ys))
+  scatter-series= from-list.scatter-plot(sorted.column(xs), sorted.column(ys)).labels(ls)
   chart = render-charts([list: series, scatter-series]).width(600).height(400)
     .x-axis(xs)
     .y-axis(ys)
@@ -1259,7 +1260,7 @@ fun scatter-plot(t, labels, xs, ys) block:
   if not(is-number(t.column(xs).get(0)) and is-number(t.column(ys).get(0))):
     raise(Err.message-exception("Cannot make a scatter plot, because the 'xs' and 'ys' columns must both contain numeric data"))
   else:
-    series = from-list.labeled-scatter-plot(ls, ensure-numbers(t.column(xs)), ensure-numbers(t.column(ys)))
+    series = from-list.scatter-plot(ensure-numbers(t.column(xs)), ensure-numbers(t.column(ys))).labels(ls)
     padding = (Math.max(t.column(ys)) - Math.min(t.column(ys))) / 100
     chart = render-chart(series).width(600).height(400)
       .x-axis(xs)
@@ -1367,7 +1368,7 @@ fun lr-plot(t, ls, xs, ys) block:
   if not(is-number(t.column(xs).get(0)) and is-number(t.column(ys).get(0))):
     raise(Err.message-exception("Cannot make an lr-plot, because the 'xs' and 'ys' columns must both contain numeric data"))
   else:
-    scatter = from-list.labeled-scatter-plot(labels, ensure-numbers(t.column(xs)), ensure-numbers(t.column(ys)))
+    scatter = from-list.scatter-plot(ensure-numbers(t.column(xs)), ensure-numbers(t.column(ys))).labels(labels)
       .legend("Data")
     padding = (Math.max(t.column(ys)) - Math.min(t.column(ys))) / 100
     fn = Stats.linear-regression(t.column(xs), t.column(ys))
@@ -1619,10 +1620,10 @@ fun fit-model(t, ls, xs, ys, fn) block:
   #r-str       = if (R-sqr-value > 0): easy-num-repr(num-sqrt(R-sqr-value)) else: "N/A" end
   r-sqr-str   = easy-num-repr(R-sqr-value, 10)
 
-  scatter = from-list.labeled-scatter-plot(
-    labels,
+  scatter = from-list.scatter-plot(
     ensure-numbers(t.column(xs)),
     ensure-numbers(t.column(ys)))
+    .labels(labels)
     .legend("Data")
     .point-size(5)
   padding = (Math.max(t.column(ys)) - Math.min(t.column(ys))) / 100
