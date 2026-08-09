@@ -1062,11 +1062,11 @@ fun image-dot-plot(t, vals, f :: (Row -> Image)) block:
   images = t.all-rows().map(f)
   max-height = images.map(image-height).foldl(num-max, 0)
   series = if is-quant:
-    from-list.image-num-dot-chart(images, vs)
+    from-list.num-dot-chart(vs)
   else:
-    from-list.image-dot-chart(images, vs)
+    from-list.dot-chart(vs)
   end
-  chart = render-chart(series).width(600).height(400)
+  chart = render-chart(series.image-labels(images)).width(600).height(400)
     .x-axis(vals).y-axis("frequency")
   img = display-chart(chart)
   title = make-title([list:"Dot Plot of", vals])
@@ -1314,7 +1314,7 @@ fun image-scatter-plot(t, xs, ys, f) block:
     # compute padding using default window size (800pxx600px)
     paddingX = (maxX - minX) * (maxImgW / 800)
     paddingY = (maxY - minY) * (maxImgH / 600)
-    series = from-list.image-scatter-plot(images, x-vals, y-vals)
+    series = from-list.scatter-plot(x-vals, y-vals).image-labels(images)
     chart = render-chart(series).width(600).height(400)
       .x-axis(xs)
       .y-axis(ys)
@@ -1421,10 +1421,10 @@ fun image-lr-plot(t, xs, ys, f) block:
     raise(Err.message-exception("Cannot make an image-lr-plot, because the 'xs' and 'ys' columns must both contain numeric data"))
   else:
     images = t.all-rows().map(f)
-    scatter = from-list.image-scatter-plot(
-      images,
+    scatter = from-list.scatter-plot(
       ensure-numbers(t.column(xs)),
       ensure-numbers(t.column(ys)))
+      .image-labels(images)
       .legend("Data")
     padding = (Math.max(t.column(ys)) - Math.min(t.column(ys))) / 100
     fn = Stats.linear-regression(t.column(xs), t.column(ys))
