@@ -49,4 +49,4 @@ fun hybrid-modern(x):   ... end
 
 # HYBRID MODEL for the full co2-table - think through what functions you'll need to define so that you can compose a hybrid model that fits all of the data well.
 
-fun hybrid-all(x): (4.13 * cos(6.28 * (x - 2023.35))) + ((1.8345 * x) - 3296.8) end 
+fun hybrid-all(x): ... end 
