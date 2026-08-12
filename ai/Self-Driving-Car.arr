@@ -1,22 +1,24 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/ai", "../libraries/self-driving-car-library.arr")
 
-# This file includes three functions. In both of the training functions...
-# Number is the *animation speed* in frames per second. Higher = Faster!
+# This file includes 3 functions and a predefined table.
 
-#  start a "Bird's Eye View" driving simulator (looking down from above), to train your model
-#  train-bev :: Number -> Table
+# train-bev :: Number -> Table
+# starts a "Bird's Eye View" driving simulator (looking down from above)
 
-#  start a "Point of View" driving simulator (looking through the windshield), to train your model
-#  train-pov :: Number -> Table
+# train-pov :: Number -> Table
+# starts a "Point of View" driving simulator (looking through the windshield)
 
-#  use a model to drive the car
-#  drive :: Driving-Function -> Table
+# drive :: Driving-Function -> Table
+# uses a model to drive the car
 
-# training is a predefined table of high-quality training data
+# training - a predefined table of high-quality training data 
 
+
+# Note: In the training functions, Number is the *animation speed* in frames per second. Higher = Faster!
 
 #######################################################################
-# Model
+
+# Define your Model
 fun c-predictor(curve): (...  * curve ) + ... end
 
 # Trained Models from curve, skew, offset, speed and steering-angle
