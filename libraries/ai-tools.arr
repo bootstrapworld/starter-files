@@ -1406,526 +1406,529 @@ fun generate-from(model :: Table, input):
     .get-value()
 end
 
+#|
 
-# ####################################################################
-# #
-# #  Principal Component Analysis over a Pyret table, written on top
-# #  of the standard `matrices` library.
-# #
-# #  Public entry point:
-# #      pca(t :: Table, cols :: List<String>) -> PCAResult
-# #
-# #  The result is a `pca-result` value with two interesting methods:
-# #
-# #    .fn()       -> a function (List<Number> -> List<Number>) that
-# #                   projects a row (in `cols` order) onto the
-# #                   principal components.
-# #
-# #    ._output()  -> prints the equivalent Pyret source code for a
-# #                   projection function over Rows, suitable for
-# #                   building a new table of pc1, pc2, ... columns.
-# ####################################################################
-# 
-# # ------------------------------------------------------------------
-# #  Column validation
-# # ------------------------------------------------------------------
-# fun check-columns(t :: Table, cols :: List<String>) -> Nothing block:
-#   when cols.length() == 0:
-#     raise("pca: must request at least one column")
-#   end
-#   table-cols = t.column-names()
-#   for each(c from cols) block:
-#     when not(table-cols.member(c)):
-#       raise("pca: column not found in table: " + c)
-#     end
-#     col-data = t.get-column(c)
-#     when not(col-data.all(is-number)):
-#       raise("pca: column is not numeric: " + c)
-#     end
-#   end
-# end
-# 
-# # ------------------------------------------------------------------
-# #  Eigendecomposition of a symmetric matrix via the (unshifted)
-# #  QR algorithm.  Iterates  A_{k+1} = R_k Q_k  where  Q_k R_k = A_k
-# #  and accumulates  Q_total = Q_0 Q_1 ... Q_{n-1}.  For symmetric
-# #  positive-semidefinite matrices (like a covariance matrix) this
-# #  converges to a diagonal of eigenvalues, with the eigenvectors
-# #  showing up as the columns of Q_total.
-# # ------------------------------------------------------------------
-# fun symmetric-eig(a :: Matrix, iters :: Number)
-#   -> { evals :: List<Number>, evecs :: Matrix }:
-#   start = { cur: a, q-total: identity-matrix(a.rows) }
-#   final = for fold(state from start, _ from range(0, iters)):
-#     qr = state.cur.qr-decomposition()
-#     { cur: qr.R * qr.Q, q-total: state.q-total * qr.Q }
-#   end
-#   evals = for map(i from range(0, a.rows)):
-#     final.cur.get(i, i)
-#   end
-#   { evals: evals, evecs: final.q-total }
-# end
-# 
-# # Pair eigenvalues with their eigenvectors (pulled out of evecs as
-# # columns) and sort them in descending order of eigenvalue.
-# # Returns a matrix whose ROWS are the sorted eigenvectors -- exactly
-# # the layout that the projection multiply  comp-matrix * centered_x
-# # wants, and the same layout `_output` walks one row at a time.
-# fun sort-by-eigenvalue(evals :: List<Number>, evecs :: Matrix)
-#   -> { evals :: List<Number>, vecs :: Matrix }:
-#   pairs = for map_n(i from 0, ev from evals):
-#     { ev: ev, vec: evecs.col(i).to-list() }
-#   end
-#   sorted = pairs.sort-by(
-#     lam(p1, p2): p1.ev > p2.ev end,
-#     lam(p1, p2): roughly-equal(p1.ev, p2.ev) end)
-#   { evals: sorted.map(lam(p): p.ev end),
-#     vecs:  lists-to-matrix(sorted.map(lam(p): p.vec end)) }
-# end
-# 
-# # ------------------------------------------------------------------
-# #  Helper for printing roughnums in the source-code output
-# # ------------------------------------------------------------------
-# fun num-string(n :: Number) -> String:
-#   num-to-string(num-to-roughnum(n))
-# end
-# 
-# # ------------------------------------------------------------------
-# #  The result data type
-# # ------------------------------------------------------------------
-# data PCAResult:
-#   | pca-result(
-#       cols        :: List<String>,
-#       means       :: List<Number>,
-#       eigenvalues :: List<Number>,
-#       components  :: Matrix) with:
-# 
-#     # Pretty-prints as the Pyret source code for the projection
-#     # function.  Useful for copy/paste into a student's program.
-#     method _output(self) block:
-#       components = self.components.to-lists()
-#       param-list = self.cols
-#         .map(lam(c): c + " :: Number" end)
-#         .join-str(", ")
-#       centered-bindings = for map2(c from self.cols, m from self.means):
-#         "  centered-" + c + " = r[\"" + c + "\"] - " + num-string(m)
-#       end
-#       pc-fields = for map_n(i from 1, comp from components):
-#         terms = for map2(coef from comp, c from self.cols):
-#           "(" + num-string(coef) + " * centered-" + c + ")"
-#         end
-#         "    {\"pc" + num-to-string(i) + "\"; " + terms.join-str(" + ") + "}"
-#       end
-#       source =
-#         [list:
-#           "fun project(r :: Row) -> Object:",
-#           centered-bindings.join-str("\n"),
-#           "T.raw-row.make(raw-array-from-list([list: ",
-#           pc-fields.join-str(",\n"),
-#           "]))",
-#           "end"
-#         ]
-#       print(source.join-str("\n"))
-#       vs-value(circle(1, "solid", "transparent"))
-#     end,
-# 
-#     # Hands back the actual projection function.
-#     # Input:  a row of numbers in the same order as `cols`.
-#     # Output: that row's coordinates on each principal component.
-#     method project-row(self, r :: Row) -> Row block:
-#       # Pull the requested columns out of the row, in `cols` order.
-#       centered = list-to-col-matrix(
-#         for map2(c from self.cols, m from self.means):
-#           r[c] - m
-#         end)
-#       pc-values = (self.components * centered).to-list()
-#       pc-pairs  = for map_n(i from 1, v from pc-values):
-#         {"pc" + num-to-string(i); v}
-#       end
-#       T.raw-row.make(raw-array-from-list(pc-pairs))
-#     end,
-# 
-#     method project-table(self, t :: Table) -> Table:
-#       T.table-from-rows
-#         .make(raw-array-from-list(t.all-rows().map(self.project-row)))
-#     end
-# end
-# 
-# # ------------------------------------------------------------------
-# #  Public entry point
-# # ------------------------------------------------------------------
-# fun pca(t :: Table, cols :: List<String>) -> PCAResult block:
-#   check-columns(t, cols)
-# 
-#   # Pull the requested columns and compute the per-column means.
-#   raw-cols = cols.map(lam(c): t.get-column(c) end)
-#   n        = raw-cols.first.length()
-#   when n < 2:
-#     raise("pca: need at least 2 rows to compute a covariance")
-#   end
-#   means    = raw-cols.map(
-#     lam(col): col.foldl(lam(a, b): a + b end, 0) / col.length() end)
-# 
-#   # Build the centered data matrix X (n rows by p columns), with each
-#   # variable laid out as a column via vectors-to-matrix.
-#   centered-vecs = for map2(col from raw-cols, m from means):
-#     list-to-vector(col.map(lam(x): x - m end))
-#   end
-#   x = vectors-to-matrix(centered-vecs)        # n x p
-# 
-#   # Sample covariance: C = X^T X / (n - 1)   (p x p, symmetric PSD)
-#   cov = (x.transpose() * x).scale(1 / (n - 1))
-# 
-#   # Eigendecomposition, then sort components by eigenvalue (desc).
-#   eig    = symmetric-eig(cov, 200)
-#   sorted = sort-by-eigenvalue(eig.evals, eig.evecs)
-# 
-#   pca-result(cols, means, sorted.evals, sorted.vecs)
-# end
-# 
-# #|
-#   Example use:
-#     my-table = table: x :: Number, y :: Number, z :: Number
-#       row: 2.5, 2.4, 0.5
-#       row: 0.5, 0.7, 1.1
-#       row: 2.2, 2.9, 0.3
-#       row: 1.9, 2.2, 0.8
-#       row: 3.1, 3.0, 0.1
-#       row: 2.3, 2.7, 0.6
-#     end
-#     result = pca(my-table, [list: "x", "y", "z"])
-#     result                    # _output prints the projection source
-#     project = result.fn()     # the live projection function
-#     project([list: 2.5, 2.4, 0.5])
-# |#
-# 
-# 
-# ####################################################################
-# #
-# #  Playing around with neural nets
-# #
-# ####################################################################
-# 
-# 
-# #  Externally, a *layer* is a table of neurons
-# #  Internally, we use a record-list to make list operations easier
-# type Neuron = {
-#   weights :: Table,
-#   bias :: Number,
-#   activation :: String     # "sigmoid" or "step"
-# }
-# 
-# type Layer   = List<Neuron>
-# type Network = List<Layer>
-# 
-# # Logistic activation.  Squashes z into the open interval (0, 1).
-# fun sigmoid(z :: Number) -> Number:
-#   1 / (1 + num-exp(0 - z))
-# end
-# 
-# # Step activation.  1 if z is non-negative, else 0.
-# fun step(z :: Number) -> Number:
-#   if z >= 0: 1 else: 0 end
-# end
-# 
-# 
-# # Apply the appropriate activation to z.
-# fun apply-activation(name :: String, z :: Number) -> Number:
-#   ask:
-#     | name == "sigmoid" then: sigmoid(z)
-#     | name == "step"    then: step(z)
-#     | otherwise: raise(Err.message-exception("Unknown activation: " + name))
-#   end
-# end
-# 
-# 
-# # The sum of element-wise products of `inputs` and `weights`
-# fun weighted-sum(inputs :: List<Number>, weights :: List<Number>) -> Number:
-#   products = L.map2(lam(x, w): x * w end, inputs, weights)
-#   # foldl's lambda receives (accumulator, element) — accumulator first.
-#   L.foldl(lam(total, p): total + p end, 0, products)
-# end
-# 
-# 
-# 
-# fun make-neuron(
-#     weights :: Table, # rows are (input-name, weight) pairs
-#     bias :: Number,
-#     activation :: String
-#     ) -> Neuron:
-#   { weights: weights, bias: bias, activation: activation }
-# end
-# 
-# # Run one neuron on one list of inputs
-# fun neuron-output(n :: Neuron, inputs :: List<Number>) -> Number:
-#   weights = n.weights.column("weight")       # Get weights out of the neuron
-#   z = weighted-sum(inputs, weights) + n.bias # Take the weighted sum and add the bias.
-#   apply-activation(n.activation, z)          # Apply the activation
-# end
-# 
-# 
-# # ----------------------------------------------------------------
-# #  Unit 3  —  one neuron learns one example
-# #
-# #  The perceptron rule (no calculus needed):
-# #       w_i  :=  w_i + lr * (target - output) * x_i
-# #       bias :=  bias + lr * (target - output)
-# #  Works cleanly for step-activated neurons and motivates the more
-# #  general "wiggle each weight and see how loss changes" approach
-# #  that Unit 6 will introduce.
-# # ----------------------------------------------------------------
-# 
-# # Return a fresh weights table with the same input-names but the weight column replaced.
-# fun update-weights-column(
-#     weight-table :: Table,
-#     new-weights :: List<Number>
-#     ) -> Table:
-#   weight-table
-#     .drop("weight")
-#     .add-column("weight", new-weights)
-# end
-# 
-# # Nudge a neuron's weights and bias toward producing `target` on these `inputs` 
-# fun perceptron-update(
-#     n :: Neuron,
-#     inputs :: List<Number>,
-#     target :: Number,
-#     learning-rate :: Number
-#     ) -> Neuron:
-#   output = neuron-output(n, inputs)
-#   error  = target - output
-# 
-#   old-weights = n.weights.column("weight")
-#   new-weights = L.map2(
-#     lam(w, x): w + (learning-rate * error * x) end,
-#     old-weights, inputs)
-# 
-#   {
-#     weights:    update-weights-column(n.weights, new-weights),
-#     bias:       n.bias + (learning-rate * error),
-#     activation: n.activation
-#   }
-# end
-# 
-# # Run every neuron in the layer on the same inputs.  Returns one
-# # output per neuron, in the layer's neuron order.  Those outputs
-# # become the inputs to the next layer.
-# fun layer-output(layer :: Layer, inputs :: List<Number>) -> List<Number>:
-#   L.map(lam(n): neuron-output(n, inputs) end, layer)
-# end
-# 
-# # forward-pass - compose the layers via fold and feed them inputs. 
-# # Should we call it 'forward' instead?
-# fun run(net :: Network, inputs :: List<Number>) -> List<Number>:
-#   L.foldl(
-#     lam(current, layer): layer-output(layer, current) end,
-#     inputs,
-#     net)
-# end
-# 
-# 
-# # The squared difference between two numbers.  Always non-negative
-# fun squared-error(predicted :: Number, actual :: Number) -> Number:
-#   (predicted - actual) * (predicted - actual)
-# end
-# 
-# # Mean squared error of `net` on every row of `data`.
-# # consumes the feature-names (input cols, in order) and 
-# # target-name - (output col)
-# # Assumes the network has a single output neuron, so we take the `.first` of its output list
-# fun dataset-loss(
-#     net :: Network,
-#     data_ :: Table,
-#     feature-names :: List<String>,
-#     target-name :: String
-#     ) -> Number:
-#   feature-cols = L.map(lam(name): data_.column(name) end, feature-names)
-#   targets      = data_.column(target-name)
-# 
-#   # For each row index i: build that row's input list, run the net,
-#   # square the error.
-#   per-row-losses = L.map_n(
-#     lam(i, target):
-#       inputs = L.map(lam(col): L.get(col, i) end, feature-cols)
-#       prediction = run(net, inputs).first
-#       squared-error(prediction, target)
-#     end,
-#     0, targets)
-# 
-#   total = L.foldl(lam(acc, x): acc + x end, 0, per-row-losses)
-#   total / L.length(per-row-losses)
-# end
-# 
-# # make a net where a specific weight has been shifted by delta
-# fun perturb-weight(
-#     net :: Network,
-#     layer-idx :: Number,
-#     neuron-idx :: Number,
-#     weight-idx :: Number,
-#     delta :: Number
-#     ) -> Network:
-#   doc: "Return a copy of `net` with one weight (at the given coords) shifted by `delta`."
-#   L.map_n(lam(li, layer):
-#       if li == layer-idx:
-#         L.map_n(lam(ni, neuron):
-#             if ni == neuron-idx:
-#               old-weights = neuron.weights.column("weight")
-#               new-weights = L.map_n(
-#                 lam(wi, w): if wi == weight-idx: w + delta else: w end end,
-#                 0, old-weights)
-#               {
-#                 weights:    update-weights-column(neuron.weights, new-weights),
-#                 bias:       neuron.bias,
-#                 activation: neuron.activation
-#               }
-#             else: neuron
-#             end
-#           end, 0, layer)
-#       else: layer
-#       end
-#     end, 0, net)
-# end
-# 
-# # make a net where a specific bias has been shifted by delta
-# fun perturb-bias(
-#     net :: Network,
-#     layer-idx :: Number,
-#     neuron-idx :: Number,
-#     delta :: Number
-#     ) -> Network:
-#   doc: "Return a copy of `net` with one neuron's bias shifted by `delta`."
-#   L.map_n(lam(li, layer):
-#       if li == layer-idx:
-#         L.map_n(lam(ni, neuron):
-#             if ni == neuron-idx:
-#               {
-#                 weights:    neuron.weights,
-#                 bias:       neuron.bias + delta,
-#                 activation: neuron.activation
-#               }
-#             else: neuron
-#             end
-#           end, 0, layer)
-#       else: layer
-#       end
-#     end, 0, net)
-# end
-# 
-# 
-# #  For every weight in the network: wiggle it up by ε, wiggle it
-# #  down by ε, look at how much the total loss changed, divide by
-# #  2ε.  That number is the estimated ∂loss/∂weight.  Same for
-# #  every bias.
-# #
-# #  Result shape: a "shadow Network" identical in shape to `net`,
-# #  but where each weight is its gradient and each bias is its
-# #  gradient.  `apply-gradient` will walk both in lockstep.
-# # ----------------------------------------------------------------
-# 
-# # Estimate ∂loss/∂param for every weight and bias by central
-# #       differences:
-# #                       loss(p + ε)  −  loss(p − ε)
-# #            grad  ≈  ──────────────────────────────
-# #                                 2ε
-# #       Returns a Network of the same shape as `net`.
-# fun numerical-gradient(
-#     net :: Network,
-#     data_ :: Table,
-#     feature-names :: List<String>,
-#     target-name :: String,
-#     epsilon :: Number
-#     ) -> Network:
-#   fun loss-at(perturbed :: Network) -> Number:
-#     dataset-loss(perturbed, data_, feature-names, target-name)
-#   end
-# 
-#   L.map_n(lam(li, layer):
-#       L.map_n(lam(ni, neuron):
-#           old-weights = neuron.weights.column("weight")
-#           # One gradient per weight.
-#           weight-grads = L.map_n(
-#             lam(wi, _):
-#               (loss-at(perturb-weight(net, li, ni, wi, epsilon))
-#                   - loss-at(perturb-weight(net, li, ni, wi, 0 - epsilon)))
-#                 / (2 * epsilon)
-#             end,
-#             0, old-weights)
-#           # One gradient for the bias.
-#           bias-grad =
-#             (loss-at(perturb-bias(net, li, ni, epsilon))
-#                 - loss-at(perturb-bias(net, li, ni, 0 - epsilon)))
-#             / (2 * epsilon)
-#           {
-#             weights:    update-weights-column(neuron.weights, weight-grads),
-#             bias:       bias-grad,
-#             activation: neuron.activation
-#           }
-#         end, 0, layer)
-#     end, 0, net)
-# end
-# 
-# 
-# # Update every weight and bias by stepping AGAINST the gradient,
-# # returning (old − (learning-rate · grad)) 
-# fun apply-gradient(
-#     net :: Network,
-#     grad :: Network,
-#     learning-rate :: Number
-#     ) -> Network:
-#   L.map2(lam(layer, grad-layer):
-#       L.map2(lam(neuron, grad-neuron):
-#           old-weights  = neuron.weights.column("weight")
-#           grad-weights = grad-neuron.weights.column("weight")
-#           new-weights  = L.map2(
-#             lam(w, gw): w - (learning-rate * gw) end,
-#             old-weights, grad-weights)
-#           {
-#             weights:    update-weights-column(neuron.weights, new-weights),
-#             bias:       neuron.bias - (learning-rate * grad-neuron.bias),
-#             activation: neuron.activation
-#           }
-#         end, layer, grad-layer)
-#     end, net, grad)
-# end
-# 
-# ############################################################
-# #  The training loop:
-# #
-# #  Repeat for `epochs` rounds:
-# #     1. estimate the gradient on the whole dataset
-# #     2. step every weight & bias against it
-# #     3. record this epoch's loss
-# #  Return both the trained network and a loss-history table
-# #  (columns: epoch, loss) that students can plot directly
-# 
-# # train a given network on given data_ for given epochs
-# # return {trained-network, loss-history}, where the history
-# # is a table with columns for epoch and loss
-# fun train(
-#     net :: Network,
-#     data_ :: Table,
-#     feature-names :: List<String>,
-#     target-name :: String,
-#     learning-rate :: Number,
-#     epochs :: Number
-#     ) -> { trained :: Network, loss-history :: Table }:
-# 
-#   EPSILON = 0.001    # finite-difference step size
-# 
-#   fun loop(current, epoch, history):
-#     if epoch == epochs:
-#       { trained: current, loss-history: history }
-#     else:
-#       grad     = numerical-gradient(current, data_, feature-names, target-name, EPSILON)
-#       stepped  = apply-gradient(current, grad, learning-rate)
-#       new-loss = dataset-loss(stepped, data_, feature-names, target-name)
-#       new-row = [T.raw-row: {"epoch"; epoch + 1}, {"loss"; new-loss}]
-#       loop(stepped, epoch + 1, history.add-row(new-row))
-#     end
-#   end
-#   initial-loss = dataset-loss(net, data_, feature-names, target-name)
-#   initial-history = table: epoch :: Number, loss :: Number
-#     row: 0, initial-loss
-#   end
-#   loop(net, 0, initial-history)
-# end
+####################################################################
+#
+#  Principal Component Analysis over a Pyret table, written on top
+#  of the standard `matrices` library.
+#
+#  Public entry point:
+#      pca(t :: Table, cols :: List<String>) -> PCAResult
+#
+#  The result is a `pca-result` value with two interesting methods:
+#
+#    .fn()       -> a function (List<Number> -> List<Number>) that
+#                   projects a row (in `cols` order) onto the
+#                   principal components.
+#
+#    ._output()  -> prints the equivalent Pyret source code for a
+#                   projection function over Rows, suitable for
+#                   building a new table of pc1, pc2, ... columns.
+####################################################################
+
+# ------------------------------------------------------------------
+#  Column validation
+# ------------------------------------------------------------------
+fun check-columns(t :: Table, cols :: List<String>) -> Nothing block:
+  when cols.length() == 0:
+    raise("pca: must request at least one column")
+  end
+  table-cols = t.column-names()
+  for each(c from cols) block:
+    when not(table-cols.member(c)):
+      raise("pca: column not found in table: " + c)
+    end
+    col-data = t.get-column(c)
+    when not(col-data.all(is-number)):
+      raise("pca: column is not numeric: " + c)
+    end
+  end
+end
+
+# ------------------------------------------------------------------
+#  Eigendecomposition of a symmetric matrix via the (unshifted)
+#  QR algorithm.  Iterates  A_{k+1} = R_k Q_k  where  Q_k R_k = A_k
+#  and accumulates  Q_total = Q_0 Q_1 ... Q_{n-1}.  For symmetric
+#  positive-semidefinite matrices (like a covariance matrix) this
+#  converges to a diagonal of eigenvalues, with the eigenvectors
+#  showing up as the columns of Q_total.
+# ------------------------------------------------------------------
+fun symmetric-eig(a :: Matrix, iters :: Number)
+  -> { evals :: List<Number>, evecs :: Matrix }:
+  start = { cur: a, q-total: identity-matrix(a.rows) }
+  final = for fold(state from start, _ from range(0, iters)):
+    qr = state.cur.qr-decomposition()
+    { cur: qr.R * qr.Q, q-total: state.q-total * qr.Q }
+  end
+  evals = for map(i from range(0, a.rows)):
+    final.cur.get(i, i)
+  end
+  { evals: evals, evecs: final.q-total }
+end
+
+# Pair eigenvalues with their eigenvectors (pulled out of evecs as
+# columns) and sort them in descending order of eigenvalue.
+# Returns a matrix whose ROWS are the sorted eigenvectors -- exactly
+# the layout that the projection multiply  comp-matrix * centered_x
+# wants, and the same layout `_output` walks one row at a time.
+fun sort-by-eigenvalue(evals :: List<Number>, evecs :: Matrix)
+  -> { evals :: List<Number>, vecs :: Matrix }:
+  pairs = for map_n(i from 0, ev from evals):
+    { ev: ev, vec: evecs.col(i).to-list() }
+  end
+  sorted = pairs.sort-by(
+    lam(p1, p2): p1.ev > p2.ev end,
+    lam(p1, p2): roughly-equal(p1.ev, p2.ev) end)
+  { evals: sorted.map(lam(p): p.ev end),
+    vecs:  lists-to-matrix(sorted.map(lam(p): p.vec end)) }
+end
+
+# ------------------------------------------------------------------
+#  Helper for printing roughnums in the source-code output
+# ------------------------------------------------------------------
+fun num-string(n :: Number) -> String:
+  num-to-string(num-to-roughnum(n))
+end
+
+# ------------------------------------------------------------------
+#  The result data type
+# ------------------------------------------------------------------
+data PCAResult:
+  | pca-result(
+      cols        :: List<String>,
+      means       :: List<Number>,
+      eigenvalues :: List<Number>,
+      components  :: Matrix) with:
+
+    # Pretty-prints as the Pyret source code for the projection
+    # function.  Useful for copy/paste into a student's program.
+    method _output(self) block:
+      components = self.components.to-lists()
+      param-list = self.cols
+        .map(lam(c): c + " :: Number" end)
+        .join-str(", ")
+      centered-bindings = for map2(c from self.cols, m from self.means):
+        "  centered-" + c + " = r[\"" + c + "\"] - " + num-string(m)
+      end
+      pc-fields = for map_n(i from 1, comp from components):
+        terms = for map2(coef from comp, c from self.cols):
+          "(" + num-string(coef) + " * centered-" + c + ")"
+        end
+        "    {\"pc" + num-to-string(i) + "\"; " + terms.join-str(" + ") + "}"
+      end
+      source =
+        [list:
+          "fun project(r :: Row) -> Object:",
+          centered-bindings.join-str("\n"),
+          "T.raw-row.make(raw-array-from-list([list: ",
+          pc-fields.join-str(",\n"),
+          "]))",
+          "end"
+        ]
+      print(source.join-str("\n"))
+      vs-value(circle(1, "solid", "transparent"))
+    end,
+
+    # Hands back the actual projection function.
+    # Input:  a row of numbers in the same order as `cols`.
+    # Output: that row's coordinates on each principal component.
+    method project-row(self, r :: Row) -> Row block:
+      # Pull the requested columns out of the row, in `cols` order.
+      centered = list-to-col-matrix(
+        for map2(c from self.cols, m from self.means):
+          r[c] - m
+        end)
+      pc-values = (self.components * centered).to-list()
+      pc-pairs  = for map_n(i from 1, v from pc-values):
+        {"pc" + num-to-string(i); v}
+      end
+      T.raw-row.make(raw-array-from-list(pc-pairs))
+    end,
+
+    method project-table(self, t :: Table) -> Table:
+      T.table-from-rows
+        .make(raw-array-from-list(t.all-rows().map(self.project-row)))
+    end
+end
+
+# ------------------------------------------------------------------
+#  Public entry point
+# ------------------------------------------------------------------
+fun pca(t :: Table, cols :: List<String>) -> PCAResult block:
+  check-columns(t, cols)
+
+  # Pull the requested columns and compute the per-column means.
+  raw-cols = cols.map(lam(c): t.get-column(c) end)
+  n        = raw-cols.first.length()
+  when n < 2:
+    raise("pca: need at least 2 rows to compute a covariance")
+  end
+  means    = raw-cols.map(
+    lam(col): col.foldl(lam(a, b): a + b end, 0) / col.length() end)
+
+  # Build the centered data matrix X (n rows by p columns), with each
+  # variable laid out as a column via vectors-to-matrix.
+  centered-vecs = for map2(col from raw-cols, m from means):
+    list-to-vector(col.map(lam(x): x - m end))
+  end
+  x = vectors-to-matrix(centered-vecs)        # n x p
+
+  # Sample covariance: C = X^T X / (n - 1)   (p x p, symmetric PSD)
+  cov = (x.transpose() * x).scale(1 / (n - 1))
+
+  # Eigendecomposition, then sort components by eigenvalue (desc).
+  eig    = symmetric-eig(cov, 200)
+  sorted = sort-by-eigenvalue(eig.evals, eig.evecs)
+
+  pca-result(cols, means, sorted.evals, sorted.vecs)
+end
+
+#|
+  Example use:
+    my-table = table: x :: Number, y :: Number, z :: Number
+      row: 2.5, 2.4, 0.5
+      row: 0.5, 0.7, 1.1
+      row: 2.2, 2.9, 0.3
+      row: 1.9, 2.2, 0.8
+      row: 3.1, 3.0, 0.1
+      row: 2.3, 2.7, 0.6
+    end
+    result = pca(my-table, [list: "x", "y", "z"])
+    result                    # _output prints the projection source
+    project = result.fn()     # the live projection function
+    project([list: 2.5, 2.4, 0.5])
+|#
+
+
+####################################################################
+#
+#  Playing around with neural nets
+#
+####################################################################
+
+
+#  Externally, a *layer* is a table of neurons
+#  Internally, we use a record-list to make list operations easier
+type Neuron = {
+  weights :: Table,
+  bias :: Number,
+  activation :: String     # "sigmoid" or "step"
+}
+
+type Layer   = List<Neuron>
+type Network = List<Layer>
+
+# Logistic activation.  Squashes z into the open interval (0, 1).
+fun sigmoid(z :: Number) -> Number:
+  1 / (1 + num-exp(0 - z))
+end
+
+# Step activation.  1 if z is non-negative, else 0.
+fun step(z :: Number) -> Number:
+  if z >= 0: 1 else: 0 end
+end
+
+
+# Apply the appropriate activation to z.
+fun apply-activation(name :: String, z :: Number) -> Number:
+  ask:
+    | name == "sigmoid" then: sigmoid(z)
+    | name == "step"    then: step(z)
+    | otherwise: raise(Err.message-exception("Unknown activation: " + name))
+  end
+end
+
+
+# The sum of element-wise products of `inputs` and `weights`
+fun weighted-sum(inputs :: List<Number>, weights :: List<Number>) -> Number:
+  products = L.map2(lam(x, w): x * w end, inputs, weights)
+  # foldl's lambda receives (accumulator, element) — accumulator first.
+  L.foldl(lam(total, p): total + p end, 0, products)
+end
+
+
+
+fun make-neuron(
+    weights :: Table, # rows are (input-name, weight) pairs
+    bias :: Number,
+    activation :: String
+    ) -> Neuron:
+  { weights: weights, bias: bias, activation: activation }
+end
+
+# Run one neuron on one list of inputs
+fun neuron-output(n :: Neuron, inputs :: List<Number>) -> Number:
+  weights = n.weights.column("weight")       # Get weights out of the neuron
+  z = weighted-sum(inputs, weights) + n.bias # Take the weighted sum and add the bias.
+  apply-activation(n.activation, z)          # Apply the activation
+end
+
+
+# ----------------------------------------------------------------
+#  Unit 3  —  one neuron learns one example
+#
+#  The perceptron rule (no calculus needed):
+#       w_i  :=  w_i + lr * (target - output) * x_i
+#       bias :=  bias + lr * (target - output)
+#  Works cleanly for step-activated neurons and motivates the more
+#  general "wiggle each weight and see how loss changes" approach
+#  that Unit 6 will introduce.
+# ----------------------------------------------------------------
+
+# Return a fresh weights table with the same input-names but the weight column replaced.
+fun update-weights-column(
+    weight-table :: Table,
+    new-weights :: List<Number>
+    ) -> Table:
+  weight-table
+    .drop("weight")
+    .add-column("weight", new-weights)
+end
+
+# Nudge a neuron's weights and bias toward producing `target` on these `inputs` 
+fun perceptron-update(
+    n :: Neuron,
+    inputs :: List<Number>,
+    target :: Number,
+    learning-rate :: Number
+    ) -> Neuron:
+  output = neuron-output(n, inputs)
+  error  = target - output
+
+  old-weights = n.weights.column("weight")
+  new-weights = L.map2(
+    lam(w, x): w + (learning-rate * error * x) end,
+    old-weights, inputs)
+
+  {
+    weights:    update-weights-column(n.weights, new-weights),
+    bias:       n.bias + (learning-rate * error),
+    activation: n.activation
+  }
+end
+
+# Run every neuron in the layer on the same inputs.  Returns one
+# output per neuron, in the layer's neuron order.  Those outputs
+# become the inputs to the next layer.
+fun layer-output(layer :: Layer, inputs :: List<Number>) -> List<Number>:
+  L.map(lam(n): neuron-output(n, inputs) end, layer)
+end
+
+# forward-pass - compose the layers via fold and feed them inputs. 
+# Should we call it 'forward' instead?
+fun run(net :: Network, inputs :: List<Number>) -> List<Number>:
+  L.foldl(
+    lam(current, layer): layer-output(layer, current) end,
+    inputs,
+    net)
+end
+
+
+# The squared difference between two numbers.  Always non-negative
+fun squared-error(predicted :: Number, actual :: Number) -> Number:
+  (predicted - actual) * (predicted - actual)
+end
+
+# Mean squared error of `net` on every row of `data`.
+# consumes the feature-names (input cols, in order) and 
+# target-name - (output col)
+# Assumes the network has a single output neuron, so we take the `.first` of its output list
+fun dataset-loss(
+    net :: Network,
+    data_ :: Table,
+    feature-names :: List<String>,
+    target-name :: String
+    ) -> Number:
+  feature-cols = L.map(lam(name): data_.column(name) end, feature-names)
+  targets      = data_.column(target-name)
+
+  # For each row index i: build that row's input list, run the net,
+  # square the error.
+  per-row-losses = L.map_n(
+    lam(i, target):
+      inputs = L.map(lam(col): L.get(col, i) end, feature-cols)
+      prediction = run(net, inputs).first
+      squared-error(prediction, target)
+    end,
+    0, targets)
+
+  total = L.foldl(lam(acc, x): acc + x end, 0, per-row-losses)
+  total / L.length(per-row-losses)
+end
+
+# make a net where a specific weight has been shifted by delta
+fun perturb-weight(
+    net :: Network,
+    layer-idx :: Number,
+    neuron-idx :: Number,
+    weight-idx :: Number,
+    delta :: Number
+    ) -> Network:
+  doc: "Return a copy of `net` with one weight (at the given coords) shifted by `delta`."
+  L.map_n(lam(li, layer):
+      if li == layer-idx:
+        L.map_n(lam(ni, neuron):
+            if ni == neuron-idx:
+              old-weights = neuron.weights.column("weight")
+              new-weights = L.map_n(
+                lam(wi, w): if wi == weight-idx: w + delta else: w end end,
+                0, old-weights)
+              {
+                weights:    update-weights-column(neuron.weights, new-weights),
+                bias:       neuron.bias,
+                activation: neuron.activation
+              }
+            else: neuron
+            end
+          end, 0, layer)
+      else: layer
+      end
+    end, 0, net)
+end
+
+# make a net where a specific bias has been shifted by delta
+fun perturb-bias(
+    net :: Network,
+    layer-idx :: Number,
+    neuron-idx :: Number,
+    delta :: Number
+    ) -> Network:
+  doc: "Return a copy of `net` with one neuron's bias shifted by `delta`."
+  L.map_n(lam(li, layer):
+      if li == layer-idx:
+        L.map_n(lam(ni, neuron):
+            if ni == neuron-idx:
+              {
+                weights:    neuron.weights,
+                bias:       neuron.bias + delta,
+                activation: neuron.activation
+              }
+            else: neuron
+            end
+          end, 0, layer)
+      else: layer
+      end
+    end, 0, net)
+end
+
+
+#  For every weight in the network: wiggle it up by ε, wiggle it
+#  down by ε, look at how much the total loss changed, divide by
+#  2ε.  That number is the estimated ∂loss/∂weight.  Same for
+#  every bias.
+#
+#  Result shape: a "shadow Network" identical in shape to `net`,
+#  but where each weight is its gradient and each bias is its
+#  gradient.  `apply-gradient` will walk both in lockstep.
+# ----------------------------------------------------------------
+
+# Estimate ∂loss/∂param for every weight and bias by central
+#       differences:
+#                       loss(p + ε)  −  loss(p − ε)
+#            grad  ≈  ──────────────────────────────
+#                                 2ε
+#       Returns a Network of the same shape as `net`.
+fun numerical-gradient(
+    net :: Network,
+    data_ :: Table,
+    feature-names :: List<String>,
+    target-name :: String,
+    epsilon :: Number
+    ) -> Network:
+  fun loss-at(perturbed :: Network) -> Number:
+    dataset-loss(perturbed, data_, feature-names, target-name)
+  end
+
+  L.map_n(lam(li, layer):
+      L.map_n(lam(ni, neuron):
+          old-weights = neuron.weights.column("weight")
+          # One gradient per weight.
+          weight-grads = L.map_n(
+            lam(wi, _):
+              (loss-at(perturb-weight(net, li, ni, wi, epsilon))
+                  - loss-at(perturb-weight(net, li, ni, wi, 0 - epsilon)))
+                / (2 * epsilon)
+            end,
+            0, old-weights)
+          # One gradient for the bias.
+          bias-grad =
+            (loss-at(perturb-bias(net, li, ni, epsilon))
+                - loss-at(perturb-bias(net, li, ni, 0 - epsilon)))
+            / (2 * epsilon)
+          {
+            weights:    update-weights-column(neuron.weights, weight-grads),
+            bias:       bias-grad,
+            activation: neuron.activation
+          }
+        end, 0, layer)
+    end, 0, net)
+end
+
+
+# Update every weight and bias by stepping AGAINST the gradient,
+# returning (old − (learning-rate · grad)) 
+fun apply-gradient(
+    net :: Network,
+    grad :: Network,
+    learning-rate :: Number
+    ) -> Network:
+  L.map2(lam(layer, grad-layer):
+      L.map2(lam(neuron, grad-neuron):
+          old-weights  = neuron.weights.column("weight")
+          grad-weights = grad-neuron.weights.column("weight")
+          new-weights  = L.map2(
+            lam(w, gw): w - (learning-rate * gw) end,
+            old-weights, grad-weights)
+          {
+            weights:    update-weights-column(neuron.weights, new-weights),
+            bias:       neuron.bias - (learning-rate * grad-neuron.bias),
+            activation: neuron.activation
+          }
+        end, layer, grad-layer)
+    end, net, grad)
+end
+
+############################################################
+#  The training loop:
+#
+#  Repeat for `epochs` rounds:
+#     1. estimate the gradient on the whole dataset
+#     2. step every weight & bias against it
+#     3. record this epoch's loss
+#  Return both the trained network and a loss-history table
+#  (columns: epoch, loss) that students can plot directly
+
+# train a given network on given data_ for given epochs
+# return {trained-network, loss-history}, where the history
+# is a table with columns for epoch and loss
+fun train(
+    net :: Network,
+    data_ :: Table,
+    feature-names :: List<String>,
+    target-name :: String,
+    learning-rate :: Number,
+    epochs :: Number
+    ) -> { trained :: Network, loss-history :: Table }:
+
+  EPSILON = 0.001    # finite-difference step size
+
+  fun loop(current, epoch, history):
+    if epoch == epochs:
+      { trained: current, loss-history: history }
+    else:
+      grad     = numerical-gradient(current, data_, feature-names, target-name, EPSILON)
+      stepped  = apply-gradient(current, grad, learning-rate)
+      new-loss = dataset-loss(stepped, data_, feature-names, target-name)
+      new-row = [T.raw-row: {"epoch"; epoch + 1}, {"loss"; new-loss}]
+      loop(stepped, epoch + 1, history.add-row(new-row))
+    end
+  end
+  initial-loss = dataset-loss(net, data_, feature-names, target-name)
+  initial-history = table: epoch :: Number, loss :: Number
+    row: 0, initial-loss
+  end
+  loop(net, 0, initial-history)
+end
+|#
+

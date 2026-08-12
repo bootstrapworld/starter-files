@@ -1,18 +1,4 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/core", "../libraries/core.arr")
-import csv as csv
-
-height = table: player, inches
-  row: "RJ Barrett", 78
-  row: "Jusuf Nurkic", 84
-  row: "James Harden", 77
-  row: "Rodney Hood", 80
-  row: "Jae'Sean Tate", 76
-  row: "Nikola Jokic", 83
-  row: "E'Twaun Moore", 76
-  row: "Dario Saric", 82
-  row: "Tim Frazier", 73
-  row: "Brad Wanamaker", 75
-end
 
 examples "string-trim":
   string-trim("  hello  ")   is "hello"
@@ -28,10 +14,6 @@ examples "sort-strings-ci":
 end
 
 
-examples "variance":
-  pop-variance(height, "inches") is 12.24
-  sample-variance(height, "inches") is 13.6
-end
 
 _tri = triangle(20, "solid", "red")
 _cir = circle(10, "solid", "yellow")
@@ -158,70 +140,6 @@ examples:
 end
 
 
-#####################################################################
-## Chart testing
-
-animals-url = "https://docs.google.com/spreadsheets/d/1VeR2_bhpLvnRUZslmCAcSRKfZWs_5RNVujtZgEl6umA/export?format=csv"
-
-
-###################### Load the data ##########################
-animals-table =
-  load-table: name, species, sex, age, fixed, legs, pounds, weeks
-  source: csv.csv-table-url(animals-url, {
-    header-row: true,
-    infer-content: true
-  })
-end
-
-# animal-img :: (r :: Row) -> Image
-fun animal-color(r):
-  if      (r["species"] == "dog"):       "red"
-  else if (r["species"] == "cat"):       "blue"
-  else if (r["species"] == "rabbit"):    "green"
-  else if (r["species"] == "tarantula"): "yellow"
-  else if (r["species"] == "lizard"):    "pink"
-  else if (r["species"] == "snail"):     "black"
-  end
-end
-
-pie-chart(animals-table, "species")
-bar-chart(animals-table, "species")
-# we no longer support image-pie-chart
-color-pie-chart(animals-table, "species", animal-color)
-color-bar-chart(animals-table, "species", animal-color)
-image-bar-chart(animals-table, "species", lam(x): circle(10,"solid","red") end)
-color-dot-plot(animals-table, "pounds", animal-color)
-dot-plot(animals-table, "name", "pounds")
-scatter-plot(animals-table, "name", "weeks", "pounds")
-simple-scatter-plot(animals-table, "weeks", "pounds")
-color-scatter-plot(animals-table, "weeks", "pounds", animal-color)
-lr-plot(animals-table, "name", "weeks", "pounds")
-histogram(animals-table, "name", "pounds", 7)
-color-histogram(animals-table, "pounds", 7, animal-color)
-box-plot(animals-table, "weeks")
-image-scatter-plot(animals-table, "pounds", "weeks", lam(r): circle(r["age"],"solid","red") end)
-
-split-and-reduce(animals-table, "species", "pounds", sum)
-group-and-subgroup(animals-table, "species", "sex")
-group(animals-table, "sex")
-fit-model(animals-table, "name", "pounds", "weeks", lam(x): x + 1 end)
-stacked-bar-chart(animals-table, "species", "fixed")
-
-   
-   
-examples "making regression functions":
-  lr-fun(animals-table, "age", "name") raises "One or more of the columns (age or name) does not contain numeric data."
-  regression-model-fun(animals-table, [list: "age","pounds"], "name") raises "One or more of the columns (age, pounds or name) does not contain numeric data."
-  regression-model-fun(animals-table, [list: "age","species"], "weeks") raises "One or more of the columns (age, species or weeks) does not contain numeric data."
-end
-
-
-examples "S in Num->Num and Row->Num form":
-  S(animals-table, "age", "weeks", lam(x):  (0.78925 * x) + 2.309 end) is-roughly ~5.539741245494801
-  regression-model-S(animals-table, [list:"age"], "weeks", lam(r):  (0.78925 * r["age"]) + 2.309 end) is-roughly ~5.539741245494801
-end
-
-f = lr-fun(animals-table, "age", "weeks")
 ########################################################################
 ## Trig functions
 
