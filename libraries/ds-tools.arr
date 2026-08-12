@@ -16,7 +16,7 @@ import gdrive-sheets as G
 # brings in foundations.arr's unqualified names (make-color, display-chart,
 # easy-num-repr, maybe-get-value, etc.), which charting and table-stats
 # code below depends on heavily
-include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "foundations.arr")
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "foundations.arr") as F
 
 include charts
 include option
@@ -98,37 +98,37 @@ end
 # Optimally-distinct list of colors taken from
 # https://stackoverflow.com/a/12224359/12026982
 COLORS = [list:
-  make-color(51,102,204, 1),
-  make-color(220,57,18, 1),
-  make-color(255,153,0, 1),
-  make-color(16,150,24, 1),
-  make-color(153,0,153, 1),
-  make-color(0,153,198, 1),
-  make-color(221,68,119, 1),
-  make-color(102,170,0, 1),
-  make-color(184,46,46, 1),
-  make-color(49,99,149, 1),
-  make-color(153,68,153, 1),
-  make-color(34,170,153, 1),
-  make-color(170,170,17, 1),
-  make-color(102,51,204, 1),
-  make-color(230,115,0, 1),
-  make-color(139,7,7, 1),
-  make-color(101,16,103, 1),
-  make-color(50,146,98, 1),
-  make-color(85,116,166, 1),
-  make-color(59,62,172, 1),
-  make-color(183,115,34, 1),
-  make-color(22,214,32, 1),
-  make-color(185,19,131, 1),
-  make-color(244,53,158, 1),
-  make-color(156,89,53, 1),
-  make-color(169,196,19, 1),
-  make-color(42,119,141, 1),
-  make-color(102,141,28, 1),
-  make-color(190,164,19, 1),
-  make-color(12,89,34, 1),
-  make-color(116,52,17, 1)]
+  F.make-color(51,102,204, 1),
+  F.make-color(220,57,18, 1),
+  F.make-color(255,153,0, 1),
+  F.make-color(16,150,24, 1),
+  F.make-color(153,0,153, 1),
+  F.make-color(0,153,198, 1),
+  F.make-color(221,68,119, 1),
+  F.make-color(102,170,0, 1),
+  F.make-color(184,46,46, 1),
+  F.make-color(49,99,149, 1),
+  F.make-color(153,68,153, 1),
+  F.make-color(34,170,153, 1),
+  F.make-color(170,170,17, 1),
+  F.make-color(102,51,204, 1),
+  F.make-color(230,115,0, 1),
+  F.make-color(139,7,7, 1),
+  F.make-color(101,16,103, 1),
+  F.make-color(50,146,98, 1),
+  F.make-color(85,116,166, 1),
+  F.make-color(59,62,172, 1),
+  F.make-color(183,115,34, 1),
+  F.make-color(22,214,32, 1),
+  F.make-color(185,19,131, 1),
+  F.make-color(244,53,158, 1),
+  F.make-color(156,89,53, 1),
+  F.make-color(169,196,19, 1),
+  F.make-color(42,119,141, 1),
+  F.make-color(102,141,28, 1),
+  F.make-color(190,164,19, 1),
+  F.make-color(12,89,34, 1),
+  F.make-color(116,52,17, 1)]
 
 # maintain a mutable dict mapping string values to colors, so that any
 # categorical display will have the same colors for the same value across
@@ -271,6 +271,12 @@ fun stack-table(t1 :: Table, t2 :: Table): t1.stack(t2) end
 
 fun stack-tables(ts :: List<Table>): 
   L.fold({(base, t): base.stack(t)}, ts.first, ts.rest)
+end
+
+var debugging = false
+var display-chart = lam(c) block: 
+  when debugging: print(c.get-spec()) end
+  c.display() 
 end
 
 ## CENTER AND SPREAD #############################################
@@ -705,7 +711,7 @@ fun box-plot-raw(t, vs, low, high, horizontal, showOutliers) block:
   else:
     series = from-list.labeled-box-plot([list: vs], [list: l])
       .horizontal(horizontal).show-outliers(showOutliers)
-      .color(make-color(0,0,100,1))
+      .color(F.make-color(0,0,100,1))
     chart = render-chart(series).width(600).height(200)
       .title(get-5-num-summary(t, vs))
       .min(low)
@@ -887,11 +893,11 @@ end
 fun make-lr-title(fn, r-sqr-num, s-num) :
   r-num = (if  (fn(1) - fn(0)) < 0: -1 else: 1 end) * num-sqrt(r-sqr-num)
   alpha  = fn(2) - fn(1)
-  alpha-str = easy-num-repr(fn(2) - fn(1), 8)
-  beta-str =  easy-num-repr(fn(0), 8)
-  r-str = easy-num-repr(r-num, 6)
-  r-sqr-str = easy-num-repr(r-sqr-num, 6)
-  S-str     = easy-num-repr(s-num, 9)
+  alpha-str = F.easy-num-repr(fn(2) - fn(1), 8)
+  beta-str  =  F.easy-num-repr(fn(0), 8)
+  r-str     = F.easy-num-repr(r-num, 6)
+  r-sqr-str = F.easy-num-repr(r-sqr-num, 6)
+  S-str     = F.easy-num-repr(s-num, 9)
   "y=" + alpha-str + "x + " + beta-str + "  r: " + r-str + "  R²: " + r-sqr-str + " S: " + S-str
 end
 
@@ -1150,9 +1156,9 @@ fun fit-model(t, ls, xs, ys, fn) block:
   # wrap the xs in a list, and fn in a row-consuming fn
   s-num = regression-model-S(t, [list: xs], ys, {(r): fn(r[xs])})
   R-sqr-value = Stats.r-squared(t.column(xs), t.column(ys), fn)
-  S-str       = easy-num-repr(s-num, 10)
+  S-str       = F.easy-num-repr(s-num, 10)
   #r-str       = if (R-sqr-value > 0): easy-num-repr(num-sqrt(R-sqr-value)) else: "N/A" end
-  r-sqr-str   = easy-num-repr(R-sqr-value, 10)
+  r-sqr-str   = F.easy-num-repr(R-sqr-value, 10)
 
   scatter = from-list.scatter-plot(
     ensure-numbers(t.column(xs)),
@@ -1682,7 +1688,7 @@ end
 fun make-noisy-table(fn, min, max, noise-level) block:
   samples = L.range-by(min, max, Math.max([list: (max - min) / 500]))
   defined-points = samples.foldr(lam(sample, points): 
-      cases (Option) maybe-get-value(lam(): fn(sample) end):
+      cases (Option) F.maybe-get-value(lam(): fn(sample) end):
         | some(y) => link({sample;y}, points)
         | none => points
       end

@@ -27,8 +27,6 @@ include option
 # Split out of core.arr, which used to hold everything directly.
 ####################################################################
 
-var debugging = false
-
 
 data Posn:
   | posn(x :: Number, y :: Number)
@@ -45,10 +43,6 @@ end
 
 fun nth-root(n, r): expt(n, 1 / r) end
 
-var display-chart = lam(c) block: 
-  when debugging: print(c.get-spec()) end
-  c.display() 
-end
 
 fun string-trim(s :: String) -> String:
   doc: "Strips leading and trailing whitespace from a string"

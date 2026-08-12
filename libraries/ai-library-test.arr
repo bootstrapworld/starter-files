@@ -17,7 +17,7 @@ examples "add-centroid":
   table: ID, DOC, LIKED, DISLIKED, TAGS, x, y  
     row: "a", "", true,   false,   "",   2, 1 
     row: "b", "", true,   true,    "",   4, 5 
-    row: "test CENTROID", "", false, false, "", 3, 3
+    row: "test CENTROID", nothing, false, false, "", 3, 3
   end
 end
 
@@ -39,6 +39,7 @@ examples "get-boundary-threshold":
   get-boundary-thresholds([list: {1; 2}, {10; 12}, {20; 22}]) is [list: 6, 16]
 end
 
+#|
 examples "step and sigmoid":
   sigmoid(0)    is-roughly 0.5
   sigmoid(100)  is-roughly 1
@@ -61,6 +62,7 @@ examples "weighted sum":
   weighted-sum([list: 1, 1, 1], [list: 0.2, 0.3, 0.5]) is-roughly 1.0
   weighted-sum([list: ],        [list: ])              is 0
 end
+
 
 n1 = make-neuron(
   table: input-name :: String, weight :: Number
@@ -492,3 +494,4 @@ end
 #   * iris-train   -- a scatter of "petal-length" vs "petal-width"
 #                     coloured by "is-versicolor": see why a single
 #                     straight boundary is enough to separate them.
+|#

@@ -314,8 +314,6 @@ fun add-bag-cols(t, col :: String) -> Table block:
     .drop(col)
 end
 
-animals-url = "https://docs.google.com/spreadsheets/d/1VeR2_bhpLvnRUZslmCAcSRKfZWs_5RNVujtZgEl6umA/export?format=csv"
-
 ###################################################################################
 # Song-Specific Helpers
 

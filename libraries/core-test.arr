@@ -173,11 +173,6 @@ animals-table =
   })
 end
 
-display-chart := lam(c) block: 
-  when debugging: print(c.get-spec()) end
-  c.get-image() 
-end
-
 # animal-img :: (r :: Row) -> Image
 fun animal-color(r):
   if      (r["species"] == "dog"):       "red"

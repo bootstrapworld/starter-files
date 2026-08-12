@@ -8,7 +8,7 @@ import math as Math
 import sets as Sets
 
 # brings in foundations.arr's unqualified names (make-color, etc.)
-include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "foundations.arr")
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "foundations.arr") as F
 
 ####################################################################
 # algebra-tools.arr
@@ -28,7 +28,7 @@ fun draw-inequality(points, f, msg-img) block:
   STRIP-HEIGHT = 30
   tri = rotate(90, triangle(10, "solid", "black"))
   num-intervals = 10
-  c1 = make-color(100, 100, 255, 0.5)
+  c1 = F.make-color(100, 100, 255, 0.5)
   strip = rectangle(STRIP-WIDTH + 48, STRIP-HEIGHT, "outline", "transparent")
   inequalities-bg = overlay(rectangle(STRIP-WIDTH, 2, "solid", "black"), strip)
   axis = translate(flip-horizontal(tri),
