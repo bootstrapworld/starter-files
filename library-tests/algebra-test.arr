@@ -85,30 +85,28 @@ and-intersection(lt1, gt5, range-by(-21, 24 + 1, 6))
 
 
 #####################################################################
-## Image testing
-examples:
-  image-entropy(square(10, "solid", "black")) is 0
-  image-entropy(square(10, "solid", "white")) is 0
-  image-luminance(square(10, "solid", "black")) is 0
-  image-luminance(square(10, "solid", "white")) is 255
-  lighter(square(10, "solid", "black"), square(10, "solid", "white")) is square(10, "solid", "white")
-  darker(square(10, "solid", "black"), square(10, "solid", "white")) is square(10, "solid", "black")
-  image-symmetry-vertical(triangle(20, "solid", "red")) is 1
-  image-symmetry-horizontal(triangle(20, "solid", "red")) is-not-roughly 1
-  image-symmetry-vertical(circle(20, "solid", "red")) is 1
-  image-symmetry-horizontal(circle(20, "solid", "red")) is 1
+## Note: image-analysis and trig-function tests moved to
+## foundations-test.arr -- those functions are defined in
+## foundations.arr, not algebra-tools.arr, and belong there.
+
+examples "factorial":
+  factorial(0) is 1
+  factorial(1) is 1
+  factorial(5) is 120
 end
 
+examples "whats-missing":
+  whats-missing([list: 1, 2, 3], [list: 1, 2]) is [list: 3]
+  whats-missing([list: 1, 2], [list: 1, 2]) is "You got them all!"
+end
 
-########################################################################
-## Trig functions
+examples "render-list":
+  render-list([list: [list: "a", "b"], [list: "c", "d"]]) satisfies is-image
+  render-list([list: [list: 1, 2], [list: 3, 4]]) satisfies is-image
+end
 
-
-examples:
-  sin(PI) is-roughly 0
-  sin(2 * PI) is-roughly 0
-  sin(PI / 2) is-roughly 1
-  sin((3 * PI) / 2) is-roughly -1
-  cos(PI / 3) is-roughly 0.5
-  sin(PI / 6) is-roughly 0.5
+unspoken-sq = square(10, "solid", "red")
+examples "unspoken-img":
+  image-width(unspoken-img(unspoken-sq)) is image-width(unspoken-sq)
+  image-height(unspoken-img(unspoken-sq)) is image-height(unspoken-sq)
 end

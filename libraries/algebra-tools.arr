@@ -213,7 +213,7 @@ fun render-list(lst):
   lst-imgs = lst.map(lam(l):
       elt-imgs = l.map(lam(e):
           if is-image(e): e
-          else if is-string(to-repr(e)): text(e, 12, "black")
+          else if is-string(to-repr(e)): text(to-repr(e), 12, "black")
           else: to-repr(e)
           end
         end)

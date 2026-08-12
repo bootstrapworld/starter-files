@@ -733,7 +733,7 @@ end
 
 fun image-red-pixels(img :: Image):   count-dominant-pixels(img, "red")   end
 fun image-green-pixels(img :: Image): count-dominant-pixels(img, "green") end
-fun image-blue-pixels(img :: Image):  count-dominant-pixels(img, "blud")  end
+fun image-blue-pixels(img :: Image):  count-dominant-pixels(img, "blue")  end
 
 
 ###################### TEXT TOOLS ##################
