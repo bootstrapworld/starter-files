@@ -80,3 +80,33 @@ fun my-classifier2(r):
     end
   end
 end
+
+#####################################################################
+# swims-classifier :: Row -> String
+# consumes an animal, and predicts the species
+fun swims-classifier(r):
+  if r["swims"] == true:
+    "dog"
+  else: 
+    "cat"
+  end
+end
+
+#####################################################################
+# Define some Decision Trees
+
+tree-c1 = build-tree(training, [list: "tail"], "species", 1)
+tree-q1 = build-tree(training, [list: "pounds"], "species", 1)
+
+tree-c2 = build-tree(training, [list: "tail"], "species", 2)
+tree-q2 = build-tree(training, [list: "pounds"], "species", 2)
+tree-any2 = build-tree(training, [list: "sex", "tail", "mammal", "swims", "pounds"], "species", 2)
+
+tree-q3 = build-tree(training, [list: "pounds"], "species", 3)
+tree-q4 = build-tree(training, [list: "pounds"], "species", 4)
+tree-q5 = build-tree(training, [list: "pounds"], "species", 5)
+tree-q6 = build-tree(training, [list: "pounds"], "species", 6)
+
+tree-any3 = build-tree(training, [list: "sex", "tail", "mammal", "swims", "pounds"], "species", 3)
+tree-any4 = build-tree(training, [list: "sex", "tail", "mammal", "swims", "pounds"], "species", 4)
+tree-any5 = build-tree(training, [list: "sex", "tail", "mammal", "swims", "pounds"], "species", 5)
