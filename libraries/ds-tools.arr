@@ -16,7 +16,7 @@ import gdrive-sheets as G
 # brings in foundations.arr's unqualified names (make-color, display-chart,
 # easy-num-repr, maybe-get-value, etc.), which charting and table-stats
 # code below depends on heavily
-import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "foundations.arr") as F
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/refactor/libraries/", "foundations.arr") as F
 
 include charts
 include option

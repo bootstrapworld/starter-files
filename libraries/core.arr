@@ -62,20 +62,20 @@ end
 # ai-tools.arr for the actual implementations.
 ####################################################################
 
-import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "foundations.arr") as Foundations
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/refactor/libraries/", "foundations.arr") as Foundations
 provide from Foundations:
   *,
   type Posn, type ShrinkResult, type TaggedFunction
 end
 
-import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "ds-tools.arr") as DSTools
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/refactor/libraries/", "ds-tools.arr") as DSTools
 provide from DSTools: * end
 
-import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "algebra-tools.arr") as AlgebraTools
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/refactor/libraries/", "algebra-tools.arr") as AlgebraTools
 provide from AlgebraTools: * end
 
-import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "ai-tools.arr") as AITools
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/refactor/libraries/", "ai-tools.arr") as AITools
 provide from AITools:
   *,
-  type DecisionTree, type SplitInfo
+  type DecisionTree
 end

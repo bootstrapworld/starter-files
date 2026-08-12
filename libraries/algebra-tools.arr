@@ -8,7 +8,7 @@ import math as Math
 import sets as Sets
 
 # brings in foundations.arr's unqualified names (make-color, etc.)
-import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "foundations.arr") as F
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/refactor/libraries/", "foundations.arr") as F
 
 ####################################################################
 # algebra-tools.arr

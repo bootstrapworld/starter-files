@@ -19,7 +19,7 @@ import string-dict as SD
 # against *this* file, which corrupts this module's exported type table
 # and makes core.arr's `provide from AITools: type DecisionTree, ...`
 # fail with "unbound name" even though everything otherwise compiles.
-import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "foundations.arr") as Foundations
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/refactor/libraries/", "foundations.arr") as Foundations
 
 include string-dict
 include valueskeleton
