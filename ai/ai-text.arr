@@ -1,9 +1,8 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/", "libraries/ai-library.arr")
+
 badger = "The American badger is a North American badger similar in appearance to the European badger, although not closely related. It is found in the western, central, and northeastern United States, northern Mexico, and south-central Canada to certain areas of southwestern British Columbia. The American badger's habitat is typified by open grasslands with available prey (such as mice, squirrels, and groundhogs)."
 
-blue-whale = "The blue whale is a marine mammal and a baleen whale. Reaching a maximum confirmed length of 29.9 m and weighing up to 199 tons, it is the largest animal known ever to have existed. The blue whale's long and slender body can be of various shades of greyish-blue on its upper surface and somewhat lighter underneath."
-
-chimpanzee = "The chimpanzee lives in groups that range in size from 15 to 150 members, although individuals travel and forage in much smaller groups during the day. The species lives in a strict male-dominated hierarchy, where disputes are generally settled without the need for violence. Nearly all chimpanzee populations have been recorded using tools, modifying sticks, rocks, grass and leaves and using them for hunting and acquiring honey, termites, ants, nuts and water."
+kangaroo = "The kangaroo is a contributor to Australian society and the official national emblem of Australia. It has been an icon of Australian folklore for many centuries. It is one of the best of them all, and has been for as long as any can say. There are not many like it, and there may never be again."
 
 elephant = "The elephant has been a contributor to Thai society and its icon for many centuries. The elephant has had a considerable impact on Thai culture. The Thai elephant is the official national animal of Thailand. The elephant found in Thailand is the Indian elephant, a subspecies of the Asian elephant."
 
@@ -19,24 +18,51 @@ rhino = "Rhinoceroses are some of the largest remaining megafauna: all weigh ove
 
 snail = "Snails can be found in a very wide range of environments, including ditches, deserts, and the abyssal depths of the sea. Although land snails may be more familiar to laymen, marine snails constitute the majority of snail species, and have much greater diversity and a greater biomass. Numerous kinds of snail can also be found in fresh water."
 
-mystery	= "The elephant is a contributor to Thai society. It has been an icon of Thai life for many centuries. The elephant, which it is possible to see found in every part of Thailand, is the Indian elephant, which is a subspecies of the Asian elephant. The Thai elephant has a considerable impact on culture. The elephant is the official national animal of Thailand."
+whale = "The blue whale is a marine mammal and a baleen whale. Reaching a maximum confirmed length of 29.9 m and weighing up to 199 tons, it is the largest animal known ever to have existed. The blue whale's long and slender body can be of various shades of greyish-blue on its upper surface and somewhat lighter underneath."
+
+mystery	= "The elephant is a contributor to Thai society and the official national animal of Thailand. It has been an icon of Thai culture for many centuries. It is one of the best of them all, and has been for as long as any can say. There are not many like it, and there may never be again."
           
 # define the essay table, leaving rating and tags empty
-essays = 
-  table:  ID, EMOJI,    DOC,      LIKED, DISLIKED, TAGS
-    row: "A", "🦡", badger,     false,   false,  ""
-    row: "B", "🐳", blue-whale, false,   false,  ""
-    row: "C", "🐒", chimpanzee, false,   false,  ""
-    row: "D", "🐘", elephant,   false,   false,  ""
-    row: "E", "🦒", giraffe,    false,   false,  ""
-    row: "F", "🐹", hamster,    false,   false,  ""
-    row: "G", "🦦", otter,      false,   false,  ""
-    row: "H", "🐻‍❄️", polar-bear, false,   false,  ""
-    row: "I", "🦏", rhino,      false,   false,  ""
-    row: "J", "🐌", snail,      false,   false,  ""
-    row: "K", "❓", mystery,    false,   false,  ""
+corpus = 
+  table:  ID, EMOJI,    DOC,    LIKED, DISLIKED, TAGS
+    row: "B", "🦡", badger,     false,   false,  ""
+    row: "E", "🐘", elephant,   false,   false,  ""
+    row: "G", "🦒", giraffe,    false,   false,  ""
+    row: "H", "🐹", hamster,    false,   false,  ""
+    row: "O", "🦦", otter,      false,   false,  ""
+    row: "P", "🐻‍❄️", polar-bear, false,   false,  ""
+    row: "R", "🦏", rhino,      false,   false,  ""
+    row: "S", "🐌", snail,      false,   false,  ""
+    row: "W", "🐳", whale,      false,   false,  ""
+    row: "K", "🦘", kangaroo,   false,   false,  ""
+    row: "?", "❓", mystery,    false,   false,  ""
   end
           
-whale-essay = row-n(essays, 1)
+badger-essay = row-n(corpus, 0)
+whale-essay = row-n(corpus, 9)
 
-fun title-img(r): text(r["EMOJI"], 24, "black") end
+fun essay-img(r): text(r["EMOJI"], 24, "black") end
+
+decorated = decorate-text-table(corpus, "DOC")
+
+computed = add-bag-cols(corpus, "DOC")
+
+# Some functions for normalizing natural language
+# lowercase :: String -> String
+# remove-punct :: String -> String
+# remove-stop-words :: String -> String
+
+# A String for testing these functions with. 
+vacation = "Vacation is fun! One of my favorite things about vacation is that I have time for breakfast. What do you love about vacation?"
+
+# We can compose these functions to work together. 
+# lowercase(remove-punct(remove-stop-words("")))
+
+norm = normalize-text-table(corpus, "DOC")
+
+norm-computed = add-bag-cols(norm, "DOC")
+
+# A new function for measuring similarity using all quantitative columns
+# all-cols-similarity :: Table, String -> Table
+# all-cols-similarity(computed, "?")
+# all-cols-similarity(norm-computed, "?")
