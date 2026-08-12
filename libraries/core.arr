@@ -67,9 +67,6 @@ data Posn:
   | posn(x :: Number, y :: Number)
 end
 
-# override Pyret's native translate with put-image
-shadow translate = I.put-image
-
 # override Pyret's native color constructor with make-color
 shadow make-color = C.color
 
