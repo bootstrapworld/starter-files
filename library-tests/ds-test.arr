@@ -210,7 +210,8 @@ pt = table: before :: Number, after :: Number
   row: 40, 46
 end
 examples "t-tests":
-  paired-t(pt, "before", "after") satisfies num-is-roughnum
+  # diffs = [1, 3, 3, 6]; paired-t = mean-diff / (stdev(diffs) / sqrt(n))
+  paired-t(pt, "before", "after") is-roughly ~-3.1529631254723287
   eq-variance-t(pt, "before", "after") satisfies num-is-roughnum
   uneq-variance-t(pt, "before", "after") satisfies num-is-roughnum
 end

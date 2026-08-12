@@ -1654,7 +1654,7 @@ fun paired-t(t, col1, col2) block:
   sdiff = stdev(t, "diff")
   n = t.length()
   df = n - 1
-  (mean1 - mean2) / (sdiff / num-sqr(n))
+  (mean1 - mean2) / (sdiff / num-sqrt(n))
 end
 
 eq-variance-t :: (t :: Table, col1 :: String, col2 :: String) -> Number

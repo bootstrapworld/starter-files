@@ -225,29 +225,6 @@ fun get-unrestricted-cols(r):
 end
 
 
-# a table-normalizing function
-fun normalize(self):
-  cols = get-unrestricted-cols(self.t.row-n(0))
-
-  for fold(acc from self.t, col from cols):
-    if string-to-lower(col) == col:
-      vals = self.t.column(col)
-      min-val = L.fold(num-min, vals.first, vals.rest)
-      max-val = L.fold(num-max, vals.first, vals.rest)
-      rng = max-val - min-val
-      # rng = 0 means all value identical
-      if rng == 0:
-        acc  
-      else:
-        acc.transform-column(col,
-          {(v): (v - min-val) / rng})
-      end
-    else:
-      acc
-    end
-  end
-end
-
 # add-bag-cols consumes a table containing a "text" column and returns
 # an expanded version of that table with one additional column per
 # unique word found across all rows. Each new column is named after
