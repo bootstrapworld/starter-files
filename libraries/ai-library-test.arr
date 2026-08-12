@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries", "ai-library.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries", "core.arr")
 examples "text-streak":
   text-streak("sun sea sun sun sand", "sun")     is 2
   text-streak("sea sea sea", "sea")              is 3
