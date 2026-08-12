@@ -149,3 +149,68 @@ end
 examples "pivot-row":
   pivot-row(row-n(xy, 0)).get-column("labels") is [L.list: "x", "y"]
 end
+
+t1 = table: id :: String, x :: Number
+  row: "a", 3
+  row: "b", 1
+  row: "c", 2
+end
+
+examples "sort/filter shadows":
+  sort(t1, "x", true).get-column("id") is [L.list: "b", "c", "a"]
+  filter(t1, lam(r): r["x"] > 1 end).get-column("id") is [L.list: "a", "c"]
+end
+
+examples "find-by-id / row-id":
+  find-by-id(t1, "b")["x"] is 1
+  row-id(t1, "b")["x"] is 1
+end
+
+t2 = table: id :: String, x :: Number
+  row: "d", 4
+end
+examples "stack-table / stack-tables":
+  stack-table(t1, t2).get-column("id") is [L.list: "a", "b", "c", "d"]
+  stack-tables([L.list: t1, t2]).get-column("id") is [L.list: "a", "b", "c", "d"]
+end
+
+examples "first-n-rows / last-n-rows":
+  first-n-rows(t1, 2).get-column("id") is [L.list: "a", "b"]
+  last-n-rows(t1, 2).get-column("id") is [L.list: "b", "c"]
+end
+
+lin = table: x :: Number, y :: Number
+  row: 1, 3
+  row: 2, 5
+  row: 3, 7
+  row: 4, 9
+end
+fun predictor(r): (2 * r["x"]) + 1 end
+
+examples "predict-col":
+  predict-col(lin, "y", predictor).get-column("Error") is [L.list: 0, 0, 0, 0]
+end
+
+examples "residuals / mr-residuals":
+  residuals(lin, "x", "y", lam(x): (2 * x) + 1 end) is [L.list: 0, 0, 0, 0]
+  mr-residuals(lin, [L.list: "x"], "y", predictor) is [L.list: 0, 0, 0, 0]
+end
+
+lin-coeffs = regression-model-coeffs(lin, [L.list: "x"], "y").get-column("coefficient-value")
+examples "regression-model-coeffs / lr-coeffs":
+  lin-coeffs.get(0) is-roughly 1
+  lin-coeffs.get(1) is-roughly 2
+  lr-coeffs(lin, "x", "y").get-column("coefficient-value").get(1) is-roughly 2
+end
+
+pt = table: before :: Number, after :: Number
+  row: 10, 11
+  row: 20, 23
+  row: 30, 33
+  row: 40, 46
+end
+examples "t-tests":
+  paired-t(pt, "before", "after") satisfies num-is-roughnum
+  eq-variance-t(pt, "before", "after") satisfies num-is-roughnum
+  uneq-variance-t(pt, "before", "after") satisfies num-is-roughnum
+end
