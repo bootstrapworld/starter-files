@@ -8,7 +8,7 @@ provide *
 # export every symbol from starter2024 except for those we override
 import starter2024 as Starter
 include from Starter:
-  * hiding(translate, filter, range, sort, sin, cos, tan)
+    * hiding(translate, filter, range, sort, sin, cos, tan, dilate, image-url)
 end
 
 fun deg-to-rad(d):

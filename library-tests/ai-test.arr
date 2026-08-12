@@ -1,4 +1,8 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries", "ai-library.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/refactor/libraries", "ai-tools.arr")
+
+include lists
+include image
+
 examples "text-streak":
   text-streak("sun sea sun sun sand", "sun")     is 2
   text-streak("sea sea sea", "sea")              is 3
@@ -17,12 +21,20 @@ examples "add-centroid":
   table: ID, DOC, LIKED, DISLIKED, TAGS, x, y  
     row: "a", "", true,   false,   "",   2, 1 
     row: "b", "", true,   true,    "",   4, 5 
-    row: "test CENTROID", "", false, false, "", 3, 3
+    row: "test CENTROID", nothing, false, false, "", 3, 3
   end
 end
 
-fun find-by-tag(t :: Table, tag :: String): 
-  filter(t, {(r): string-contains(r["TAGS"], tag) }) 
+_search-test =
+  table: ID, DOC, LIKED, DISLIKED, TAGS, x, y
+    row: "a", "", true, false, "fruit",       2, 1
+    row: "b", "", true, true,  "veggie",      4, 5
+    row: "c", "", true, false, "fruit,sweet", 3, 2
+    row: "d", "", true, false, "meat",        8, 9
+  end
+examples "search-by-tag":
+  # rows tagged "fruit" (a, c) rank first (by score), untagged rows (d, b) rank after
+  search-by-tag(_search-test, [list: "fruit"]).get-column("ID") is [list: "c", "a", "d", "b"]
 end
 
 examples "simple-clustering":
@@ -39,6 +51,131 @@ examples "get-boundary-threshold":
   get-boundary-thresholds([list: {1; 2}, {10; 12}, {20; 22}]) is [list: 6, 16]
 end
 
+examples "text-grade":
+  text-grade("The cat sat.") satisfies is-number
+end
+
+_sim-test = table: ID, DOC, LIKED, DISLIKED, TAGS, x, y
+  row: "p1", "", true, false, "", 0, 0
+  row: "p2", "", true, false, "", 1, 1
+  row: "p3", "", true, false, "", 10, 10
+end
+examples "similarity metrics":
+  # rows ordered nearest-to-farthest from p1
+  distance-similarity(_sim-test, "p1", [list: "x", "y"]).get-column("ID") is [list: "p1", "p2", "p3"]
+  simple-similarity(_sim-test, "p1", [list: "x", "y"]).get-column("ID") is [list: "p1", "p2", "p3"]
+end
+
+_tree-test = table: x :: Number, label :: String
+  row: 1, "no"
+  row: 2, "no"
+  row: 3, "no"
+  row: 8, "yes"
+  row: 9, "yes"
+  row: 10, "yes"
+end
+_tree = build-tree(_tree-test, [list: "x"], "label", 3)
+examples "decision tree":
+  _tree satisfies is-DecisionTree
+  dt-fun(_tree)(_tree-test.row-n(0)) is "no"
+  dt-fun(_tree)(_tree-test.row-n(5)) is "yes"
+  classify(_tree-test, "label", _tree).get-column("label (predicted)") is
+    [list: "no", "no", "no", "yes", "yes", "yes"]
+end
+
+_bigrams = generate-ngrams("the cat sat the cat ran", 2)
+examples "n-grams":
+  _bigrams.get-column("n-gram").member("the cat") is true
+  _bigrams.filter(lam(r): r["n-gram"] == "the cat" end).get-column("count") is [list: 2]
+  _bigrams.get-column("count") is [list: 2, 1, 1, 1]
+end
+
+_lm = build-lang-model("the cat sat the cat ran the cat slept")
+examples "next-word-probability":
+  next-word-probability(_lm, "the", "cat") is 1
+end
+
+_img-table = table: ID, DOC
+  row: "i1", square(10, "solid", "red")
+  row: "i2", square(20, "solid", "blue")
+end
+examples "image decorators":
+  add-width(_img-table, "DOC").get-column("WIDTH") is [list: 10, 20]
+  add-height(_img-table, "DOC").get-column("HEIGHT") is [list: 10, 20]
+end
+
+_txt-table = table: ID, DOC
+  row: "t1", "The cat sat."
+  row: "t2", "Dogs run fast in parks."
+end
+examples "text decorators":
+  add-length(_txt-table, "DOC").get-column("LENGTH") is [list: 12, 23]
+  add-words(_txt-table, "DOC").get-column("WORDS") is [list: 3, 5]
+  add-syllables(_txt-table, "DOC").get-column("SYLLABLES") is [list: 3, 5]
+  add-sentences(_txt-table, "DOC").get-column("SENTENCES") is [list: 1, 1]
+end
+
+_decorated = decorate-text-table(_txt-table, "DOC")
+examples "decorate-text-table":
+  _decorated.column-names().member("LENGTH") is true
+  _decorated.column-names().member("WORDS") is true
+  _decorated.column-names().member("SYLLABLES") is true
+  _decorated.column-names().member("SENTENCES") is true
+  _decorated.column-names().member("GRADE-LEVEL") is true
+end
+
+_rate-table = table: ID, DOC, LIKED, DISLIKED, TAGS, x, y
+  row: "a", "", true,  false, "", 1, 1
+  row: "b", "", false, true,  "", 2, 2
+  row: "c", "", false, false, "", 3, 3
+end
+examples "liked-ids / disliked-ids":
+  liked-ids(_rate-table) is [list: "a"]
+  disliked-ids(_rate-table) is [list: "b"]
+end
+
+_tag-table = table: ID, DOC, LIKED, DISLIKED, TAGS, x, y
+  row: "p", "", true, false, "fruit,sweet", 1, 1
+  row: "q", "", true, false, "veggie",      2, 2
+end
+examples "tagged-ids":
+  tagged-ids(_tag-table, "fruit") is [list: "p"]
+end
+
+_cos-table = table: ID, DOC, LIKED, DISLIKED, TAGS, x, y
+  row: "p1", "", true, false, "", 1, 2
+  row: "p2", "", true, false, "", 2, 4
+  row: "p3", "", true, false, "", -5, 3
+end
+examples "cosine/angle similarity":
+  cosine-similarity(_cos-table, "p1", [list: "x", "y"]).get-column("ID").length() is 3
+  angle-similarity(_cos-table, "p1", [list: "x", "y"]).get-column("ID").length() is 3
+end
+
+_cluster-table = table: x :: Number
+  row: 1
+  row: 2
+  row: 10
+  row: 11
+end
+examples "cluster-col helpers":
+  k-means-cluster-col(_cluster-table, "x", 2).column-names() is [list: "interval", "subtable"]
+  simple-cluster-col(_cluster-table, "x", 2).column-names() is [list: "interval", "subtable"]
+end
+
+_cm-table = table: actual :: String, guess :: String
+  row: "yes", "yes"
+  row: "yes", "no"
+  row: "no",  "no"
+  row: "no",  "no"
+end
+fun _predicted(r): r["guess"] end
+examples "confusion-matrix":
+  # labels sort alphabetically: "no" row first, then "yes" row
+  confusion-matrix(_cm-table, "actual", _predicted).get-column("predicted-yes") is [list: 0.0, 0.5]
+end
+
+#|
 examples "step and sigmoid":
   sigmoid(0)    is-roughly 0.5
   sigmoid(100)  is-roughly 1
@@ -61,6 +198,7 @@ examples "weighted sum":
   weighted-sum([list: 1, 1, 1], [list: 0.2, 0.3, 0.5]) is-roughly 1.0
   weighted-sum([list: ],        [list: ])              is 0
 end
+
 
 n1 = make-neuron(
   table: input-name :: String, weight :: Number
@@ -492,3 +630,4 @@ end
 #   * iris-train   -- a scatter of "petal-length" vs "petal-width"
 #                     coloured by "is-versicolor": see why a single
 #                     straight boundary is enough to separate them.
+|#
