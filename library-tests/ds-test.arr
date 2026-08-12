@@ -84,3 +84,68 @@ examples "variance":
   pop-variance(height, "inches") is 12.24
   sample-variance(height, "inches") is 13.6
 end
+
+
+small = table: x :: Number
+  row: 2
+  row: 4
+  row: 4
+  row: 4
+  row: 5
+  row: 5
+  row: 7
+  row: 9
+end
+
+xy = table: x :: Number, y :: Number
+  row: 1, 2
+  row: 2, 4
+  row: 3, 6
+end
+
+examples "stats basics":
+  mean(small, "x") is 5
+  median(small, "x") is-roughly 4.5
+  modes(small, "x") is [L.list: 4]
+  sum(small, "x") is 40
+  stdev(small, "x") is-roughly 2.13809
+  r-value(xy, "x", "y") is-roughly 1
+end
+
+skewed = table: x :: Number
+  row: 1
+  row: 2
+  row: 3
+  row: 4
+  row: 100
+end
+
+examples "quartiles and outliers":
+  q1(skewed, "x") is-roughly 1.5
+  q3(skewed, "x") is-roughly 52
+  compute-outliers(skewed, "x").get-column("is-outlier") is [L.list: "no", "no", "no", "no", "no"]
+  outliers(skewed, "x").get-column("x") is [L.list: ]
+  remove-outliers(skewed, "x").get-column("x") is [L.list: 1, 2, 3, 4, 100]
+end
+
+examples "count":
+  count(small, "x").get-column("frequency") is [L.list: 1, 3, 2, 1, 1]
+end
+
+wide = table: label, a, b
+  row: "row1", 1, 2
+end
+transposed = transpose(wide)
+examples "transpose":
+  transposed.column-names() is [L.list: "label", "row1"]
+  transposed.get-column("label") is [L.list: "a", "b"]
+  transposed.get-column("row1") is [L.list: 1, 2]
+end
+
+examples "word-frequency":
+  word-frequency("the cat sat on the mat").get-column("count") is [L.list: 2, 1, 1, 1, 1]
+end
+
+examples "pivot-row":
+  pivot-row(row-n(xy, 0)).get-column("labels") is [L.list: "x", "y"]
+end

@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries", "ai-tools.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/refactor/libraries", "ai-tools.arr")
 
 include lists
   
@@ -24,8 +24,16 @@ examples "add-centroid":
   end
 end
 
-fun find-by-tag(t :: Table, tag :: String): 
-  filter(t, {(r): string-contains(r["TAGS"], tag) }) 
+_search-test =
+  table: ID, DOC, LIKED, DISLIKED, TAGS, x, y
+    row: "a", "", true, false, "fruit",       2, 1
+    row: "b", "", true, true,  "veggie",      4, 5
+    row: "c", "", true, false, "fruit,sweet", 3, 2
+    row: "d", "", true, false, "meat",        8, 9
+  end
+examples "search-by-tag":
+  # rows tagged "fruit" (a, c) rank first (by score), untagged rows (d, b) rank after
+  search-by-tag(_search-test, [list: "fruit"]).get-column("ID") is [list: "c", "a", "d", "b"]
 end
 
 examples "simple-clustering":
@@ -40,6 +48,45 @@ end
 examples "get-boundary-threshold":
   get-boundary-thresholds([list: {1; 2}, {10; 12}]) is [list: 6]
   get-boundary-thresholds([list: {1; 2}, {10; 12}, {20; 22}]) is [list: 6, 16]
+end
+
+examples "text-grade":
+  text-grade("The cat sat.") satisfies is-number
+end
+
+_sim-test = table: ID, DOC, LIKED, DISLIKED, TAGS, x, y
+  row: "p1", "", true, false, "", 0, 0
+  row: "p2", "", true, false, "", 1, 1
+  row: "p3", "", true, false, "", 10, 10
+end
+examples "similarity metrics":
+  # rows ordered nearest-to-farthest from p1
+  distance-similarity(_sim-test, "p1", [list: "x", "y"]).get-column("ID") is [list: "p1", "p2", "p3"]
+  simple-similarity(_sim-test, "p1", [list: "x", "y"]).get-column("ID") is [list: "p1", "p2", "p3"]
+end
+
+_tree-test = table: x :: Number, label :: String
+  row: 1, "no"
+  row: 2, "no"
+  row: 3, "no"
+  row: 8, "yes"
+  row: 9, "yes"
+  row: 10, "yes"
+end
+_tree = build-tree(_tree-test, [list: "x"], "label", 3)
+examples "decision tree":
+  _tree satisfies is-DecisionTree
+  dt-fun(_tree)(_tree-test.row-n(0)) is "no"
+  dt-fun(_tree)(_tree-test.row-n(5)) is "yes"
+  classify(_tree-test, "label", _tree).get-column("label (predicted)") is
+    [list: "no", "no", "no", "yes", "yes", "yes"]
+end
+
+_bigrams = generate-ngrams("the cat sat the cat ran", 2)
+examples "n-grams":
+  _bigrams.get-column("n-gram").member("the cat") is true
+  _bigrams.filter(lam(r): r["n-gram"] == "the cat" end).get-column("count") is [list: 2]
+  _bigrams.get-column("count") is [list: 2, 1, 1, 1]
 end
 
 #|
