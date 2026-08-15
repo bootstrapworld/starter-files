@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/", "libraries/ai-library.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/ai", "../libraries/core.arr")
 
 music-sheet = load-spreadsheet("https://docs.google.com/spreadsheets/d/1iQpfRr3aN4HErX73B66EKszMAMdmquWfamR7q_9cT4c/")
 
