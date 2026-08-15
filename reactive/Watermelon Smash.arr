@@ -35,6 +35,6 @@ smash-react = reactor:
   on-tick: next-state-tick
 end
 
-interact(smash-react)
+smash-react.interact()
 
 
