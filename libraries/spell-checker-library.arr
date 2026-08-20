@@ -82,12 +82,12 @@ data BKNode:
   end
 end
 
-fun bk-search(node :: BKNode, query :: String, n :: Number) -> List<WordResult>:
+fun bk-search(shadow node :: BKNode, query :: String, n :: Number) -> List<WordResult>:
   d = levenshtein(node.word, query)
   init-acc = if d <= n: [list: word-result(node.word, d)] else: empty end
   lo = if d < n: 0 else: d - n end
   hi = d + n
-  for fold(acc from init-acc, dist from L.range(lo, hi + 1)):
+  for fold(acc from init-acc, shadow dist from L.range(lo, hi + 1)):
     cases (Starter.Option) node.children.get-now(num-to-string(dist)):
       | none => acc
       | some(child) => acc + bk-search(child, query, n)
@@ -95,7 +95,7 @@ fun bk-search(node :: BKNode, query :: String, n :: Number) -> List<WordResult>:
   end
 end
 
-fun count-words(node :: BKNode) -> Number:
+fun count-words(shadow node :: BKNode) -> Number:
   child-keys = node.children.keys-now().to-list()
   for fold(total from 1, key from child-keys):
     child = node.children.get-value-now(key)
@@ -323,7 +323,7 @@ end
 
 fun build-bk-tree(words :: List<String>) -> BKNode:
 
-  fun bk-insert(node :: BKNode, w :: String) -> Nothing:
+  fun bk-insert(shadow node :: BKNode, w :: String) -> Nothing:
     d = levenshtein(node.word, w)
     ds = num-to-string(d)
     cases (Starter.Option) node.children.get-now(ds):
@@ -351,7 +351,7 @@ end
 
 # Given a bk-tree, serialize it to a String
 fun serialize-tree(tree :: BKNode) -> String:
-  fun serialize-node(node :: BKNode) -> String:
+  fun serialize-node(shadow node :: BKNode) -> String:
     keys = node.children.keys-now().to-list()
     header = node.word + "," + num-to-string(keys.length())
     for fold(acc from header, key from keys):
@@ -388,7 +388,7 @@ fun deserialize-tree(s :: String) -> BKNode:
     else:
       cases (List) toks block:
         | empty => raise("Unexpected end of serialized tree")
-        | link(dist, after-dist) =>
+        | link(shadow dist, after-dist) =>
           {child; after-child} = parse-node(after-dist)
           acc.set-now(dist, child)
           parse-children(after-child, sacount - 1, acc)

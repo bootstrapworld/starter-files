@@ -22,7 +22,6 @@ provide from Core:
   module Stats
 end
 
-import either as Eth
 import error as Err_
 
 # export every symbol from starter2024 except for those we override
