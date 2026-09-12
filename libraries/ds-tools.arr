@@ -1338,7 +1338,8 @@ end
 #################################################################################
 # Live Survey Functions
 fun live-display(gsheetID :: String, sheet-name :: String, columns :: List<String>, visualize)  -> Image block:
-  fun get-table(t):
+  fun get-table(t) block:
+    display-chart := lam(c): c.get-image() end
     sheet = load-spreadsheet(gsheetID).sheet-by-name(sheet-name, true)
     builtins.open-table(sheet.load(raw-array-from-list(columns), [raw-array: ]))
   end
