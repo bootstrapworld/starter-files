@@ -279,6 +279,11 @@ var display-chart = lam(c) block:
   c.display() 
 end
 
+
+fun setDisplayChart(fn):
+  display-chart := fn
+end
+
 ## CENTER AND SPREAD #############################################
 mean :: (t :: Table, col :: String) -> Number
 fun mean(t, col) block:
@@ -1338,7 +1343,6 @@ end
 #################################################################################
 # Live Survey Functions
 fun live-display(gsheetID :: String, sheet-name :: String, columns :: List<String>, visualize)  -> Image block:
-  display-chart := lam(c): c.get-image() end
   fun get-table(t) block:
     sheet = load-spreadsheet(gsheetID).sheet-by-name(sheet-name, true)
     builtins.open-table(sheet.load(raw-array-from-list(columns), [raw-array: ]))
@@ -1356,7 +1360,6 @@ end
 
 # live-survey :: (String, String, List<String> :: (Any -> Image)
 fun live-survey(gsheetID, sheet-name, columns, visualize) block:
-  display-chart := lam(c): c.get-image() end
   live-display(gsheetID, sheet-name, columns, visualize)
 end
 

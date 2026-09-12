@@ -79,7 +79,3 @@ provide from AITools:
   *,
   type DecisionTree
 end
-
-fun setDisplayChart(fn):
-  display-chart := fn
-end
