@@ -59,4 +59,4 @@ end
 # Produces...
 # a data visualization that should automatically update as students continue to fill out the google form associated with the spreadsheet.
 
-#live-survey(URL, SHEET-NAME, COLUMNS, visualize)
+live-survey(URL, SHEET-NAME, COLUMNS, visualize)
