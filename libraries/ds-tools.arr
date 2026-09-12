@@ -1355,6 +1355,7 @@ end
 
 # live-survey :: (String, String, List<String> :: (Any -> Image)
 fun live-survey(gsheetID, sheet-name, columns, visualize) block:
+  display-chart := lam(c): c.get-image() end
   live-display(gsheetID, sheet-name, columns, visualize)
 end
 
