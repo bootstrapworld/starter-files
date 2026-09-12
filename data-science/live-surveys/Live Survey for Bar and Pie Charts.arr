@@ -2,7 +2,7 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 
 # DO NOT MODIFY LINE 5
 # its modifies the chart functions to generates image without popups
-display-chart := lam(c): c.get-image() end
+setDisplayChart( lam(c): c.get-image() end )
 
 # Students: If your teacher shared a copy of this file with you, just click "Run"
 
@@ -59,4 +59,4 @@ end
 # Produces...
 # a data visualization that should automatically update as students continue to fill out the google form associated with the spreadsheet.
 
-live-survey(URL, SHEET-NAME, COLUMNS, visualize)
+#live-survey(URL, SHEET-NAME, COLUMNS, visualize)

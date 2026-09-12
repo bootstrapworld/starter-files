@@ -2,7 +2,7 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 
 # DO NOT MODIFY LINE 5
 # its modifies the chart functions to generates image without popups
-display-chart := lam(c): c.get-image() end
+setDisplayChart( lam(c): c.get-image() end )
 
 
 # Students: If your teacher shared a copy of this file with you, just click "Run"
