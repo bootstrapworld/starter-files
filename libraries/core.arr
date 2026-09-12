@@ -80,4 +80,6 @@ provide from AITools:
   type DecisionTree
 end
 
-var display-chart = DSTools.display-chart
+fun setDisplayChart(fn):
+  display-chart := fn
+end
