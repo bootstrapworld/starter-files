@@ -563,17 +563,33 @@ fun dominant-rgb-colors(img :: Image) -> String block:
     .join-str(" ")
 end
 
+# invert-color :: Color -> Color
+fun invert-color(p):
+  make-color(255 - p.red, 255 - p.green, 255 - p.blue, p.alpha)
+end
+
 # invert :: Image -> Image
 # inverts the RGB channels of each pixel, preserving alpha
 fun invert(img :: Image) -> Image:
   width  = image-width(img)
   height = image-height(img)
   pixels-to-image(
-    image-to-color-list(img).map(lam(p):
-        make-color(255 - p.red, 255 - p.green, 255 - p.blue, p.alpha)
-      end),
+    image-to-color-list(img).map(invert-color),
     width, height)
 end
+
+# gray10 and gray90 are custom colors, used to introduce inverses
+one10th = 255 / 10
+gray10 = make-color(one10th, one10th, one10th, 255)
+gray20 = make-color(2 * one10th, 2 * one10th, 2 * one10th, 255)
+gray30 = make-color(3 * one10th, 3 * one10th, 3 * one10th, 255)
+gray40 = make-color(4 * one10th, 4 * one10th, 4 * one10th, 255)
+gray50 = make-color(5 * one10th, 5 * one10th, 5 * one10th, 255)
+
+gray60 = invert-color(gray40)
+gray70 = invert-color(gray30)
+gray80 = invert-color(gray20)
+gray90 = invert-color(gray10)
 
 # grayscale :: (Image) -> Image
 # produces an identical image in which all pixels
