@@ -1,7 +1,7 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/data-science", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/data-science", "../libraries/core.arr")
 
 # include our helpful mystery functions
-include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/data-science", "../libraries/trust-but-verify-library.arr")
+include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/data-science", "../libraries/trust-but-verify-library.arr")
 
 # import our spreadsheet and table
 shelter-sheet = load-spreadsheet("19m1bUCQo3fCzmSEmWMjTfnmsNIMqiByLytHE0JYtnQM")

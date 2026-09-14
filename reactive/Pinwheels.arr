@@ -1,6 +1,6 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/projects", "../libraries/core.arr")
 
-PINWHEEL-IMG = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive/images/pinwheel.png")
+PINWHEEL-IMG = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/reactive/images/pinwheel.png")
 
 # A PinwheelState is the angle of rotation for 4 pinwheels
 data PinwheelState:

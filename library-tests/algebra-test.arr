@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/fall2026/libraries/", "core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/", "core.arr")
 
 _tri = triangle(20, "solid", "red")
 _cir = circle(10, "solid", "yellow")

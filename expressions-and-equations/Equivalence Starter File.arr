@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/expressions-and-equations", "../libraries/core.arr")
 
 #Question 1
 Image = text("Azara", 150, "yellow")

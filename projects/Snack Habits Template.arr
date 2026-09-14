@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/projects", "../libraries/core.arr")
 
 # Load your spreadsheet and define your table
 snack-sheet = load-spreadsheet("PASTE THE URL FOR THE GOOGLESHEETS VERSION OF YOUR CLASS SURVEY RESULT HERE")

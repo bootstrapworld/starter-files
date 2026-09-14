@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/projects", "../libraries/core.arr")
 
 # next-state-tick :: Number -> Number
 fun next-state-tick(n):

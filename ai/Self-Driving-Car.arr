@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/ai", "../libraries/self-driving-car-library.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/ai", "../libraries/self-driving-car-library.arr")
 
 # This file includes 3 functions and a predefined table.
 

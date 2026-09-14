@@ -1,6 +1,6 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/libraries", "core.arr")
 
-import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr") as Core
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/core", "../libraries/core.arr") as Core
 
 provide from Core: 
   *,
@@ -87,9 +87,9 @@ end
 
 START = delivery(130, 420)
 
-DRONE = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive/images/delivery-drone.png")
-PACKAGE = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive/images/delivery-package.png")
-BACKGROUND = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive/images/delivery-town.png")
+DRONE = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/reactive/images/delivery-drone.png")
+PACKAGE = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/reactive/images/delivery-package.png")
+BACKGROUND = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/reactive/images/delivery-town.png")
 
 # make-update :: DeliveryState -> DeliveryState
 fun make-update(fall):

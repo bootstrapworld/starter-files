@@ -1,9 +1,9 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/libraries", "core.arr")
 ################################################################
 # Bootstrap Self-Driving Car Library, as of Fall 2026
 provide *
 # re-export every symbol from Core
-import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr") as Core
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/core", "../libraries/core.arr") as Core
 # private module imports
 import csv as csv
 import tables as Tables

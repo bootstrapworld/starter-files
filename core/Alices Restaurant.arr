@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/core", "../libraries/core.arr")
 
 # cost :: String -> Number
 # given a menu item, produce the cost of that menu item

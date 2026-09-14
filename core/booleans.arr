@@ -1,6 +1,6 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/core", "../libraries/core.arr")
 
-include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/boolean-library.arr")
+include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/core", "../libraries/boolean-library.arr")
 
 ##################################################################
 # Investigate the following functions and figure out what they do.

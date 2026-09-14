@@ -1,9 +1,9 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/projects", "../libraries/core.arr")
 
-warm-outfit = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive/images/clothing-warm.png")
-cool-outfit = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive/images/clothing-cool.png")
-cold-outfit = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive/images/clothing-cold.png")
-subzero-outfit = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive/images/clothing-subzero.png")
+warm-outfit = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/reactive/images/clothing-warm.png")
+cool-outfit = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/reactive/images/clothing-cool.png")
+cold-outfit = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/reactive/images/clothing-cold.png")
+subzero-outfit = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/reactive/images/clothing-subzero.png")
 
 
 examples:

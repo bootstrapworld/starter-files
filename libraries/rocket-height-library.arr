@@ -1,10 +1,10 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/libraries", "core.arr")
 
 ################################################################
 # Rocket Height support file, as of Fall 2026
 
 provide *
-import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr") as Core
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/core", "../libraries/core.arr") as Core
 
 provide from Core:
     * hiding(dilate),
@@ -27,8 +27,8 @@ end
 ################################################################
 ######################### ROCKET HEIGHT ########################
 
-ROCKET = scale(1/2, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries/images/rocket.png"))
-ROCKET-BG = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries/images/universe.png")
+ROCKET = scale(1/2, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/libraries/images/rocket.png"))
+ROCKET-BG = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/libraries/images/universe.png")
 UNIVERSE-HEIGHT = 4.35e+26
 LOG-UNIVERSE-HEIGHT = 61.33738
 UNIVERSE-ZERO-PX = 150

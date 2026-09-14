@@ -1,6 +1,6 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/projects", "../libraries/core.arr")
 
-import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive", "../libraries/package-delivery-library.arr") as Start
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/reactive", "../libraries/package-delivery-library.arr") as Start
 
 # The DeliveryState is two numbers: an x-coordinate and a y-coordinate
 data DeliveryState:

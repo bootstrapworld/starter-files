@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/ai", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/ai", "../libraries/core.arr")
 
 # define some simple images
 black-sq   = square(10, "solid", "black")
@@ -14,7 +14,7 @@ pixel = image-to-color-list(red-blue-tile)
 pixel-dominant-rgb = dominant-rgb-colors(red-blue-tile)
 
 # import some images - you can change these to whatever images you find on the web!
-lesson-folder = "https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/ai/mountain-imgs/"
+lesson-folder = "https://raw.githubusercontent.com/bootstrapworld/starter-files/main/ai/mountain-imgs/"
 img1 = image-url(lesson-folder + "adirondacks.png")
 img2 = image-url(lesson-folder + "arizona-mountains.png")
 img3 = image-url(lesson-folder + "bear-lake.png")

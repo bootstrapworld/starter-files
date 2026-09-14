@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/projects", "../libraries/core.arr")
 
 data GameState:
   | world(
@@ -9,11 +9,11 @@ data GameState:
 end
 
 # Define a bunch of images that we can use later
-PLAYER      = scale(0.4, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries/images/ninjacat.png"))
-CLOUD       = scale(0.5, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries/images/clouds.png"))
-TARGET      = scale(0.4, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries/images/ruby.png"))
-DANGER      = scale(0.5, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries/images/dog.png"))
-BACKGROUND-IMG = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries/images/bg.jpg")
+PLAYER      = scale(0.4, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/libraries/images/ninjacat.png"))
+CLOUD       = scale(0.5, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/libraries/images/clouds.png"))
+TARGET      = scale(0.4, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/libraries/images/ruby.png"))
+DANGER      = scale(0.5, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/libraries/images/dog.png"))
+BACKGROUND-IMG = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/libraries/images/bg.jpg")
 
 # Some instances of the world for testing
 initial-scene = world(300, 300, 150, 100)

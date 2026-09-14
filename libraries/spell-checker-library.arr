@@ -1,11 +1,11 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries", "core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/libraries", "core.arr")
 ################################################################
 # Bootstrap Spell Checker Library, as of Fall 2026
 
 provide *
 
 # re-export every symbol from Core
-import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/core", "../libraries/core.arr") as Core
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/core", "../libraries/core.arr") as Core
 import csv as csv
 include string-dict
 provide from Core:
@@ -64,7 +64,7 @@ data WordResult:
   | word-result(word :: String, edit-distance :: Number)
 end
 
-DICTIONARY-IMG = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/libraries/images/dictionary-icon.png")
+DICTIONARY-IMG = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/libraries/images/dictionary-icon.png")
 
 data BKNode:
   | bk-node(word :: String, children :: SD.MutableStringDict) with:

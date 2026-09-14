@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/projects", "../libraries/core.arr")
 
 data PetState:
   | pet(
@@ -7,9 +7,9 @@ data PetState:
       happy :: Number)
 end
 
-BACKGROUND = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive/images/pet-background.png")
-HAPPYCAT   = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive/images/pet-happy.png")
-SADCAT     = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive/images/pet-sad.png")
+BACKGROUND = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/reactive/images/pet-background.png")
+HAPPYCAT   = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/reactive/images/pet-happy.png")
+SADCAT     = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/reactive/images/pet-sad.png")
 
 # PetState Instances
 FULLPET  = pet(100, 100, 100)

@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/projects", "../libraries/core.arr")
 
 # Animation of a cyclist riding along a street
 
@@ -10,9 +10,9 @@ data BikeState:
 end
 
 # Images go here
-BICYCLE = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive/images/bicycle.png")
-WHEEL   =  image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive/images/bicycle-wheel.png")
-BACKGROUND = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive/images/bicycle-town.png")
+BICYCLE = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/reactive/images/bicycle.png")
+WHEEL   =  image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/reactive/images/bicycle-wheel.png")
+BACKGROUND = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/reactive/images/bicycle-town.png")
 INIT-STATE = bike(100, 0)
 FRAMEY = image-height(BACKGROUND) / 3 # y-coordinate of bicycle frame
 

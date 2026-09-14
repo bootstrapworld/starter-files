@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/projects", "../libraries/core.arr")
 
 data CharState:
   | char(x :: Number, y :: Number)
@@ -7,7 +7,7 @@ end
 bottom-left = char(0, 0)
 top-right = char(640, 480)
 
-sam = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/algebra/inequalities/sam.png")
+sam = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/algebra/inequalities/sam.png")
 
 
 # draw-state : CharState -> Image

@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/algebra", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/algebra", "../libraries/core.arr")
 
 # Don't forget to click "Run", or Pyret won't read these definitions!
 
@@ -15,7 +15,7 @@ gold-star = star(80, "solid", "gold")
 my-name = text("Maya", 100, "purple")
 
 swamp =
-image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/algebra/swamp.png")
+image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/algebra/swamp.png")
 
 c = 10 * PI
 

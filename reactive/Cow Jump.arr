@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/projects", "../libraries/core.arr")
 
 # animation of cow jumping over moon, changing shape as it flies over
 
@@ -22,10 +22,10 @@ SCREEN-WIDTH = 600
 # fixed images
 BACKGROUND = rectangle(SCREEN-WIDTH, 400, "solid", "light blue")
 MOON = circle(50, "solid", "gray")
-COW-FLY = scale(0.15, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive/images/cow.png"))
+COW-FLY = scale(0.15, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/reactive/images/cow.png"))
 
 COW-JUMP = flip-horizontal(scale(0.15,
-    image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive/images/cow-jump.png")))
+    image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/reactive/images/cow-jump.png")))
 
 # touch-moon-left: Coord -> Boolean
 # determine whether cow is touching the moon's left side given cow coordinate

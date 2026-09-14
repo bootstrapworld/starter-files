@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/projects", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/projects", "../libraries/core.arr")
 
 # A SmashState is the y-coordinate of a mallet, and a timer
 data SmashState:
@@ -11,9 +11,9 @@ START = smash(250, 0)
 
 # IMAGES
 BACKGROUND = square(400, "solid", "white")
-WATERMELON = scale(0.3, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive/images/watermelon-melon.png"))
-MALLET     = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive/images/watermelon-mallet.png")
-SMASHED    = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/reactive/images/watermelon-smashed.png")
+WATERMELON = scale(0.3, image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/reactive/images/watermelon-melon.png"))
+MALLET     = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/reactive/images/watermelon-mallet.png")
+SMASHED    = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/reactive/images/watermelon-smashed.png")
 
 # draw-state :: SmashState -> Image
 # draws the image of the watermelon and mallet on the screen.

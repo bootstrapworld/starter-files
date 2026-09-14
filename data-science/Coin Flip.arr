@@ -1,6 +1,6 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/data-science", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/data-science", "../libraries/core.arr")
 
-include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/data-science", "../libraries/coin-flip-library.arr")
+include url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/data-science", "../libraries/coin-flip-library.arr")
 ####################################################################
 
 # This file defines flip(), a function for flipping coins. 

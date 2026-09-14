@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/ai", "../libraries/spell-checker-library.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/ai", "../libraries/spell-checker-library.arr")
 
 # This file has several dictionaries defined, all of different sizes:
 # `WORDS-XS` - 100 five-letter words

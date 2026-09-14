@@ -1,8 +1,8 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations", "../libraries/core.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/expressions-and-equations", "../libraries/core.arr")
 
-dog = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/puppy.png")
+dog = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/expressions-and-equations/images/puppy.png")
 
-cat = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/fall2026/expressions-and-equations/images/kitten.png")
+cat = image-url("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/expressions-and-equations/images/kitten.png")
 
 S1  = square(400, "solid", "aqua")
 S2  = radial-star(10, 60, 200, "solid", "gold")
