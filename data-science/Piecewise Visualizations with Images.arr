@@ -42,7 +42,7 @@ fun animal-img(r):
   if      (r["species"] == "dog"):       dog-img
   else if (r["species"] == "cat"):       cat-img
   else if (r["species"] == "rabbit"):    rabbit-img
-  else if (r["species"] == "tarantula"): spider-img
+  else if (r["species"] == "tarantula"): tarantula-img
   else if (r["species"] == "lizard"):    lizard-img
   else if (r["species"] == "snail"):     snail-img
   end

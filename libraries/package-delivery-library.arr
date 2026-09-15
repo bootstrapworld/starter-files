@@ -131,7 +131,7 @@ fun hits-road(d): (d.y < 100) and (d.x < 300) end
 fun done-falling(d): (lands-safely(d) or hits-house(d) or hits-road(d)) end
 
 
-drop-package(updating-function):
+fun drop-package(updating-function):
   r = reactor:
     init: START,
     on-tick: make-update(updating-function),
