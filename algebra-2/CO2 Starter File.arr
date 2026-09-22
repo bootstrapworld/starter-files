@@ -17,7 +17,7 @@ end
 ######################################################### 
 # Define some helper functions
 
-# is-recent :: Row -> Boolen
+# is-recent :: Row -> Boolean
 # is-recent checks to see if a row in the dataset is 
 # between November 2022 and November 2023
 fun is-recent(r): (r["date"] > 2022.708) and (r["date"] < 2023.7917) end
@@ -25,7 +25,7 @@ fun is-recent(r): (r["date"] > 2022.708) and (r["date"] < 2023.7917) end
 # filter our dataset to make a table of ONLY recent data
 recent-table = filter(co2-table, is-recent)
 
-# is-modern :: Row -> Boolen
+# is-modern :: Row -> Boolean
 # is-modern checks to see if a row in the dataset is 
 # after January 1, 2010
 fun is-modern(r): r["date"] > 2010 end
