@@ -2,13 +2,13 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 
 badger = "The American badger is a North American badger similar in appearance to the European badger, although not closely related. It is found in the western, central, and northeastern United States, northern Mexico, and south-central Canada to certain areas of southwestern British Columbia. The American badger's habitat is typified by open grasslands with available prey (such as mice, squirrels, and groundhogs)."
 
-kangaroo = "The kangaroo is a contributor to Australian society and the official national emblem of Australia. It has been an icon of Australian folklore for many centuries. It is one of the best of them all, and has been for as long as any can say. There are not many like it, and there may never be again."
-
 elephant = "The elephant has been a contributor to Thai society and its icon for many centuries. The elephant has had a considerable impact on Thai culture. The Thai elephant is the official national animal of Thailand. The elephant found in Thailand is the Indian elephant, a subspecies of the Asian elephant."
 
 giraffe =	"The giraffe's distinguishing characteristics are its extremely long neck and legs, horn-like ossicones, and spotted coat patterns. It is classified under the family Giraffidae, along with its closest extant relative, the okapi. Its scattered range extends from Chad in the north to South Africa in the south and from Niger in the west to Somalia in the east."
 
 hamster =	"Hamsters feed primarily on seeds, fruits, vegetation, and occasionally burrowing insects. In the wild, they are crepuscular: they forage during the twilight hours. In captivity, however, they are known to live a conventionally nocturnal lifestyle, waking around sundown to feed and exercise. Physically, they are stout-bodied with distinguishing features that include elongated cheek pouches extending to their shoulders, which they use to carry food back to their burrows, as well as a short tail and fur-covered feet."
+
+kangaroo = "The kangaroo is a contributor to Australian society and the official national emblem of Australia. It has been an icon of Australian folklore for many centuries. It is one of the best of them all, and has been for as long as any can say. There are not many like it, and there may never be again."
 
 otter	= "Otters are highly intelligent, semi-aquatic members of the weasel family known for their playful nature and vital ecological role. Whether river-dwelling or marine, they act as keystone species. By controlling urchin populations, sea otters protect kelp forests, which sequester carbon and support marine biodiversity."
 
@@ -29,12 +29,12 @@ corpus =
     row: "E", "🐘", elephant,   false,   false,  ""
     row: "G", "🦒", giraffe,    false,   false,  ""
     row: "H", "🐹", hamster,    false,   false,  ""
+    row: "K", "🦘", kangaroo,   false,   false,  ""
     row: "O", "🦦", otter,      false,   false,  ""
     row: "P", "🐻‍❄️", polar-bear, false,   false,  ""
     row: "R", "🦏", rhino,      false,   false,  ""
     row: "S", "🐌", snail,      false,   false,  ""
     row: "W", "🐳", whale,      false,   false,  ""
-    row: "K", "🦘", kangaroo,   false,   false,  ""
     row: "?", "❓", mystery,    false,   false,  ""
   end
           
