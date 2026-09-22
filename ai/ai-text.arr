@@ -39,7 +39,7 @@ corpus =
   end
           
 badger-essay = row-n(corpus, 0)
-whale-essay = row-n(corpus, 9)
+whale-essay = row-n(corpus, 8)
 
 fun essay-img(r): text(r["EMOJI"], 24, "black") end
 
