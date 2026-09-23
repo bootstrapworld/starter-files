@@ -26,11 +26,11 @@ end
 fun is-2016(r): (r["date"] > 2016) and (r["date"] < 2017) end
 
 # filter our dataset to make a table of ONLY 2014 data
-year-2016-table = filter(lakes-table, is-2016)
+year-table = filter(lakes-table, is-2016)
 
 
 ######################################################### 
-# Define a PERIODIC model for the year-2016-table data
+# Define a PERIODIC model for the year-table data
 fun periodic-sin(x): (... * sin(... * (x - ...))) + ... end
 
 # Decompose (and re-compose) your periodic function
@@ -41,7 +41,7 @@ fun periodic(x):    ... end
 
 
 ######################################################### 
-# Define a LINEAR MODEL for the lakes table - find it using lr-plot
+# Define a LINEAR MODEL for the lakes-table - find it using lr-plot
 fun trend-line(x):  ... end
 
 
