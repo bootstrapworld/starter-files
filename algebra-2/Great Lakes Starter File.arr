@@ -33,7 +33,7 @@ year-table = filter(lakes-table, is-2016)
 # Define a PERIODIC model for the year-table data
 fun periodic-sin(x): (... * sin(... * (x - ...))) + ... end
 
-# Decompose (and re-compose) your periodic function
+# Decompose (and re-compose) your periodic function. (See lines 54-59 if you need help.)
 
 fun wave(x):        ... end
 fun mid-line(x):    ... end 
@@ -46,7 +46,7 @@ fun trend-line(x):  ... end
 
 
 ######################################################### 
-# Define a HYBRID MODEL using your wave and trend-line
+# Define a HYBRID MODEL for the lakes-table using your wave and trend-line
 fun hybrid(x):     ... end
 
 
