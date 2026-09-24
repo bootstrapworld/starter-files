@@ -62,19 +62,19 @@ end
 # ai-tools.arr for the actual implementations.
 ####################################################################
 
-import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/tweak-fit-model/libraries/", "foundations.arr") as Foundations
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/", "foundations.arr") as Foundations
 provide from Foundations:
   *,
   type Posn, type ShrinkResult, type TaggedFunction
 end
 
-import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/tweak-fit-model/libraries/", "ds-tools.arr") as DSTools
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/", "ds-tools.arr") as DSTools
 provide from DSTools: * end
 
-import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/tweak-fit-model/libraries/", "algebra-tools.arr") as AlgebraTools
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/", "algebra-tools.arr") as AlgebraTools
 provide from AlgebraTools: * end
 
-import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/tweak-fit-model/libraries/", "ai-tools.arr") as AITools
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/", "ai-tools.arr") as AITools
 provide from AITools:
   *,
   type DecisionTree
