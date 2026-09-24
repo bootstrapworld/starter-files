@@ -1154,6 +1154,9 @@ end
 
 fit-model :: (t :: Table, ls :: String, xs :: String, ys :: String, fn :: (Number -> Number)) -> Image
 fun fit-model(t, ls, xs, ys, fn) block:
+  # How far outside the data bounding box the model can be (as a fraction of the
+  # data's y-range) before we stop expanding the chart to show it.
+  EXPAND-THRESHOLD = 0.10
   check-integrity(t, [list: ls, xs, ys])
   labels = get-labels(t, ls)
 
@@ -1171,12 +1174,20 @@ fun fit-model(t, ls, xs, ys, fn) block:
     .labels(labels)
     .legend("Data")
     .point-size(5)
-  padding = (Math.max(t.column(ys)) - Math.min(t.column(ys))) / 100
+  data-y-min   = Math.min(t.column(ys))
+  data-y-max   = Math.max(t.column(ys))
+  data-y-range = data-y-max - data-y-min
+  padding      = data-y-range / 100
   fn-plot = from-list.function-plot(fn)
     .color(C.red)
     .legend("Model")
   fun f(r): fn(r[xs]) end
-  predictions = map(f, t.all-rows())
+  predictions  = map(f, t.all-rows())
+  model-y-min  = Math.min(predictions)
+  model-y-max  = Math.max(predictions)
+  threshold    = data-y-range * EXPAND-THRESHOLD
+  chart-y-min  = if (model-y-min < data-y-min) and ((data-y-min - model-y-min) <= threshold): model-y-min else: data-y-min end
+  chart-y-max  = if (model-y-max > data-y-max) and ((model-y-max - data-y-max) <= threshold): model-y-max else: data-y-max end
   intervals = from-list.interval-chart(
     t.column(xs),
     t.column(ys),
@@ -1192,8 +1203,8 @@ fun fit-model(t, ls, xs, ys, fn) block:
     .title(title-str)
     .x-axis(xs)
     .y-axis(ys)
-    .y-min(num-min(Math.min(t.column(ys)), Math.min(predictions)) - padding)
-    .y-max(num-min(Math.max(t.column(ys)), Math.max(predictions)) + padding)
+    .y-min(chart-y-min - padding)
+    .y-max(chart-y-max + padding)
   img = display-chart(chart)
   title = make-title([list:"", ys, "vs.", xs])
   above(title, add-margin(img))
