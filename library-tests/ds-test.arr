@@ -244,13 +244,6 @@ image-bar-chart(region-data, "region", lam(r): circle(10, "solid", "steelblue") 
 stacked-bar-chart(region-data, "region", "income-level")
 multi-bar-chart(region-data, "region", "income-level")
 
-# dot-chart-window charts — use .x-axis-stagger-labels()
-# "region" is the categorical x-axis column; 7 long names trigger stagger
-simple-dot-plot(region-data, "region")
-dot-plot(region-data, "income-level", "region")
-color-dot-plot(region-data, "region",
-  lam(r): if r["income-level"] == "high": "blue" else: "red" end end)
-
 # Quarterly decimal-year data triggers crowded-numeric-x-axis on plot charts.
 # 16 distinct values, max label length 7 ("2018.25") → min(16,20) × 7 = 112 > 85.
 lake-level = table: date :: Number, level-ft :: Number, name :: String
