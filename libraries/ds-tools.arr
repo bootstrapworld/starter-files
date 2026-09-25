@@ -104,14 +104,17 @@ fun crowded-x-labels(labels :: List<String>) -> Boolean:
 end
 
 # Estimates whether a numeric x-axis will produce crowded tick labels.
-# Uses the distinct data values (formatted as strings) as a proxy for
-# Vega's tick labels, capped at 10 (Vega's typical max for a 600px chart)
-# to avoid false positives on datasets with many distinct values.
+# Uses the distinct data values as a proxy for Vega's tick labels, capped
+# at 8 (Vega's typical tick count for a 600px chart). The tilde prefix
+# Pyret adds to roughnum strings is stripped before measuring label width.
 fun crowded-numeric-x-axis(x-vals :: List<Number>) -> Boolean:
   distinct-xs = Sets.list-to-set(x-vals).to-list()
-  n = num-min(distinct-xs.length(), 10)
+  n = num-min(distinct-xs.length(), 8)
   max-len = distinct-xs
-    .map(lam(x): string-length(num-to-string(x)) end)
+    .map(lam(x):
+      s = num-to-string(x)
+      string-length(if string-starts-with(s, "~"): string-substring(s, 1, string-length(s)) else: s end)
+    end)
     .foldl(num-max, 0)
   (n * max-len) > 85
 end

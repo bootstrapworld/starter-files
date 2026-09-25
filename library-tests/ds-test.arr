@@ -293,19 +293,19 @@ examples "crowded-x-labels — categorical":
 end
 
 examples "crowded-numeric-x-axis":
-  # 16 quarterly decimal years, capped at min(16,10) = 10, max label 7 chars: 10 × 7 = 70 ≤ 85
+  # 16 quarterly decimal years, capped at min(16,8) = 8, max label "2021.75" = 7 chars: 8 × 7 = 56 ≤ 85
   # Vega only generates ~8 ticks for this range, so stagger is not needed.
   crowded-numeric-x-axis([L.list:
     2018.00, 2018.25, 2018.50, 2018.75,
     2019.00, 2019.25, 2019.50, 2019.75,
     2020.00, 2020.25, 2020.50, 2020.75,
     2021.00, 2021.25, 2021.50, 2021.75]) is false
-  # 10 small integers (max label "10" = 2 chars): 10 × 2 = 20 ≤ 85 → not crowded
+  # 10 small integers (max label "10" = 2 chars): min(10,8) × 2 = 16 ≤ 85 → not crowded
   crowded-numeric-x-axis([L.list: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) is false
-  # 101 distinct years, capped at min(101,10) = 10, label "1920" = 4 chars: 10 × 4 = 40 ≤ 85
+  # 101 distinct years, capped at min(101,8) = 8, label "1920" = 4 chars: 8 × 4 = 32 ≤ 85
   crowded-numeric-x-axis(L.range(1920, 2021)) is false
-  # 10 large integers with 10-char labels: 10 × 10 = 100 > 85 → crowded
+  # 8 eleven-digit integers: min(8,8) × 11 = 88 > 85 → crowded
   crowded-numeric-x-axis([L.list:
-    1000000001, 2000000002, 3000000003, 4000000004, 5000000005,
-    6000000006, 7000000007, 8000000008, 9000000009, 1000000010]) is true
+    10000000001, 20000000002, 30000000003, 40000000004,
+    50000000005, 60000000006, 70000000007, 80000000008]) is true
 end
