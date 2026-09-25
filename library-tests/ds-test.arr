@@ -238,6 +238,10 @@ region-data = table: region :: String, income-level :: String, pop :: Number
   row: "South Asia",                  "low",    214
 end
 
+# dot-chart-window charts — use .x-axis-stagger-labels()
+dot-plot(region-data, "region", "pop")
+color-dot-plot(region-data, "pop", lam(r): if r["income-level"] == "high": "steelblue" else: "tomato" end end)
+
 # bar-chart-window charts — use .x-axis-stagger()
 bar-chart(region-data, "region")
 image-bar-chart(region-data, "region", lam(r): circle(10, "solid", "steelblue") end)

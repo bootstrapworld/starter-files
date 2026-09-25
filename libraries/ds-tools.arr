@@ -598,8 +598,12 @@ fun simple-dot-plot(t, vals) block:
   else:
     from-list.dot-chart(vs)
   end
+  stagger = if is-quant: false
+    else: crowded-x-labels(Sets.list-to-set(vs).to-list())
+    end
   chart = render-chart(series).width(600).height(400)
     .x-axis(vals).y-axis("frequency")
+    .x-axis-stagger-labels(stagger)
   img = display-chart(chart)
   title = make-title([list:"Dot Plot of", vals])
   above(title, add-margin(img))
@@ -616,9 +620,13 @@ fun dot-plot(t, labels, vals) block:
   else:
     from-list.dot-chart(vs).labels(ls)
   end
+  stagger = if is-quant: false
+    else: crowded-x-labels(Sets.list-to-set(vs).to-list())
+    end
   chart = render-chart(series).width(600).height(400)
     .x-axis(vals)
     .y-axis("frequency")
+    .x-axis-stagger-labels(stagger)
   img = display-chart(chart)
   title = make-title([list:"Dot Plot of", vals])
   above(title, add-margin(img))
@@ -641,8 +649,12 @@ fun image-dot-plot(t, vals, f :: (Row -> Image)) block:
   else:
     from-list.dot-chart(vs)
   end
+  stagger = if is-quant: false
+    else: crowded-x-labels(Sets.list-to-set(vs).to-list())
+    end
   chart = render-chart(series.image-labels(images)).width(600).height(400)
     .x-axis(vals).y-axis("frequency")
+    .x-axis-stagger-labels(stagger)
   img = display-chart(chart)
   title = make-title([list:"Dot Plot of", vals])
   above(title, add-margin(img))
