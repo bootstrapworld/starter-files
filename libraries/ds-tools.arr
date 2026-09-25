@@ -105,11 +105,11 @@ end
 
 # Estimates whether a numeric x-axis will produce crowded tick labels.
 # Uses the distinct data values (formatted as strings) as a proxy for
-# Vega's tick labels, capped at 20 to avoid false positives on large
-# datasets where Vega generates far fewer ticks than distinct values.
+# Vega's tick labels, capped at 10 (Vega's typical max for a 600px chart)
+# to avoid false positives on datasets with many distinct values.
 fun crowded-numeric-x-axis(x-vals :: List<Number>) -> Boolean:
   distinct-xs = Sets.list-to-set(x-vals).to-list()
-  n = num-min(distinct-xs.length(), 20)
+  n = num-min(distinct-xs.length(), 10)
   max-len = distinct-xs
     .map(lam(x): string-length(num-to-string(x)) end)
     .foldl(num-max, 0)
