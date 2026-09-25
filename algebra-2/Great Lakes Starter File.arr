@@ -31,29 +31,30 @@ year-table = filter(lakes-table, is-2016)
 
 ######################################################### 
 # Define a PERIODIC model for the year-table data
-fun periodic-sin(x): (... * sin(... * (x - ...))) + ... end
+fun sine-lakes(x): (... * sin(... * (x - ...))) + ... end
 
 # Decompose (and re-compose) your periodic function. (See lines 54-59 if you need help.)
 
-fun wave(x):        ... end
-fun mid-line(x):    ... end 
-fun periodic(x):    ... end
+fun wave-lakes(x):            ... end
+fun mid-line-lakes(x):        ... end 
+fun sine-composed-lakes(x):   ... end
 
 
 ######################################################### 
-# Define a LINEAR MODEL for the lakes-table - find it using lr-plot
-fun trend-line(x):  ... end
+# Define a LINEAR MODEL for the lakes-table  -  find it using lr-plot
+fun linear-lakes(x):          ... end
 
 
 ######################################################### 
-# Define a HYBRID MODEL for the lakes-table using your wave and trend-line
-fun hybrid(x):     ... end
+# Define a HYBRID MODEL for the lakes-table 
+fun hybrid-lakes(x):          ... end
 
 
 ######################################################### 
-# EXAMPLE of how to write (and re-write!) the COSINE model from the CO2 dataset
-
-# fun periodic-cos(x):  (4.13 * cos(6.28 * (x - 2023.35))) + 419.87 end
-# fun wave-cos(x):      (4.13 * cos(6.28 * (x - 2023.35)))          end
-# fun mid-line-cos(x):                                       419.87 end 
-# fun periodic-cos2(x):         wave-cos(x)    +    mid-line-cos(x) end
+# FOR REFERENCE - from the CO2 dataset
+# fun cosine(x):  (4.13 * cos(6.28 * (x - 2023.35)))    +     419.87  end
+# fun wave-cos(x):      (4.13 * cos(6.28 * (x - 2023.35)))            end
+# fun mid-line-cos(x):                                       419.87   end 
+# fun cosine-composed(x):     wave-cos(x)    +    mid-line-cos(x)     end
+# fun linear-modern(x):   (2.41263 * x)      +                -4461   end
+# fun cosine-hybrid(x):       wave-cos(x)    +    linear-modern(x)    end     

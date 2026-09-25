@@ -37,4 +37,4 @@ modern-table = filter(co2-table, is-modern)
 # Define some models
 
 # a periodic model using sine (instead of cosine)
-fun periodic-sin(x): (... * sin(... * (x - ...))) + ... end
+fun sine(x): (... * sin(... * (x - ...))) + ... end

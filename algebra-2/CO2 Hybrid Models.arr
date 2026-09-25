@@ -27,19 +27,22 @@ modern-table = filter(co2-table, is-modern)
 # EXAMPLE of how to write (and re-write!) the COSINE model 
 # for RECENT-TABLE, using function composition
 
-fun periodic-cos(x):  (4.13 * cos(6.28 * (x - 2023.35))) + 419.87 end
+fun cosine(x):  (4.13 * cos(6.28 * (x - 2023.35))) + 419.87 end
 fun wave-cos(x):      (4.13 * cos(6.28 * (x - 2023.35)))          end
 fun mid-line-cos(x):                                       419.87 end 
-fun periodic-cos2(x):         wave-cos(x)    +    mid-line-cos(x) end
+fun cosine-composed(x):         wave-cos(x)    +    mid-line-cos(x) end
 
 ######################################################### 
-# Using the written (and re-written!) cosine model above,
+# Referring to the decomposed and recomposed model above,
 # write (and re-write!) your SINE model for RECENT-TABLE
 
-fun periodic-sin(x):    ... end
+fun sine(x):    ... end
 fun wave-sin(x):        ... end
 fun mid-line-sin(x):    ... end 
-fun periodic-sin2(x):   ... end
+fun sine-composed(x):   ... end
+
+######################################################### 
+# Define models for the MODERN-TABLE
 
 # LINEAR MODEL for the modern table - find it using lr-plot
 fun linear-modern(x):   ... end
@@ -47,6 +50,7 @@ fun linear-modern(x):   ... end
 # HYBRID MODEL for the modern-table 
 fun hybrid-modern(x):   ... end
 
-# HYBRID MODEL for the full co2-table - think through what functions you'll need to define so that you can compose a hybrid model that fits all of the data well.
+######################################################### 
+# HYBRID MODEL for the full CO2-TABLE - think through what functions you'll need to define so that you can compose a hybrid model that fits all of the data well.
 
 fun hybrid-all(x): ... end 
