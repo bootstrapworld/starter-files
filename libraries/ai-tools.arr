@@ -80,35 +80,35 @@ fun add-col(t, doc-col, col-name, doc-fn):
   t.build-column(col-name, lam(r): doc-fn(r[doc-col]) end)
 end
 
-fun add-width(t, doc-col): 
-  add-col(t, doc-col, "WIDTH", image-width) 
+fun add-width(t, doc-col):
+  add-col(t, doc-col, "WIDTH", image-width)
 end
-fun add-height(t, doc-col): 
-  add-col(t, doc-col, "HEIGHT", image-height) 
+fun add-height(t, doc-col):
+  add-col(t, doc-col, "HEIGHT", image-height)
 end
-fun add-entropy(t, doc-col): 
-  add-col(t, doc-col, "ENTROPY", {(img): 
+fun add-entropy(t, doc-col):
+  add-col(t, doc-col, "ENTROPY", {(img):
       round-digits(num-exact(image-entropy(img)),
-        MODEL_DIGITS)}) 
+        MODEL_DIGITS)})
 end
-fun add-luminance(t, doc-col): 
-  add-col(t, doc-col, "LUMINANCE", {(img): 
+fun add-luminance(t, doc-col):
+  add-col(t, doc-col, "LUMINANCE", {(img):
       round-digits(num-exact(image-luminance(img)),
-        MODEL_DIGITS)}) 
+        MODEL_DIGITS)})
 end
-fun add-symmetry-v(t, doc-col): 
-  add-col(t, doc-col, "SYMMETRY-V", {(img): 
+fun add-symmetry-v(t, doc-col):
+  add-col(t, doc-col, "SYMMETRY-V", {(img):
       round-digits(num-exact(image-symmetry-vertical(img)),
-        MODEL_DIGITS)}) 
+        MODEL_DIGITS)})
 end
-fun add-symmetry-h(t, doc-col): 
-  add-col(t, doc-col, "SYMMETRY-H", {(img): 
+fun add-symmetry-h(t, doc-col):
+  add-col(t, doc-col, "SYMMETRY-H", {(img):
       round-digits(num-exact(
           image-symmetry-horizontal(img)),
-        MODEL_DIGITS)}) 
+        MODEL_DIGITS)})
 end
-fun add-color-names(t, doc-col): 
-  add-col(t, doc-col, "DOMINANT-RGB-COLORS", dominant-rgb-colors) 
+fun add-color-names(t, doc-col):
+  add-col(t, doc-col, "DOMINANT-RGB-COLORS", dominant-rgb-colors)
 end
 
 fun decorate-image-table(t, doc-col):
@@ -171,7 +171,7 @@ fun is-non-punct(c :: String) -> Boolean block:
   end
 end
 
-fun replace-newlines(s): 
+fun replace-newlines(s):
   if s == '\n': " " else: s end
 end
 
@@ -329,7 +329,7 @@ fun add-centroid(t :: Table, name :: String, ids :: List<String>) -> Table block
   matching = t.filter({(r): member(ids, r["ID"])})
 
   # for the rows with the passed IDs, walk over the columns in-order:
-  #    hand-enter specific column names, 
+  #    hand-enter specific column names,
   #    skip restricted ones,
   #    compute the average of anything else
   tuples = matching.column-names().map({(c):
@@ -464,9 +464,9 @@ fun row-to-dict(cols :: List<String>, r :: Row) -> SD.StringDict<Number>:
 end
 
 ################################################################
-# The library offers three levels of comparison, in which all 
+# The library offers three levels of comparison, in which all
 # rows are ranked according to their similarity to a given row ID
-# 
+#
 # The four comparison approaches are:
 #
 # 1. simple-similarity — perfect equality
@@ -477,7 +477,7 @@ end
 #                        in common.
 # 4. all-cols-similarity — same as angle similarity, but auto-chooses the cols
 #
-# All four algorithms have been hand-tweaked to pull the row with the 
+# All four algorithms have been hand-tweaked to pull the row with the
 # given ID to the top, making that row "most similar" to itself even if
 # other rows have the exact same score.
 ################################################################
@@ -488,7 +488,7 @@ fun pull-seed-to-top(t :: Table, id) -> Table block:
   t-w-seed.stack(rest)
 end
 
-# simple-similarity: true iff the specified cols of the two rows 
+# simple-similarity: true iff the specified cols of the two rows
 # are identical
 fun simple-similarity(t :: Table, id, cols :: List<String>) block:
   when not(t.column("ID").member(id)):
@@ -515,7 +515,7 @@ fun distance-similarity(t :: Table, id, cols :: List<String>) block:
   fun helper(r1 :: Row, r2 :: Row) -> Number block:
     vals1 = cols.map({(c): r1[c]})
     vals2 = cols.map({(c): r2[c]})
-    if cols.length() == 1: 
+    if cols.length() == 1:
       abs(r1[cols.get(0)] - r2[cols.get(0)])
     else:
       sum-of-squares = L.fold2(lam(acc, vA, vB): acc + sqr(vA - vB) end,
@@ -1041,7 +1041,7 @@ fun find-best-split(t :: Table, label-col :: String, quant-cols :: List<String>,
       | cat-subset-split(_, _, _, _, e) => e * (1 - cat-bias)
     end
   end
-  all-candidates = 
+  all-candidates =
     cat-cols.map(lam(col): find-best-cat-split(t, col, label-col) end)
     + quant-cols.map(lam(col): find-best-quant-split(t, col, label-col) end)
   all-candidates.foldl(lam(candidate, best-so-far):
@@ -1079,8 +1079,8 @@ fun build-tree(t :: Table, cols :: List<String>, label-col :: String, max-depth)
             | cat-subset-split(col, vals, yes-t, no-t, _) =>
               # For boolean columns, always use true as the predicate value.
               # The split is symmetric, so flipping just reorders the branches.
-              flip       = ((vals.length() == 1) 
-                and is-boolean(vals.first) 
+              flip       = ((vals.length() == 1)
+                and is-boolean(vals.first)
                 and (vals.first == false))
               norm-vals  = if flip: [list: true] else: vals  end
               norm-yes-t = if flip: no-t         else: yes-t end
