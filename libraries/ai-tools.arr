@@ -1227,11 +1227,12 @@ fun build-lang-model(corpus-str :: String, max-gram-size) -> Table:
 
 end
 
-fun build-stat-lang-model(model :: Table, max-gram-size :: Number) -> Table block:
-  doc: "Consumes a lang-model and a max n-gram size, and produces a table with columns size, word, follows, conditional-probability and probability. Unigrams have an empty 'follows'."
+fun build-stat-lang-model(model :: Table) -> Table block:
+  doc: "Consumes a lang-model and produces a table with columns size, word, follows, conditional-probability and probability, covering every n-gram size in the model. Unigrams have an empty 'follows'."
 
-  when (max-gram-size < 1) or (max-gram-size > MAX-GRAM-SIZE):
-    raise(Err.message-exception("max-gram-size must be between 1 and " + to-string(MAX-GRAM-SIZE)))
+  cols = model.column-names()
+  when not([list: "size", "n-gram", "count"].all({(c): cols.member(c)})):
+    raise(Err.message-exception("This function only works on a language model (built with build-lang-model). Check to make sure you're passing in the right kind of model."))
   end
 
   fun split-gram(r):
@@ -1240,9 +1241,7 @@ fun build-stat-lang-model(model :: Table, max-gram-size :: Number) -> Table bloc
     {rev.get(0); rev.rest.reverse().join-str(" "); r["count"]}
   end
 
-  parts = model.all-rows()
-    .filter({(r): r["size"] <= max-gram-size})
-    .map(split-gram)
+  parts = model.all-rows().map(split-gram)
 
   # total count of everything seen after each context, so that probabilities
   # for a given context sum to 1 (a unigram's context is the empty string)
