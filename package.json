@@ -1,5 +1,8 @@
 {
   "dependencies": {
-    "pyret-npm": "^0.0.90"
+    "pyret-npm": "^0.1.27"
+  },
+  "allowScripts": {
+    "pyret-npm@0.1.27": true
   }
 }

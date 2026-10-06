@@ -1,11 +1,17 @@
 #! /usr/bin/env bash
 
+backend_flag=""
+if [[ "$1" == "-TS" ]]; then
+  backend_flag="--backend ts"
+fi
+
 pyret_files_dir=$(pwd)
+cd "$pyret_files_dir"
 
 echo Checking Starter Files for compilation errors... ☠️
 while IFS= read -r pyret_file; do
-  echo $(realpath "$pyret_file" --relative-to=$pyret_files_dir)
-  if ! npx pyret --builtin-js-dir $pyret_files_dir/js-extras/ -c "$pyret_file" 2>&1 | grep -q 'Cleaning up'; then
-    echo WARNING: Could not compile $(realpath "$pyret_file" --relative-to=$pyret_files_dir)
+  echo "$pyret_file"
+  if ! npx pyret $backend_flag --builtin-js-dir js-extras/ -c "$pyret_file" 2>&1 | grep -q 'Cleaning up'; then
+    echo WARNING: Could not compile "$pyret_file"
   fi
-done < <(find $pyret_files_dir -type f -name \*.arr)
+done < <(find . -type f -name \*.arr | sed 's|^\./||')
