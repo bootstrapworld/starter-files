@@ -95,30 +95,6 @@ fun get-labels(t, ls) block:
   end
 end
 
-# Returns true when n category labels of max length max-len will crowd
-# together at the default 600px chart width (~7px per character).
-fun crowded-x-labels(labels :: List<String>) -> Boolean:
-  n = labels.length()
-  max-len = labels.map(string-length).foldl(num-max, 0)
-  (n * max-len) > 85
-end
-
-# Estimates whether a numeric x-axis will produce crowded tick labels.
-# Uses the distinct data values as a proxy for Vega's tick labels, capped
-# at 8 (Vega's typical tick count for a 600px chart). The tilde prefix
-# Pyret adds to roughnum strings is stripped before measuring label width.
-fun crowded-numeric-x-axis(x-vals :: List<Number>) -> Boolean:
-  distinct-xs = Sets.list-to-set(x-vals).to-list()
-  n = num-min(distinct-xs.length(), 8)
-  max-len = distinct-xs
-    .map(lam(x):
-      s = num-to-string(x)
-      string-length(if string-starts-with(s, "~"): string-substring(s, 1, string-length(s)) else: s end)
-    end)
-    .foldl(num-max, 0)
-  (n * max-len) > 85
-end
-
 # Optimally-distinct list of colors taken from
 # https://stackoverflow.com/a/12224359/12026982
 COLORS = [list:
@@ -401,7 +377,6 @@ fun bar-chart-raw(t, ls, vs, column-name) block:
     .x-axis(column-name)
     .y-axis(vs)
     .y-min(0)
-    .x-axis-stagger(crowded-x-labels(labels))
   img = display-chart(chart)
   title = make-title([list:"Distribution of", column-name])
   above(title, img)
@@ -478,7 +453,6 @@ fun image-bar-chart(t, col, f) block:
     labels,
     ensure-numbers(summary.column("frequency")))
   chart = render-chart(series).width(600).height(400).y-min(0)
-    .x-axis-stagger(crowded-x-labels(labels))
   img = display-chart(chart)
   title = make-title([list:"Distribution of", col])
   above(title, add-margin(img))
@@ -521,8 +495,8 @@ fun stacked-bar-chart(t, col, subcol) block:
     .stacking-type(percent)
     .colors(color-list)
   chart = render-chart(series).width(600).height(400)
-    .x-axis(col).y-axis(subcol)
-    .x-axis-stagger(crowded-x-labels(groups))
+    .x-axis(col)
+    .y-axis(subcol)
   img = display-chart(chart)
   title = make-title([list:"Distribution of", subcol, "by", col])
   above(title, add-margin(img))
@@ -542,7 +516,6 @@ fun stacked-bar-chart-summarized(t, categories, column-list) block:
     column-list)
     .colors(color-list)
   chart = render-chart(series).width(600).height(400)
-    .x-axis-stagger(crowded-x-labels(groups))
   display-chart(chart)
 end
 
@@ -563,7 +536,6 @@ fun multi-bar-chart(t, col, subcol) block:
   chart = render-chart(series).width(600).height(400)
     .x-axis(col + " ⋲ " + subcol)
     .y-axis("frequency")
-    .x-axis-stagger(crowded-x-labels(groups))
   img = display-chart(chart)
   title = make-title([list:"Distribution of", subcol, "by", col])
   above(title, add-margin(img))
@@ -583,7 +555,6 @@ fun multi-bar-chart-summarized(t, categories, column-list) block:
     column-list)
     .colors(color-list)
   chart = render-chart(series).width(600).height(400)
-    .x-axis-stagger(crowded-x-labels(groups))
   display-chart(chart)
 end
 
@@ -601,12 +572,9 @@ fun simple-dot-plot(t, vals) block:
   else:
     from-list.dot-chart(vs)
   end
-  stagger = if is-quant: false
-    else: crowded-x-labels(Sets.list-to-set(vs).to-list())
-    end
   chart = render-chart(series).width(600).height(400)
-    .x-axis(vals).y-axis("frequency")
-    .x-axis-stagger-labels(stagger)
+    .x-axis(vals)
+    .y-axis("frequency")
   img = display-chart(chart)
   title = make-title([list:"Dot Plot of", vals])
   above(title, add-margin(img))
@@ -623,13 +591,9 @@ fun dot-plot(t, labels, vals) block:
   else:
     from-list.dot-chart(vs).labels(ls)
   end
-  stagger = if is-quant: false
-    else: crowded-x-labels(Sets.list-to-set(vs).to-list())
-    end
   chart = render-chart(series).width(600).height(400)
     .x-axis(vals)
     .y-axis("frequency")
-    .x-axis-stagger-labels(stagger)
   img = display-chart(chart)
   title = make-title([list:"Dot Plot of", vals])
   above(title, add-margin(img))
@@ -652,12 +616,9 @@ fun image-dot-plot(t, vals, f :: (Row -> Image)) block:
   else:
     from-list.dot-chart(vs)
   end
-  stagger = if is-quant: false
-    else: crowded-x-labels(Sets.list-to-set(vs).to-list())
-    end
   chart = render-chart(series.image-labels(images)).width(600).height(400)
-    .x-axis(vals).y-axis("frequency")
-    .x-axis-stagger-labels(stagger)
+    .x-axis(vals)
+    .y-axis("frequency")
   img = display-chart(chart)
   title = make-title([list:"Dot Plot of", vals])
   above(title, add-margin(img))
@@ -836,7 +797,6 @@ fun line-graph(t, labels, xs, ys) block:
   chart = render-charts([list: series, scatter-series]).width(600).height(400)
     .x-axis(xs)
     .y-axis(ys)
-    .x-axis-stagger(crowded-numeric-x-axis(l))
   img = display-chart(chart)
   title = make-title([list:"", ys, "vs.", xs])
   above(title, add-margin(img))
@@ -857,7 +817,6 @@ fun scatter-plot(t, labels, xs, ys) block:
       .x-axis(xs)
       .y-axis(ys)
       .y-min(Math.min(t.column(ys)) - padding)
-      .x-axis-stagger(crowded-numeric-x-axis(t.column(xs)))
     img = display-chart(chart)
     title = make-title([list:"", ys, "vs.", xs])
     above(title, add-margin(img))
@@ -876,7 +835,6 @@ fun simple-scatter-plot(t, xs, ys) block:
       .x-axis(xs)
       .y-axis(ys)
       .y-min(Math.min(t.column(ys)) - padding)
-      .x-axis-stagger(crowded-numeric-x-axis(t.column(xs)))
     img = display-chart(chart)
     title = make-title([list:"", ys, "vs.", xs])
     above(title, add-margin(img))
@@ -915,7 +873,6 @@ fun image-scatter-plot(t, xs, ys, f) block:
       .x-max(maxX + paddingX)
       .y-min(minY - paddingY)
       .y-max(maxY + paddingY)
-      .x-axis-stagger(crowded-numeric-x-axis(x-vals))
     img = display-chart(chart)
     title = make-title([list:"", ys, "vs.", xs])
     above(title, add-margin(img))
@@ -976,7 +933,6 @@ fun lr-plot(t, ls, xs, ys) block:
       .x-axis(xs)
       .y-axis(ys)
       .y-min(Math.min(t.column(ys)) - padding)
-      .x-axis-stagger(crowded-numeric-x-axis(t.column(xs)))
     img = display-chart(chart)
     title = make-title([list:"", ys, "vs.", xs])
     above(title, add-margin(img))
@@ -1003,7 +959,6 @@ fun simple-lr-plot(t, xs, ys) block:
       .x-axis(xs)
       .y-axis(ys)
       .y-min(Math.min(t.column(ys)) - padding)
-      .x-axis-stagger(crowded-numeric-x-axis(t.column(xs)))
     img = display-chart(chart)
     title = make-title([list:"", ys, "vs.", xs])
     above(title, add-margin(img))
@@ -1034,7 +989,6 @@ fun image-lr-plot(t, xs, ys, f) block:
       .x-axis(xs)
       .y-axis(ys)
       .y-min(Math.min(t.column(ys)) - padding)
-      .x-axis-stagger(crowded-numeric-x-axis(t.column(xs)))
     img = display-chart(chart)
     title = make-title([list:"", ys, "vs.", xs])
     above(title, add-margin(img))
@@ -1261,7 +1215,6 @@ fun fit-model(t, ls, xs, ys, fn) block:
     .y-axis(ys)
     .y-min(chart-y-min - padding)
     .y-max(chart-y-max + padding)
-    .x-axis-stagger(crowded-numeric-x-axis(t.column(xs)))
   img = display-chart(chart)
   title = make-title([list:"", ys, "vs.", xs])
   above(title, add-margin(img))

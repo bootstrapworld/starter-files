@@ -217,10 +217,9 @@ examples "t-tests":
 end
 
 
-## Staggered x-axis label demonstration ##############################
-# These region names are long enough that n × max_label_chars > 85
-# (7 regions × 26 chars = 182 > 85), so all charts below should
-# auto-stagger their x-axis labels via crowded-x-labels().
+## Long-label chart demonstration ##############################
+# These region names are long enough to trigger Pyret's built-in
+# auto-stagger for x-axis labels.
 
 region-data = table: region :: String, income-level :: String, pop :: Number
   row: "Latin America & Caribbean",  "middle", 656
@@ -238,19 +237,15 @@ region-data = table: region :: String, income-level :: String, pop :: Number
   row: "South Asia",                  "low",    214
 end
 
-# dot-chart-window charts — use .x-axis-stagger-labels()
 simple-dot-plot(region-data, "region")
 dot-plot(region-data, "region", "pop")
 color-dot-plot(region-data, "pop", lam(r): if r["income-level"] == "high": "steelblue" else: "tomato" end end)
 
-# bar-chart-window charts — use .x-axis-stagger()
 bar-chart(region-data, "region")
 image-bar-chart(region-data, "region", lam(r): circle(10, "solid", "steelblue") end)
 stacked-bar-chart(region-data, "region", "income-level")
 multi-bar-chart(region-data, "region", "income-level")
 
-# Quarterly decimal-year data triggers crowded-numeric-x-axis on plot charts.
-# 16 distinct values, max label length 7 ("2018.25") → min(16,20) × 7 = 112 > 85.
 lake-level = table: date :: Number, level-ft :: Number, name :: String
   row: 2018.00, 580.5, "Jan 2018"
   row: 2018.25, 580.2, "Apr 2018"
@@ -270,7 +265,6 @@ lake-level = table: date :: Number, level-ft :: Number, name :: String
   row: 2021.75, 579.3, "Oct 2021"
 end
 
-# plot-chart-window charts — use .x-axis-stagger()
 scatter-plot(lake-level, "name", "date", "level-ft")
 simple-scatter-plot(lake-level, "date", "level-ft")
 lr-plot(lake-level, "name", "date", "level-ft")
@@ -278,34 +272,3 @@ simple-lr-plot(lake-level, "date", "level-ft")
 fit-model(lake-level, "name", "date", "level-ft", lam(x): (0.1 * x) + 400 end)
 line-graph(lake-level, "name", "date", "level-ft")
 
-examples "crowded-x-labels — categorical":
-  # 7 long region names: 7 × 26 = 182 > 85 → crowded
-  crowded-x-labels([L.list:
-    "Latin America & Caribbean",
-    "Sub-Saharan Africa",
-    "East Asia & Pacific",
-    "Europe & Central Asia",
-    "Middle East & North Africa",
-    "North America",
-    "South Asia"]) is true
-  # 6 short animal species names: 6 × 9 = 54 ≤ 85 → not crowded
-  crowded-x-labels([L.list: "cat", "dog", "rabbit", "tarantula", "lizard", "snail"]) is false
-end
-
-examples "crowded-numeric-x-axis":
-  # 16 quarterly decimal years, capped at min(16,8) = 8, max label "2021.75" = 7 chars: 8 × 7 = 56 ≤ 85
-  # Vega only generates ~8 ticks for this range, so stagger is not needed.
-  crowded-numeric-x-axis([L.list:
-    2018.00, 2018.25, 2018.50, 2018.75,
-    2019.00, 2019.25, 2019.50, 2019.75,
-    2020.00, 2020.25, 2020.50, 2020.75,
-    2021.00, 2021.25, 2021.50, 2021.75]) is false
-  # 10 small integers (max label "10" = 2 chars): min(10,8) × 2 = 16 ≤ 85 → not crowded
-  crowded-numeric-x-axis([L.list: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) is false
-  # 101 distinct years, capped at min(101,8) = 8, label "1920" = 4 chars: 8 × 4 = 32 ≤ 85
-  crowded-numeric-x-axis(L.range(1920, 2021)) is false
-  # 8 eleven-digit integers: min(8,8) × 11 = 88 > 85 → crowded
-  crowded-numeric-x-axis([L.list:
-    10000000001, 20000000002, 30000000003, 40000000004,
-    50000000005, 60000000006, 70000000007, 80000000008]) is true
-end
