@@ -1161,7 +1161,7 @@ fun confusion-matrix(t :: Table, col :: String, classifier) -> Table:
 end
 
 ### N-GRAMS ##################################
-MAX-GRAM-SIZE = 5
+MAX-GRAM-SIZE = 25
 
 fun generate-ngrams(corpus :: String, n :: Number) block:
   doc: "Consumes a string and N, and produces a list of records with N-grams and their counts."
@@ -1207,13 +1207,14 @@ fun generate-ngrams(corpus :: String, n :: Number) block:
     .order-by("count", false)
 end
 
-fun build-lang-model(corpus-str :: String) -> Table:
+fun build-lang-model(corpus-str :: String, max-gram-size) -> Table:
   doc: "Precomputes all n-gram tables and combines them into one table with a 'size' column."
   word-count = string-split-all(massage-string(corpus-str), " ")
     .filter(is-non-empty-string)
     .length()
 
-  all-rows = for fold(acc from empty, n from L.range(1, MAX-GRAM-SIZE + 1)):
+  # a corpus shorter than MAX-GRAM-SIZE can only supply n-grams up to its own length
+  all-rows = for fold(acc from empty, n from L.range(1, num-min(word-count, max-gram-size) + 1)):
     these-rows = for fold(rows from empty, r from generate-ngrams(corpus-str, n).all-rows()):
       link([T.raw-row: {"size"; n}, {"n-gram"; r["n-gram"]}, {"count"; r["count"]}], rows)
     end
@@ -1226,101 +1227,119 @@ fun build-lang-model(corpus-str :: String) -> Table:
 
 end
 
-fun completions(model :: Table, input :: String) block:
-  input-lst = string-split-all(massage-string(input), " ")
-    .filter(is-non-empty-string)
+fun build-stat-lang-model(model :: Table, max-gram-size :: Number) -> Table block:
+  doc: "Consumes a lang-model and a max n-gram size, and produces a table with columns size, word, follows, conditional-probability and probability. Unigrams have an empty 'follows'."
 
-  input-length = input-lst.length()
-
-  shadow input = if input-length >= MAX-GRAM-SIZE:
-    input-lst.reverse()
-      .take(MAX-GRAM-SIZE)
-      .reverse()
-      .join-str(" ")
-  else: input-lst.join-str(" ")
+  when (max-gram-size < 1) or (max-gram-size > MAX-GRAM-SIZE):
+    raise(Err.message-exception("max-gram-size must be between 1 and " + to-string(MAX-GRAM-SIZE)))
   end
 
-  gram-size = num-min(string-split-all(input, " ").length() + 1, MAX-GRAM-SIZE)
-
-  filtered = model
-    # Match on a word boundary: require the input followed by a space, so e.g.
-    # "she" matches "she swallowed" but not "shell die" (she'll). The empty-input
-    # case (used by choose-completion's back-off) still matches every n-gram.
-    .filter({(r): (r["size"] == gram-size) and
-        ((input == "") or string-starts-with(r["n-gram"], input + " "))})
-    .transform-column("n-gram", {(ngram): string-split-all(ngram, " ").reverse().get(0)})
-
-  # Calculate total count to compute percentages
-  total-count = for fold(shadow sum from 0, r from filtered.all-rows()):
-    sum + r["count"]
+  fun split-gram(r):
+    words = string-split-all(r["n-gram"], " ")
+    rev = words.reverse()
+    {rev.get(0); rev.rest.reverse().join-str(" "); r["count"]}
   end
 
-  # Add percentage column
-  filtered.build-column("probability", {(r):
-      if total-count == 0:
-        0
-      else:
-        rounded-exact((r["count"] / total-count))
+  parts = model.all-rows()
+    .filter({(r): r["size"] <= max-gram-size})
+    .map(split-gram)
+
+  # total count of everything seen after each context, so that probabilities
+  # for a given context sum to 1 (a unigram's context is the empty string)
+  totals = for fold(d from [string-dict:], p from parts):
+    follows = p.{1}
+    d.set(follows, d.get(follows).or-else(0) + p.{2})
+  end
+
+  rows = for map(p from parts):
+    word = p.{0}
+    follows = p.{1}
+    size = if follows == "": 1 else: string-split-all(follows, " ").length() end
+    cond = if follows == "": "P(" + word + ")"
+      else: "P(" + word + " | " + follows + ")"
       end
-    })
+    [T.raw-row:
+      {"size"; size},
+      {"word"; word},
+      {"follows"; follows},
+      {"conditional-probability"; cond},
+      {"probability"; p.{2} / totals.get-value(follows)}]
+  end
+
+  T.table-from-rows
+    .make(raw-array-from-list(rows))
+    .order-by("size", true)
 end
 
-fun next-word-probability(model :: Table, first :: String, second :: String):
-  choices = completions(model, first)
-
-  total = for fold(acc from 0, r from choices.all-rows()):
-    acc + r["count"]
+fun check-stat-model(model :: Table) -> Nothing block:
+  required = [list: "size", "word", "follows", "probability"]
+  cols = model.column-names()
+  when not(required.all({(c): cols.member(c)})):
+    raise(Err.message-exception("This function only works on a statistical language model (with pre-computed probabilities). Check to make sure you're passing in the right kind of model."))
   end
+end
 
-  if total == 0:
-    0
-  else:
-    matching = choices.filter({(r): r["n-gram"] == massage-string(second)})
-    if matching.length() == 0:
-      0
-    else:
-      matching.row-n(0)["count"] / total
+# the longest context (number of words in `follows`) a stat-lang-model has rows for
+fun max-context-size(model :: Table) -> Number:
+  for fold(longest from 0, r from model.all-rows()):
+    if r["follows"] == "": longest
+    else: num-max(longest, r["size"])
     end
   end
 end
 
+fun last-words(str :: String, k :: Number) -> List<String>:
+  words = string-split-all(massage-string(str), " ").filter(is-non-empty-string)
+  words.reverse().take(num-min(words.length(), k)).reverse()
+end
 
-fun choose-completion(model :: Table, input :: String, n :: Number) -> String:
-  # An order-MAX-GRAM-SIZE model can only condition on the previous
-  # MAX-GRAM-SIZE - 1 (= 4) tokens, so reduce any input to just its last
-  # that-many tokens (the most recent context) before generating.
-  fun last-tokens(str):
-    toks = string-split-all(str, " ").filter(is-non-empty-string)
-    toks.reverse().take(num-min(toks.length(), MAX-GRAM-SIZE - 1)).reverse().join-str(" ")
+fun completions(model :: Table, input :: String) -> Table block:
+  doc: "Consumes a stat-lang-model and some text, and produces the rows of the model for words that could follow it, most probable first."
+  check-stat-model(model)
+  context = last-words(input, max-context-size(model)).join-str(" ")
+  model
+    .filter({(r): r["follows"] == context})
+    .order-by("probability", false)
+end
+
+fun next-word-probability(model :: Table, first :: String, second :: String) block:
+  check-stat-model(model)
+  matching = completions(model, first)
+    .filter({(r): r["word"] == massage-string(second)})
+  if matching.length() == 0:
+    0
+  else:
+    matching.row-n(0)["probability"]
   end
+end
 
-  # Choose a single next word for `context`, backing off to a shorter context
-  # (dropping the oldest word) when no n-gram matches the full context.
-  fun choose-one(context):
-    words = string-split-all(massage-string(context), " ")
-      .filter(is-non-empty-string)
-    last-word = if words.length() == 0: "" else: words.reverse().get(0) end
 
-    choices = completions(model, context)
-      .filter({(r): r["n-gram"] <> last-word})
-    row-count = choices.length()
+fun choose-completion(model :: Table, input :: String, n :: Number) -> String block:
+  check-stat-model(model)
+  max-context = max-context-size(model)
 
-    if row-count == 0:
-      if words.length() == 0:
+  # Choose the most probable next word for `context`, backing off to a shorter
+  # context (dropping the oldest word) when no row matches the full context.
+  fun choose-one(context :: List<String>):
+    last-word = if context.length() == 0: "" else: context.reverse().get(0) end
+
+    choices = completions(model, context.join-str(" "))
+      .filter({(r): r["word"] <> last-word})
+
+    if choices.length() == 0:
+      if context.length() == 0:
         ""   # no context left to back off to
       else:
-        choose-one(words.rest.join-str(" "))
+        choose-one(context.rest)
       end
-    else if row-count == 1:
-      choices.row-n(0)["n-gram"]
     else:
-      choices.row-n(random(row-count))["n-gram"]   # random(k) is in [0, k)
+      choices.row-n(0)["word"]
     end
   end
 
   # Choose n words in sequence, feeding each choice back in as context for the
   # next, and stopping early if we hit a dead end.
-  fun choose-n(context, k):
+  fun choose-n(context :: List<String>, k):
     if k <= 0:
       empty
     else:
@@ -1328,12 +1347,12 @@ fun choose-completion(model :: Table, input :: String, n :: Number) -> String:
       if word == "":
         empty
       else:
-        link(word, choose-n(last-tokens(context + " " + word), k - 1))
+        link(word, choose-n(last-words((context + [list: word]).join-str(" "), max-context), k - 1))
       end
     end
   end
 
-  choose-n(last-tokens(input), n).join-str(" ")
+  choose-n(last-words(input, max-context), n).join-str(" ")
 end
 
 # append one generated word; choose-completion reduces the input to the last

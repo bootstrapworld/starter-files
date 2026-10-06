@@ -34,7 +34,8 @@ I don't know why she swallowed a fly - perhaps she'll die!
 
 # Use the contracts below to explore the lyrics
 
-# build-lang-model :: String -> Model
+# build-lang-model :: String, Number -> Model
+# build-stat-lang-model :: Model, Number -> Model
 # completions :: Model, String -> Table
 # choose-completion :: Model, String, Number -> String
 # generate-from :: Model, String -> String

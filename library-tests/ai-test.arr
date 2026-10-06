@@ -90,9 +90,62 @@ examples "n-grams":
   _bigrams.get-column("count") is [list: 2, 1, 1, 1]
 end
 
-_lm = build-lang-model("the cat sat the cat ran the cat slept")
+_lm = build-stat-lang-model(build-lang-model("the cat sat the cat ran the cat slept", 5), 5)
 examples "next-word-probability":
   next-word-probability(_lm, "the", "cat") is 1
+  next-word-probability(_lm, "cat", "sat") is-roughly 1/3
+  next-word-probability(_lm, "cat", "dog") is 0
+end
+
+_cmp-lm = build-stat-lang-model(build-lang-model("hello goodbye and farewell hello goodbye hello", 3), 3)
+_c = completions(_cmp-lm, "hello goodbye")
+examples "completions":
+  _c.get-column("word").sort() is [list: "and", "hello"]
+  _c.get-column("follows") is [list: "hello goodbye", "hello goodbye"]
+  _c.get-column("conditional-probability").sort() is [list: "P(and | hello goodbye)", "P(hello | hello goodbye)"]
+  _c.get-column("probability") is [list: 1/2, 1/2]
+  # context is trimmed to the model's longest context (2 words), and punctuation/case ignored
+  completions(_cmp-lm, "Farewell, hello GOODBYE").get-column("follows") is [list: "hello goodbye", "hello goodbye"]
+  # an unseen context has no completions
+  completions(_cmp-lm, "zebra").length() is 0
+end
+
+# "a" is followed by "b" twice and by "c" once
+_ord-lm = build-stat-lang-model(build-lang-model("a b a b a c", 3), 3)
+examples "completions are ordered by probability":
+  completions(_ord-lm, "a").get-column("word") is [list: "b", "c"]
+  completions(_ord-lm, "a").get-column("probability") is [list: 2/3, 1/3]
+end
+
+examples "choose-completion":
+  choose-completion(_ord-lm, "a", 1) is "b"
+  # backs off to a shorter context when the full one is unseen
+  choose-completion(_ord-lm, "zebra a", 1) is "b"
+  choose-completion(_cmp-lm, "hello goodbye and", 2) is "farewell hello"
+end
+
+_short-lm = build-lang-model("hello goodbye and farewell", 5)
+examples "stat-model functions reject a plain lang-model":
+  completions(_short-lm, "hello") raises "statistical language model"
+  next-word-probability(_short-lm, "hello", "goodbye") raises "statistical language model"
+  choose-completion(_short-lm, "hello", 1) raises "statistical language model"
+end
+examples "build-lang-model on a short corpus":
+  _short-lm.get-column("size").member(5) is false
+  _short-lm.get-column("size").member(4) is true
+  _short-lm.length() is 10
+end
+
+_stat = build-stat-lang-model(_short-lm, 4)
+examples "build-stat-lang-model":
+  _stat.length() is 10
+  _stat.column-names() is [list: "size", "word", "follows", "conditional-probability", "probability"]
+  _stat.filter(lam(r): r["follows"] == "" end).get-column("probability") is [list: 1/4, 1/4, 1/4, 1/4]
+  _stat.filter(lam(r): r["conditional-probability"] == "P(goodbye | hello)" end).get-column("probability") is [list: 1]
+  _stat.filter(lam(r): r["conditional-probability"] == "P(farewell | hello goodbye and)" end).get-column("size") is [list: 3]
+  build-stat-lang-model(_short-lm, 2).length() is 7
+  build-stat-lang-model(_short-lm, 0) raises "max-gram-size"
+  build-stat-lang-model(_short-lm, 26) raises "max-gram-size"
 end
 
 _img-table = table: ID, DOC
