@@ -1,5 +1,10 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/ai", "../libraries/core.arr")
 
+corpus-short = ```
+She swallowed the cat to catch the bird,
+She swallowed the bird to catch the spider
+```
+
 corpus = ```
 There was an Old Lady who Swallowed a Fly
 
@@ -29,9 +34,7 @@ I don't know why she swallowed a fly - perhaps she'll die!
 
 # Use the contracts below to explore the lyrics
 
-# generate-ngrams :: String, Number -> Table
 # build-lang-model :: String -> Model
-# next-word-probability :: Model, String, String -> Number
 # completions :: Model, String -> Table
 # choose-completion :: Model, String, Number -> String
 # generate-from :: Model, String -> String
