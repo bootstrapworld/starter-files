@@ -30,7 +30,11 @@ listB = [list: -5, -3, -1.5, -1, 0, 1, 3, 5]
 
 
 # 3) PLOT YOUR INEQUALITY WITH YOUR LIST OF TEST POINTS ON A NUMBER LINE
+
+"Plot less-than-zero as an inequality"
 inequality(less-than-zero, listA)
+
+"Plot at-least-zero as an inequality"
 inequality(at-least-zero, listB)
 
 # Numbers that are part of the solution will appear as green dots with a T
