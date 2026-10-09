@@ -1,6 +1,6 @@
 use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/main/ai", "../libraries/core.arr")
 
-corpus-short = ```
+short-corpus = ```
 She swallowed the cat to catch the bird,
 She swallowed the bird to catch the spider
 ```
@@ -39,3 +39,6 @@ I don't know why she swallowed a fly - perhaps she'll die!
 # completions :: Model, String -> Table
 # choose-completion :: Model, String, Number -> String
 # generate-from :: Model, String -> String
+
+m-short = build-lang-model(short-corpus, 3)
+m = build-lang-model(corpus, 3)
