@@ -34,11 +34,11 @@ I don't know why she swallowed a fly - perhaps she'll die!
 
 # Use the contracts below to explore the lyrics
 
-# build-lang-model :: String, Number -> Model
-# build-stat-lang-model :: Model -> Model
+# ngram-table :: String, Number -> Model
+# stat-lang-model :: Model -> Model
 # completions :: Model, String -> Table
 # choose-completion :: Model, String -> String
 # generate-from :: Model, String -> String
 
-m-short = build-lang-model(short-corpus, 3)
-m = build-lang-model(corpus, 3)
+m-short = ngram-table(short-corpus, 3)
+m = ngram-table(corpus, 3)

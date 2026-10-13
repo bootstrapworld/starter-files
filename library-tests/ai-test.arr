@@ -90,14 +90,17 @@ examples "n-grams":
   _bigrams.get-column("count") is [list: 2, 1, 1, 1]
 end
 
-_lm = build-stat-lang-model(build-lang-model("the cat sat the cat ran the cat slept", 5))
+# true iff x is a roughnum within 0.000001 of target (roughnums can't be compared with is-roughly)
+fun _near(x, target): num-is-roughnum(x) and (num-abs(x - target) < 0.000001) end
+
+_lm = stat-lang-model(ngram-table("the cat sat the cat ran the cat slept", 5))
 examples "next-word-probability":
   next-word-probability(_lm, "the", "cat") is 1
-  next-word-probability(_lm, "cat", "sat") is-roughly 1/3
+  _near(next-word-probability(_lm, "cat", "sat"), 33333/100000) is true
   next-word-probability(_lm, "cat", "dog") is 0
 end
 
-_cmp-lm = build-stat-lang-model(build-lang-model("hello goodbye and farewell hello goodbye hello", 3))
+_cmp-lm = stat-lang-model(ngram-table("hello goodbye and farewell hello goodbye hello", 3))
 _c = completions(_cmp-lm, "hello goodbye")
 examples "completions":
   _c.get-column("word").sort() is [list: "and", "hello"]
@@ -111,42 +114,56 @@ examples "completions":
 end
 
 # "a" is followed by "b" twice and by "c" once
-_ord-lm = build-stat-lang-model(build-lang-model("a b a b a c", 3))
-examples "completions are ordered by probability":
+_ord-lm = stat-lang-model(ngram-table("a b a b a c", 3))
+examples "completion probabilities":
   completions(_ord-lm, "a").get-column("word") is [list: "b", "c"]
-  completions(_ord-lm, "a").get-column("probability") is [list: 2/3, 1/3]
+  # 2/3 and 1/3 are truncated (not rounded) to 5 places, and flagged as roughnums
+  _near(completions(_ord-lm, "a").get-column("probability").get(0), 66666/100000) is true
+  _near(completions(_ord-lm, "a").get-column("probability").get(1), 33333/100000) is true
+  # values that lose no digits stay exact
+  completions(_ord-lm, "b").get-column("probability") is [list: 1]
+end
+
+# "a" is followed by "y" twice and "z" once; sorted alphabetically, "y" and "z" tie-break by name, not probability
+_alpha-lm = stat-lang-model(ngram-table("a y a z a y", 3))
+examples "stat-lang-model ordering":
+  _alpha-lm.get-column("size") is [list: 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2]
+  _alpha-lm.filter(lam(r): r["size"] == 1 end).get-column("follows") is [list: "", "", "", "a", "a", "y", "z"]
 end
 
 examples "choose-completion":
-  choose-completion(_ord-lm, "a", 1) is "b"
+  # picks the most probable word even though it isn't first alphabetically
+  choose-completion(_alpha-lm, "a") is "y"
+  choose-completion(_ord-lm, "a") is "b"
   # backs off to a shorter context when the full one is unseen
-  choose-completion(_ord-lm, "zebra a", 1) is "b"
-  choose-completion(_cmp-lm, "hello goodbye and", 2) is "farewell hello"
+  choose-completion(_ord-lm, "zebra a") is "b"
+  # always exactly one word
+  choose-completion(_cmp-lm, "hello goodbye and") is "farewell"
 end
 
-_short-lm = build-lang-model("hello goodbye and farewell", 5)
+_short-lm = ngram-table("hello goodbye and farewell", 5)
 examples "stat-model functions reject a plain lang-model":
   completions(_short-lm, "hello") raises "statistical language model"
   next-word-probability(_short-lm, "hello", "goodbye") raises "statistical language model"
-  choose-completion(_short-lm, "hello", 1) raises "statistical language model"
+  choose-completion(_short-lm, "hello") raises "statistical language model"
 end
-examples "build-lang-model on a short corpus":
+examples "ngram-table on a short corpus":
   _short-lm.get-column("size").member(5) is false
   _short-lm.get-column("size").member(4) is true
   _short-lm.length() is 10
 end
 
-_stat = build-stat-lang-model(_short-lm)
-examples "build-stat-lang-model":
+_stat = stat-lang-model(_short-lm)
+examples "stat-lang-model":
   _stat.length() is 10
   _stat.column-names() is [list: "size", "word", "follows", "conditional-probability", "probability"]
   _stat.filter(lam(r): r["follows"] == "" end).get-column("probability") is [list: 1/4, 1/4, 1/4, 1/4]
   _stat.filter(lam(r): r["conditional-probability"] == "P(goodbye | hello)" end).get-column("probability") is [list: 1]
   _stat.filter(lam(r): r["conditional-probability"] == "P(farewell | hello goodbye and)" end).get-column("size") is [list: 3]
   # the max n-gram size is inferred from the lang-model: unigrams and bigrams only
-  build-stat-lang-model(build-lang-model("hello goodbye and farewell", 2)).length() is 7
+  stat-lang-model(ngram-table("hello goodbye and farewell", 2)).length() is 7
   # a table that isn't a lang-model (here, a stat-lang-model) is rejected
-  build-stat-lang-model(_stat) raises "build-lang-model"
+  stat-lang-model(_stat) raises "ngram-table"
 end
 
 _img-table = table: ID, DOC

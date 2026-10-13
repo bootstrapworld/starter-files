@@ -1207,7 +1207,7 @@ fun generate-ngrams(corpus :: String, n :: Number) block:
     .order-by("count", false)
 end
 
-fun build-lang-model(corpus-str :: String, max-gram-size) -> Table:
+fun ngram-table(corpus-str :: String, max-gram-size) -> Table:
   doc: "Precomputes all n-gram tables and combines them into one table with a 'size' column."
   word-count = string-split-all(massage-string(corpus-str), " ")
     .filter(is-non-empty-string)
@@ -1227,18 +1227,25 @@ fun build-lang-model(corpus-str :: String, max-gram-size) -> Table:
 
 end
 
-fun build-stat-lang-model(model :: Table) -> Table block:
-  doc: "Consumes a lang-model and produces a table with columns size, word, follows, conditional-probability and probability, covering every n-gram size in the model. Unigrams have an empty 'follows'."
+fun stat-lang-model(model :: Table) -> Table block:
+  doc: "Consumes a lang-model and produces a table with columns size, word, follows, conditional-probability and probability, covering every n-gram size in the model. Unigrams have an empty 'follows'. Probabilities are truncated to 5 decimal places, and become roughnums when digits were dropped."
 
   cols = model.column-names()
   when not([list: "size", "n-gram", "count"].all({(c): cols.member(c)})):
-    raise(Err.message-exception("This function only works on a language model (built with build-lang-model). Check to make sure you're passing in the right kind of model."))
+    raise(Err.message-exception("This function only works on a language model (built with ngram-table). Check to make sure you're passing in the right kind of model."))
   end
 
   fun split-gram(r):
     words = string-split-all(r["n-gram"], " ")
     rev = words.reverse()
     {rev.get(0); rev.rest.reverse().join-str(" "); r["count"]}
+  end
+
+  # Truncate (not round) to 5 decimal places. Only values that actually lose
+  # digits become roughnums, so exact results like 1/2 stay exact.
+  fun truncate-probability(x):
+    truncated = num-floor(x * 100000) / 100000
+    if truncated == x: x else: num-to-roughnum(truncated) end
   end
 
   parts = model.all-rows().map(split-gram)
@@ -1250,24 +1257,30 @@ fun build-stat-lang-model(model :: Table) -> Table block:
     d.set(follows, d.get(follows).or-else(0) + p.{2})
   end
 
-  rows = for map(p from parts):
+  # {size; follows; word; row}, so the rows can be ordered below
+  keyed = for map(p from parts):
     word = p.{0}
     follows = p.{1}
     size = if follows == "": 1 else: string-split-all(follows, " ").length() end
     cond = if follows == "": "P(" + word + ")"
       else: "P(" + word + " | " + follows + ")"
       end
-    [T.raw-row:
-      {"size"; size},
-      {"word"; word},
-      {"follows"; follows},
-      {"conditional-probability"; cond},
-      {"probability"; p.{2} / totals.get-value(follows)}]
+    {size; follows; word;
+      [T.raw-row:
+        {"size"; size},
+        {"word"; word},
+        {"follows"; follows},
+        {"conditional-probability"; cond},
+        {"probability"; truncate-probability(p.{2} / totals.get-value(follows))}]}
   end
 
+  # shortest first, then alphabetical by context and by word
+  ordered = keyed.sort-by(
+    {(a, b): (a.{0} < b.{0}) or ((a.{0} == b.{0}) and ((a.{1} < b.{1}) or ((a.{1} == b.{1}) and (a.{2} < b.{2}))))},
+    {(a, b): (a.{0} == b.{0}) and (a.{1} == b.{1}) and (a.{2} == b.{2})})
+
   T.table-from-rows
-    .make(raw-array-from-list(rows))
-    .order-by("size", true)
+    .make(raw-array-from-list(ordered.map({(k): k.{3}})))
 end
 
 fun check-stat-model(model :: Table) -> Nothing block:
@@ -1293,12 +1306,10 @@ fun last-words(str :: String, k :: Number) -> List<String>:
 end
 
 fun completions(model :: Table, input :: String) -> Table block:
-  doc: "Consumes a stat-lang-model and some text, and produces the rows of the model for words that could follow it, most probable first."
+  doc: "Consumes a stat-lang-model and some text, and produces the rows of the model for words that could follow it."
   check-stat-model(model)
   context = last-words(input, max-context-size(model)).join-str(" ")
-  model
-    .filter({(r): r["follows"] == context})
-    .order-by("probability", false)
+  model.filter({(r): r["follows"] == context})
 end
 
 fun next-word-probability(model :: Table, first :: String, second :: String) block:
@@ -1333,7 +1344,11 @@ fun choose-completion(model :: Table, input :: String) -> String block:
         choose-one(context.rest)
       end
     else:
-      choices.row-n(0)["word"]
+      # the most probable choice (roughnums can't be compared for equality, so
+      # sorting would fail on ties; > is fine, and the first of any tie wins)
+      choices.all-rows().foldl(
+        {(r, best): if r["probability"] > best["probability"]: r else: best end},
+        choices.row-n(0))["word"]
     end
   end
 
@@ -1358,7 +1373,7 @@ end
 # append one generated word; choose-completion reduces the input to the last
 # few tokens itself, so just pass the whole string through.
 fun add-next-word(model :: Table, input :: String) -> String:
-  input + " " + choose-completion(model, input, 1)
+  input + " " + choose-completion(model, input)
 end
 
 fun draw-lines(txt):
