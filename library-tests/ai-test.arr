@@ -93,41 +93,43 @@ end
 # true iff x is a roughnum within 0.000001 of target (roughnums can't be compared with is-roughly)
 fun _near(x, target): num-is-roughnum(x) and (num-abs(x - target) < 0.000001) end
 
-_lm = stat-lang-model(ngram-table("the cat sat the cat ran the cat slept", 5))
+_lm = stat-lang-model("the cat sat the cat ran the cat slept")
 examples "next-word-probability":
   next-word-probability(_lm, "the", "cat") is 1
   _near(next-word-probability(_lm, "cat", "sat"), 33333/100000) is true
   next-word-probability(_lm, "cat", "dog") is 0
 end
 
-_cmp-lm = stat-lang-model(ngram-table("hello goodbye and farewell hello goodbye hello", 3))
+_cmp-lm = stat-lang-model("hello goodbye and farewell hello goodbye hello")
 _c = completions(_cmp-lm, "hello goodbye")
 examples "completions":
   _c.get-column("word").sort() is [list: "and", "hello"]
   _c.get-column("follows") is [list: "hello goodbye", "hello goodbye"]
   _c.get-column("conditional-probability").sort() is [list: "P(and | hello goodbye)", "P(hello | hello goodbye)"]
   _c.get-column("probability") is [list: 1/2, 1/2]
-  # context is trimmed to the model's longest context (2 words), and punctuation/case ignored
-  completions(_cmp-lm, "Farewell, hello GOODBYE").get-column("follows") is [list: "hello goodbye", "hello goodbye"]
+  # punctuation and case are ignored
+  completions(_cmp-lm, "Farewell, hello GOODBYE").get-column("follows") is [list: "farewell hello goodbye"]
+  # the context is trimmed to the model's longest context (6 words, for a 7-word corpus)
+  completions(_cmp-lm, "zebra zebra zebra hello goodbye and farewell hello goodbye").get-column("word") is [list: "hello"]
   # an unseen context has no completions
   completions(_cmp-lm, "zebra").length() is 0
 end
 
 # "a" is followed by "b" twice and by "c" once
-_ord-lm = stat-lang-model(ngram-table("a b a b a c", 3))
+_ord-lm = stat-lang-model("a b a b a c")
 examples "completion probabilities":
   completions(_ord-lm, "a").get-column("word") is [list: "b", "c"]
-  # 2/3 and 1/3 are truncated (not rounded) to 5 places, and flagged as roughnums
-  _near(completions(_ord-lm, "a").get-column("probability").get(0), 66666/100000) is true
+  # 2/3 and 1/3 are rounded to 5 places, and flagged as roughnums
+  _near(completions(_ord-lm, "a").get-column("probability").get(0), 66667/100000) is true
   _near(completions(_ord-lm, "a").get-column("probability").get(1), 33333/100000) is true
   # values that lose no digits stay exact
   completions(_ord-lm, "b").get-column("probability") is [list: 1]
 end
 
 # "a" is followed by "y" twice and "z" once; sorted alphabetically, "y" and "z" tie-break by name, not probability
-_alpha-lm = stat-lang-model(ngram-table("a y a z a y", 3))
+_alpha-lm = stat-lang-model("a y a z a y")
 examples "stat-lang-model ordering":
-  _alpha-lm.get-column("size") is [list: 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2]
+  _alpha-lm.get-column("size") is [list: 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 5]
   _alpha-lm.filter(lam(r): r["size"] == 1 end).get-column("follows") is [list: "", "", "", "a", "a", "y", "z"]
 end
 
@@ -141,7 +143,7 @@ examples "choose-completion":
   choose-completion(_cmp-lm, "hello goodbye and") is "farewell"
 end
 
-_short-lm = ngram-table("hello goodbye and farewell", 5)
+_short-lm = ngram-table("hello goodbye and farewell")
 examples "stat-model functions reject a plain lang-model":
   completions(_short-lm, "hello") raises "statistical language model"
   next-word-probability(_short-lm, "hello", "goodbye") raises "statistical language model"
@@ -153,17 +155,13 @@ examples "ngram-table on a short corpus":
   _short-lm.length() is 10
 end
 
-_stat = stat-lang-model(_short-lm)
+_stat = stat-lang-model("hello goodbye and farewell")
 examples "stat-lang-model":
   _stat.length() is 10
   _stat.column-names() is [list: "size", "word", "follows", "conditional-probability", "probability"]
   _stat.filter(lam(r): r["follows"] == "" end).get-column("probability") is [list: 1/4, 1/4, 1/4, 1/4]
   _stat.filter(lam(r): r["conditional-probability"] == "P(goodbye | hello)" end).get-column("probability") is [list: 1]
   _stat.filter(lam(r): r["conditional-probability"] == "P(farewell | hello goodbye and)" end).get-column("size") is [list: 3]
-  # the max n-gram size is inferred from the lang-model: unigrams and bigrams only
-  stat-lang-model(ngram-table("hello goodbye and farewell", 2)).length() is 7
-  # a table that isn't a lang-model (here, a stat-lang-model) is rejected
-  stat-lang-model(_stat) raises "ngram-table"
 end
 
 _img-table = table: ID, DOC

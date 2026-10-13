@@ -1161,7 +1161,7 @@ fun confusion-matrix(t :: Table, col :: String, classifier) -> Table:
 end
 
 ### N-GRAMS ##################################
-MAX-GRAM-SIZE = 25
+MAX-GRAM-SIZE = 7
 
 fun generate-ngrams(corpus :: String, n :: Number) block:
   doc: "Consumes a string and N, and produces a list of records with N-grams and their counts."
@@ -1207,14 +1207,14 @@ fun generate-ngrams(corpus :: String, n :: Number) block:
     .order-by("count", false)
 end
 
-fun ngram-table(corpus-str :: String, max-gram-size) -> Table:
+fun ngram-table(corpus-str :: String) -> Table:
   doc: "Precomputes all n-gram tables and combines them into one table with a 'size' column."
   word-count = string-split-all(massage-string(corpus-str), " ")
     .filter(is-non-empty-string)
     .length()
 
   # a corpus shorter than MAX-GRAM-SIZE can only supply n-grams up to its own length
-  all-rows = for fold(acc from empty, n from L.range(1, num-min(word-count, max-gram-size) + 1)):
+  all-rows = for fold(acc from empty, n from L.range(1, num-min(word-count, MAX-GRAM-SIZE) + 1)):
     these-rows = for fold(rows from empty, r from generate-ngrams(corpus-str, n).all-rows()):
       link([T.raw-row: {"size"; n}, {"n-gram"; r["n-gram"]}, {"count"; r["count"]}], rows)
     end
@@ -1227,13 +1227,10 @@ fun ngram-table(corpus-str :: String, max-gram-size) -> Table:
 
 end
 
-fun stat-lang-model(model :: Table) -> Table block:
-  doc: "Consumes a lang-model and produces a table with columns size, word, follows, conditional-probability and probability, covering every n-gram size in the model. Unigrams have an empty 'follows'. Probabilities are truncated to 5 decimal places, and become roughnums when digits were dropped."
+fun stat-lang-model(corpus :: String) -> Table block:
+  doc: "Consumes a corpus and produces a table with columns size, word, follows, conditional-probability and probability, covering every n-gram size up to MAX-GRAM-SIZE. Unigrams have an empty 'follows'. Probabilities are rounded to 5 decimal places, and become roughnums when digits were dropped."
 
-  cols = model.column-names()
-  when not([list: "size", "n-gram", "count"].all({(c): cols.member(c)})):
-    raise(Err.message-exception("This function only works on a language model (built with ngram-table). Check to make sure you're passing in the right kind of model."))
-  end
+  model = ngram-table(corpus)
 
   fun split-gram(r):
     words = string-split-all(r["n-gram"], " ")
@@ -1241,11 +1238,10 @@ fun stat-lang-model(model :: Table) -> Table block:
     {rev.get(0); rev.rest.reverse().join-str(" "); r["count"]}
   end
 
-  # Truncate (not round) to 5 decimal places. Only values that actually lose
-  # digits become roughnums, so exact results like 1/2 stay exact.
-  fun truncate-probability(x):
-    truncated = num-floor(x * 100000) / 100000
-    if truncated == x: x else: num-to-roughnum(truncated) end
+  # Round to 5 decimal places. Only values that actually lose digits become
+  # roughnums, so exact results like 1/2 stay exact.
+  fun tidy-probability(x):
+    if num-is-integer(x * 100000): x else: num-round-to(x, 5) end
   end
 
   parts = model.all-rows().map(split-gram)
@@ -1271,7 +1267,7 @@ fun stat-lang-model(model :: Table) -> Table block:
         {"word"; word},
         {"follows"; follows},
         {"conditional-probability"; cond},
-        {"probability"; truncate-probability(p.{2} / totals.get-value(follows))}]}
+        {"probability"; tidy-probability(p.{2} / totals.get-value(follows))}]}
   end
 
   # shortest first, then alphabetical by context and by word
@@ -1325,7 +1321,8 @@ end
 
 
 fun choose-completion(model :: Table, input :: String) -> String block:
-  n = 1
+  n = 1 # how many "next words" do we produce? Set to one for now...
+
   check-stat-model(model)
   max-context = max-context-size(model)
 
