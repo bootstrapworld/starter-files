@@ -1313,7 +1313,8 @@ fun next-word-probability(model :: Table, first :: String, second :: String) blo
 end
 
 
-fun choose-completion(model :: Table, input :: String, n :: Number) -> String block:
+fun choose-completion(model :: Table, input :: String) -> String block:
+  n = 1
   check-stat-model(model)
   max-context = max-context-size(model)
 

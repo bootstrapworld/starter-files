@@ -37,7 +37,7 @@ I don't know why she swallowed a fly - perhaps she'll die!
 # build-lang-model :: String, Number -> Model
 # build-stat-lang-model :: Model -> Model
 # completions :: Model, String -> Table
-# choose-completion :: Model, String, Number -> String
+# choose-completion :: Model, String -> String
 # generate-from :: Model, String -> String
 
 m-short = build-lang-model(short-corpus, 3)
