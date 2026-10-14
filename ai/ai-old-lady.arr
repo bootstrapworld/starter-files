@@ -37,8 +37,9 @@ I don't know why she swallowed a fly - perhaps she'll die!
 # n-grams :: String -> Model
 # stat-lang-model :: String -> Model
 # completions :: Model, String -> Table
-# choose-completion :: Model, String -> String
-# generate-from :: Model, String -> String
+# suggestions :: Model, String -> Table
+# choose-suggestion :: Model, String -> String
+# generate-text :: Model -> String
 
 m-short = stat-lang-model(short-corpus)
 m = stat-lang-model(corpus)

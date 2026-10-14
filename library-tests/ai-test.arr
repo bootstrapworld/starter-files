@@ -126,6 +126,24 @@ examples "completion probabilities":
   completions(_ord-lm, "b").get-column("probability") is [list: 1]
 end
 
+examples "suggestions":
+  # size 2 ("hello goodbye"), then size 1 by probability: "goodbye" rows (1/2 each), then the unigrams
+  suggestions(_cmp-lm, "hello goodbye").get-column("follows") is
+  [list: "hello goodbye", "hello goodbye", "goodbye", "goodbye", "", "", "", ""]
+  suggestions(_cmp-lm, "hello goodbye").length() is 8
+  # sorted by size (descending), then probability (descending), so unigrams
+  # and one-word-context rows share size 1 and interleave; ties go to the longer context
+  suggestions(_ord-lm, "a").get-column("word") is [list: "b", "a", "c", "b", "c"]
+  suggestions(_ord-lm, "a").get-column("follows") is [list: "a", "", "a", "", ""]
+  suggestions(_ord-lm, "a b a").get-column("size").first is 3
+  # an unseen word falls through to the unigrams
+  suggestions(_cmp-lm, "zebra").length() is 4
+  # empty input is just the unigrams
+  suggestions(_cmp-lm, "").get-column("follows") is [list: "", "", "", ""]
+  # input longer than the model's longest context doesn't repeat completions
+  suggestions(_cmp-lm, "zebra zebra zebra hello goodbye and farewell hello goodbye").get-column("follows").first is "hello goodbye and farewell hello goodbye"
+end
+
 # "a" is followed by "y" twice and "z" once; sorted alphabetically, "y" and "z" tie-break by name, not probability
 _alpha-lm = stat-lang-model("a y a z a y")
 examples "stat-lang-model ordering":
@@ -133,14 +151,22 @@ examples "stat-lang-model ordering":
   _alpha-lm.filter(lam(r): r["size"] == 1 end).get-column("follows") is [list: "", "", "", "a", "a", "y", "z"]
 end
 
-examples "choose-completion":
+examples "add-next-word":
+  # starting from the empty string, the first word is the top unigram (no leading space)
+  add-next-word(_ord-lm, "") is "a"
+  add-next-word(_ord-lm, "a") is "a b"
+end
+
+examples "choose-suggestion":
   # picks the most probable word even though it isn't first alphabetically
-  choose-completion(_alpha-lm, "a") is "y"
-  choose-completion(_ord-lm, "a") is "b"
-  # backs off to a shorter context when the full one is unseen
-  choose-completion(_ord-lm, "zebra a") is "b"
+  choose-suggestion(_alpha-lm, "a") is "y"
+  choose-suggestion(_ord-lm, "a") is "b"
+  # an unseen leading word doesn't matter: the top suggestion comes from "a"
+  choose-suggestion(_ord-lm, "zebra a") is "b"
+  # an entirely unseen word falls through to the most probable unigram
+  choose-suggestion(_ord-lm, "zebra") is "a"
   # always exactly one word
-  choose-completion(_cmp-lm, "hello goodbye and") is "farewell"
+  choose-suggestion(_cmp-lm, "hello goodbye and") is "farewell"
 end
 
 # "the" x3, "cat" x2: within a size, most frequent first, then alphabetical
@@ -156,7 +182,8 @@ _short-lm = n-grams("hello goodbye and farewell")
 examples "stat-model functions reject a plain lang-model":
   completions(_short-lm, "hello") raises "statistical language model"
   next-word-probability(_short-lm, "hello", "goodbye") raises "statistical language model"
-  choose-completion(_short-lm, "hello") raises "statistical language model"
+  choose-suggestion(_short-lm, "hello") raises "statistical language model"
+  suggestions(_short-lm, "hello") raises "statistical language model"
 end
 examples "n-grams on a short corpus":
   _short-lm.get-column("size").member(5) is false

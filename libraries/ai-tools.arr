@@ -1312,6 +1312,50 @@ fun completions(model :: Table, input :: String) -> Table block:
   model.filter({(r): r["follows"] == context})
 end
 
+fun suggestions(model :: Table, input :: String) -> Table block:
+  doc: "Consumes a stat-lang-model and some text, and produces the completions for the text, then for the text without its first word, and so on down to the empty text. Rows are sorted by size (largest first), then by probability (highest first)."
+  check-stat-model(model)
+
+  # the model can't use more than its longest context, so start from there
+  # (otherwise every longer prefix would just repeat the same completions)
+  fun collect(tokens :: List<String>):
+    here = completions(model, tokens.join-str(" "))
+    cases (List) tokens:
+      | empty => here
+      | link(_, rest) => here.stack(collect(rest))
+    end
+  end
+
+  gathered = collect(last-words(input, max-context-size(model)))
+
+  # Probabilities may be roughnums, which can't be compared for equality (so
+  # order-by would fail on ties); > and < are fine. Remaining ties go to the
+  # longer context, then alphabetical, so the order is deterministic.
+  fun context-length(r): if r["follows"] == "": 0 else: string-split-all(r["follows"], " ").length() end end
+  fun before(a, b):
+    if a["size"] <> b["size"]: a["size"] > b["size"]
+    else if a["probability"] > b["probability"]: true
+    else if b["probability"] > a["probability"]: false
+    else if context-length(a) <> context-length(b): context-length(a) > context-length(b)
+    else if a["follows"] <> b["follows"]: a["follows"] < b["follows"]
+    else: a["word"] < b["word"]
+    end
+  end
+
+  if gathered.length() == 0:
+    gathered
+  else:
+    sorted = gathered.all-rows().sort-by(before, {(a, b): not(before(a, b)) and not(before(b, a))})
+    T.table-from-rows.make(raw-array-from-list(sorted.map({(r):
+          [T.raw-row:
+            {"size"; r["size"]},
+            {"word"; r["word"]},
+            {"follows"; r["follows"]},
+            {"conditional-probability"; r["conditional-probability"]},
+            {"probability"; r["probability"]}]})))
+  end
+end
+
 fun next-word-probability(model :: Table, first :: String, second :: String) block:
   check-stat-model(model)
   matching = completions(model, first)
@@ -1324,57 +1368,16 @@ fun next-word-probability(model :: Table, first :: String, second :: String) blo
 end
 
 
-fun choose-completion(model :: Table, input :: String) -> String block:
-  n = 1 # how many "next words" do we produce? Set to one for now...
-
-  check-stat-model(model)
-  max-context = max-context-size(model)
-
-  # Choose the most probable next word for `context`, backing off to a shorter
-  # context (dropping the oldest word) when no row matches the full context.
-  fun choose-one(context :: List<String>):
-    last-word = if context.length() == 0: "" else: context.reverse().get(0) end
-
-    choices = completions(model, context.join-str(" "))
-      .filter({(r): r["word"] <> last-word})
-
-    if choices.length() == 0:
-      if context.length() == 0:
-        ""   # no context left to back off to
-      else:
-        choose-one(context.rest)
-      end
-    else:
-      # the most probable choice (roughnums can't be compared for equality, so
-      # sorting would fail on ties; > is fine, and the first of any tie wins)
-      choices.all-rows().foldl(
-        {(r, best): if r["probability"] > best["probability"]: r else: best end},
-        choices.row-n(0))["word"]
-    end
-  end
-
-  # Choose n words in sequence, feeding each choice back in as context for the
-  # next, and stopping early if we hit a dead end.
-  fun choose-n(context :: List<String>, k):
-    if k <= 0:
-      empty
-    else:
-      word = choose-one(context)
-      if word == "":
-        empty
-      else:
-        link(word, choose-n(last-words((context + [list: word]).join-str(" "), max-context), k - 1))
-      end
-    end
-  end
-
-  choose-n(last-words(input, max-context), n).join-str(" ")
+fun choose-suggestion(model :: Table, input :: String) -> String:
+  doc: "Consumes a stat-lang-model and some text, and produces the word from the top-ranked suggestion."
+  suggestions(model, input).row-n(0)["word"]
 end
 
-# append one generated word; choose-completion reduces the input to the last
+# append one generated word; choose-suggestion reduces the input to the last
 # few tokens itself, so just pass the whole string through.
 fun add-next-word(model :: Table, input :: String) -> String:
-  input + " " + choose-completion(model, input)
+  word = choose-suggestion(model, input)
+  if input == "": word else: input + " " + word end
 end
 
 fun draw-lines(txt):
@@ -1407,9 +1410,9 @@ fun draw-lines(txt):
   above-align-list("left", build-lines(words, ""))
 end
 
-fun generate-from(model :: Table, input):
+fun generate-text(model :: Table):
   reactor:
-    init: input,
+    init: "",
     to-draw: draw-lines,
     on-tick: lam(i): add-next-word(model, i) end,
     seconds-per-tick: 0.1
