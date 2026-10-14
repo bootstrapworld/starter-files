@@ -34,7 +34,7 @@ I don't know why she swallowed a fly - perhaps she'll die!
 
 # Use the contracts below to explore the lyrics
 
-# ngram-table :: String -> Model
+# n-grams :: String -> Model
 # stat-lang-model :: String -> Model
 # completions :: Model, String -> Table
 # choose-completion :: Model, String -> String

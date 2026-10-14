@@ -1207,30 +1207,34 @@ fun generate-ngrams(corpus :: String, n :: Number) block:
     .order-by("count", false)
 end
 
-fun ngram-table(corpus-str :: String) -> Table:
+fun n-grams(corpus-str :: String) -> Table:
   doc: "Precomputes all n-gram tables and combines them into one table with a 'size' column."
   word-count = string-split-all(massage-string(corpus-str), " ")
     .filter(is-non-empty-string)
     .length()
 
   # a corpus shorter than MAX-GRAM-SIZE can only supply n-grams up to its own length
-  all-rows = for fold(acc from empty, n from L.range(1, num-min(word-count, MAX-GRAM-SIZE) + 1)):
-    these-rows = for fold(rows from empty, r from generate-ngrams(corpus-str, n).all-rows()):
-      link([T.raw-row: {"size"; n}, {"n-gram"; r["n-gram"]}, {"count"; r["count"]}], rows)
+  all-grams = for fold(acc from empty, n from L.range(1, num-min(word-count, MAX-GRAM-SIZE) + 1)):
+    these-grams = for fold(grams from empty, r from generate-ngrams(corpus-str, n).all-rows()):
+      link({n; r["n-gram"]; r["count"]}, grams)
     end
-    acc + these-rows
+    acc + these-grams
   end
 
-  T.table-from-rows
-    .make(raw-array-from-list(all-rows))
-    .order-by("count", false)
+  # shortest n-grams first; within a size, most frequent first; within a
+  # count, alphabetical
+  ordered = all-grams.sort-by(
+    {(a, b): (a.{0} < b.{0}) or ((a.{0} == b.{0}) and ((a.{2} > b.{2}) or ((a.{2} == b.{2}) and (a.{1} < b.{1}))))},
+    {(a, b): (a.{0} == b.{0}) and (a.{1} == b.{1})})
 
+  T.table-from-rows
+    .make(raw-array-from-list(ordered.map({(g): [T.raw-row: {"size"; g.{0}}, {"n-gram"; g.{1}}, {"count"; g.{2}}]})))
 end
 
 fun stat-lang-model(corpus :: String) -> Table block:
   doc: "Consumes a corpus and produces a table with columns size, word, follows, conditional-probability and probability, covering every n-gram size up to MAX-GRAM-SIZE. Unigrams have an empty 'follows'. Probabilities are rounded to 5 decimal places, and become roughnums when digits were dropped."
 
-  model = ngram-table(corpus)
+  model = n-grams(corpus)
 
   fun split-gram(r):
     words = string-split-all(r["n-gram"], " ")

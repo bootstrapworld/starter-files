@@ -143,13 +143,22 @@ examples "choose-completion":
   choose-completion(_cmp-lm, "hello goodbye and") is "farewell"
 end
 
-_short-lm = ngram-table("hello goodbye and farewell")
+# "the" x3, "cat" x2: within a size, most frequent first, then alphabetical
+_sort-lm = n-grams("the cat the dog the cat")
+examples "n-grams ordering":
+  _sort-lm.filter(lam(r): r["size"] == 1 end).get-column("n-gram") is [list: "the", "cat", "dog"]
+  _sort-lm.filter(lam(r): r["size"] == 1 end).get-column("count") is [list: 3, 2, 1]
+  _sort-lm.filter(lam(r): r["size"] == 2 end).get-column("n-gram") is [list: "the cat", "cat the", "dog the", "the dog"]
+  _sort-lm.get-column("size") is _sort-lm.get-column("size").sort()
+end
+
+_short-lm = n-grams("hello goodbye and farewell")
 examples "stat-model functions reject a plain lang-model":
   completions(_short-lm, "hello") raises "statistical language model"
   next-word-probability(_short-lm, "hello", "goodbye") raises "statistical language model"
   choose-completion(_short-lm, "hello") raises "statistical language model"
 end
-examples "ngram-table on a short corpus":
+examples "n-grams on a short corpus":
   _short-lm.get-column("size").member(5) is false
   _short-lm.get-column("size").member(4) is true
   _short-lm.length() is 10
