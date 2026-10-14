@@ -127,14 +127,14 @@ examples "completion probabilities":
 end
 
 examples "suggestions":
-  # size 2 ("hello goodbye"), then size 1 by probability: "goodbye" rows (1/2 each), then the unigrams
+  # size 2 ("hello goodbye"), then size 1 ("goodbye" rows), then the size-0 unigrams by probability
   suggestions(_cmp-lm, "hello goodbye").get-column("follows") is
   [list: "hello goodbye", "hello goodbye", "goodbye", "goodbye", "", "", "", ""]
   suggestions(_cmp-lm, "hello goodbye").length() is 8
-  # sorted by size (descending), then probability (descending), so unigrams
-  # and one-word-context rows share size 1 and interleave; ties go to the longer context
-  suggestions(_ord-lm, "a").get-column("word") is [list: "b", "a", "c", "b", "c"]
-  suggestions(_ord-lm, "a").get-column("follows") is [list: "a", "", "a", "", ""]
+  # sorted by size (descending), then probability (descending)
+  suggestions(_ord-lm, "a").get-column("word") is [list: "b", "c", "a", "b", "c"]
+  suggestions(_ord-lm, "a").get-column("follows") is [list: "a", "a", "", "", ""]
+  suggestions(_ord-lm, "a").get-column("size") is [list: 1, 1, 0, 0, 0]
   suggestions(_ord-lm, "a b a").get-column("size").first is 3
   # an unseen word falls through to the unigrams
   suggestions(_cmp-lm, "zebra").length() is 4
@@ -147,8 +147,10 @@ end
 # "a" is followed by "y" twice and "z" once; sorted alphabetically, "y" and "z" tie-break by name, not probability
 _alpha-lm = stat-lang-model("a y a z a y")
 examples "stat-lang-model ordering":
-  _alpha-lm.get-column("size") is [list: 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 5]
-  _alpha-lm.filter(lam(r): r["size"] == 1 end).get-column("follows") is [list: "", "", "", "a", "a", "y", "z"]
+  _alpha-lm.get-column("size") is [list: 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 5]
+  # unigrams (empty "follows") have size 0
+  _alpha-lm.filter(lam(r): r["size"] == 0 end).get-column("follows") is [list: "", "", ""]
+  _alpha-lm.filter(lam(r): r["size"] == 1 end).get-column("follows") is [list: "a", "a", "y", "z"]
 end
 
 examples "add-next-word":

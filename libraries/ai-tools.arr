@@ -1261,7 +1261,7 @@ fun stat-lang-model(corpus :: String) -> Table block:
   keyed = for map(p from parts):
     word = p.{0}
     follows = p.{1}
-    size = if follows == "": 1 else: string-split-all(follows, " ").length() end
+    size = if follows == "": 0 else: string-split-all(follows, " ").length() end
     cond = if follows == "": "P(" + word + ")"
       else: "P(" + word + " | " + follows + ")"
       end
@@ -1329,14 +1329,12 @@ fun suggestions(model :: Table, input :: String) -> Table block:
   gathered = collect(last-words(input, max-context-size(model)))
 
   # Probabilities may be roughnums, which can't be compared for equality (so
-  # order-by would fail on ties); > and < are fine. Remaining ties go to the
-  # longer context, then alphabetical, so the order is deterministic.
-  fun context-length(r): if r["follows"] == "": 0 else: string-split-all(r["follows"], " ").length() end end
+  # order-by would fail on ties); > and < are fine. Remaining ties are
+  # alphabetical, so the order is deterministic.
   fun before(a, b):
     if a["size"] <> b["size"]: a["size"] > b["size"]
     else if a["probability"] > b["probability"]: true
     else if b["probability"] > a["probability"]: false
-    else if context-length(a) <> context-length(b): context-length(a) > context-length(b)
     else if a["follows"] <> b["follows"]: a["follows"] < b["follows"]
     else: a["word"] < b["word"]
     end
