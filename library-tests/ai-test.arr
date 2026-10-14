@@ -104,6 +104,8 @@ _cmp-lm = stat-lang-model("hello goodbye and farewell hello goodbye hello")
 _c = completions(_cmp-lm, "hello goodbye")
 examples "completions":
   _c.get-column("word").sort() is [list: "and", "hello"]
+  # tied at 1/2, so alphabetical
+  _c.get-column("word") is [list: "and", "hello"]
   _c.get-column("follows") is [list: "hello goodbye", "hello goodbye"]
   _c.get-column("conditional-probability").sort() is [list: "P(and | hello goodbye)", "P(hello | hello goodbye)"]
   _c.get-column("probability") is [list: 1/2, 1/2]
@@ -150,7 +152,11 @@ examples "stat-lang-model ordering":
   _alpha-lm.get-column("size") is [list: 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 5]
   # unigrams (empty "follows") have size 0
   _alpha-lm.filter(lam(r): r["size"] == 0 end).get-column("follows") is [list: "", "", ""]
-  _alpha-lm.filter(lam(r): r["size"] == 1 end).get-column("follows") is [list: "a", "a", "y", "z"]
+  # within a size: most probable first (y->a and z->a are 1, then a->y is 2/3, a->z is 1/3);
+  # the two rows tied at probability 1 are alphabetical
+  _alpha-lm.filter(lam(r): r["size"] == 1 end).get-column("follows") is [list: "y", "z", "a", "a"]
+  _alpha-lm.filter(lam(r): r["size"] == 1 end).get-column("word") is [list: "a", "a", "y", "z"]
+  _alpha-lm.filter(lam(r): r["size"] == 0 end).get-column("word") is [list: "a", "y", "z"]
 end
 
 examples "add-next-word":

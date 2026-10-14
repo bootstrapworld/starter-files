@@ -1231,6 +1231,34 @@ fun n-grams(corpus-str :: String) -> Table:
     .make(raw-array-from-list(ordered.map({(g): [T.raw-row: {"size"; g.{0}}, {"n-gram"; g.{1}}, {"count"; g.{2}}]})))
 end
 
+# Most probable first; ties are alphabetical. Probabilities may be roughnums,
+# which can't be compared for equality (so order-by would fail on ties), but
+# > is fine.
+fun probability-first(a, b) -> Boolean:
+  if a["probability"] > b["probability"]: true
+  else if b["probability"] > a["probability"]: false
+  else if a["follows"] <> b["follows"]: a["follows"] < b["follows"]
+  else: a["word"] < b["word"]
+  end
+end
+
+# Re-order the rows of a stat-lang-model table, where before(a, b) is true when
+# row a belongs above row b.
+fun sort-stat-rows(t :: Table, before) -> Table:
+  if t.length() == 0:
+    t
+  else:
+    sorted = t.all-rows().sort-by(before, {(a, b): not(before(a, b)) and not(before(b, a))})
+    T.table-from-rows.make(raw-array-from-list(sorted.map({(r):
+          [T.raw-row:
+            {"size"; r["size"]},
+            {"word"; r["word"]},
+            {"follows"; r["follows"]},
+            {"conditional-probability"; r["conditional-probability"]},
+            {"probability"; r["probability"]}]})))
+  end
+end
+
 fun stat-lang-model(corpus :: String) -> Table block:
   doc: "Consumes a corpus and produces a table with columns size, word, follows, conditional-probability and probability, covering every n-gram size up to MAX-GRAM-SIZE. Unigrams have an empty 'follows'. Probabilities are rounded to 5 decimal places, and become roughnums when digits were dropped."
 
@@ -1257,30 +1285,25 @@ fun stat-lang-model(corpus :: String) -> Table block:
     d.set(follows, d.get(follows).or-else(0) + p.{2})
   end
 
-  # {size; follows; word; row}, so the rows can be ordered below
-  keyed = for map(p from parts):
+  rows = for map(p from parts):
     word = p.{0}
     follows = p.{1}
     size = if follows == "": 0 else: string-split-all(follows, " ").length() end
     cond = if follows == "": "P(" + word + ")"
       else: "P(" + word + " | " + follows + ")"
       end
-    {size; follows; word;
-      [T.raw-row:
-        {"size"; size},
-        {"word"; word},
-        {"follows"; follows},
-        {"conditional-probability"; cond},
-        {"probability"; tidy-probability(p.{2} / totals.get-value(follows))}]}
+    [T.raw-row:
+      {"size"; size},
+      {"word"; word},
+      {"follows"; follows},
+      {"conditional-probability"; cond},
+      {"probability"; tidy-probability(p.{2} / totals.get-value(follows))}]
   end
 
-  # shortest first, then alphabetical by context and by word
-  ordered = keyed.sort-by(
-    {(a, b): (a.{0} < b.{0}) or ((a.{0} == b.{0}) and ((a.{1} < b.{1}) or ((a.{1} == b.{1}) and (a.{2} < b.{2}))))},
-    {(a, b): (a.{0} == b.{0}) and (a.{1} == b.{1}) and (a.{2} == b.{2})})
-
-  T.table-from-rows
-    .make(raw-array-from-list(ordered.map({(k): k.{3}})))
+  # shortest first; within a size, most probable first, then alphabetical
+  sort-stat-rows(
+    T.table-from-rows.make(raw-array-from-list(rows)),
+    {(a, b): if a["size"] <> b["size"]: a["size"] < b["size"] else: probability-first(a, b) end})
 end
 
 fun check-stat-model(model :: Table) -> Nothing block:
@@ -1306,10 +1329,10 @@ fun last-words(str :: String, k :: Number) -> List<String>:
 end
 
 fun completions(model :: Table, input :: String) -> Table block:
-  doc: "Consumes a stat-lang-model and some text, and produces the rows of the model for words that could follow it."
+  doc: "Consumes a stat-lang-model and some text, and produces the rows of the model for words that could follow it, most probable first (ties are alphabetical)."
   check-stat-model(model)
   context = last-words(input, max-context-size(model)).join-str(" ")
-  model.filter({(r): r["follows"] == context})
+  sort-stat-rows(model.filter({(r): r["follows"] == context}), probability-first)
 end
 
 fun suggestions(model :: Table, input :: String) -> Table block:
@@ -1328,30 +1351,10 @@ fun suggestions(model :: Table, input :: String) -> Table block:
 
   gathered = collect(last-words(input, max-context-size(model)))
 
-  # Probabilities may be roughnums, which can't be compared for equality (so
-  # order-by would fail on ties); > and < are fine. Remaining ties are
-  # alphabetical, so the order is deterministic.
-  fun before(a, b):
-    if a["size"] <> b["size"]: a["size"] > b["size"]
-    else if a["probability"] > b["probability"]: true
-    else if b["probability"] > a["probability"]: false
-    else if a["follows"] <> b["follows"]: a["follows"] < b["follows"]
-    else: a["word"] < b["word"]
-    end
-  end
-
-  if gathered.length() == 0:
-    gathered
-  else:
-    sorted = gathered.all-rows().sort-by(before, {(a, b): not(before(a, b)) and not(before(b, a))})
-    T.table-from-rows.make(raw-array-from-list(sorted.map({(r):
-          [T.raw-row:
-            {"size"; r["size"]},
-            {"word"; r["word"]},
-            {"follows"; r["follows"]},
-            {"conditional-probability"; r["conditional-probability"]},
-            {"probability"; r["probability"]}]})))
-  end
+  # largest size first; within a size, most probable first, then alphabetical
+  sort-stat-rows(
+    gathered,
+    {(a, b): if a["size"] <> b["size"]: a["size"] > b["size"] else: probability-first(a, b) end})
 end
 
 fun next-word-probability(model :: Table, first :: String, second :: String) block:
