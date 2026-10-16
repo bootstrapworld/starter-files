@@ -1237,8 +1237,8 @@ end
 fun probability-first(a, b) -> Boolean:
   if a["probability"] > b["probability"]: true
   else if b["probability"] > a["probability"]: false
-  else if a["follows"] <> b["follows"]: a["follows"] < b["follows"]
-  else: a["word"] < b["word"]
+  else if a["given (context)"] <> b["given (context)"]: a["given (context)"] < b["given (context)"]
+  else: a["next-word"] < b["next-word"]
   end
 end
 
@@ -1251,16 +1251,16 @@ fun sort-stat-rows(t :: Table, before) -> Table:
     sorted = t.all-rows().sort-by(before, {(a, b): not(before(a, b)) and not(before(b, a))})
     T.table-from-rows.make(raw-array-from-list(sorted.map({(r):
           [T.raw-row:
-            {"size"; r["size"]},
-            {"word"; r["word"]},
-            {"follows"; r["follows"]},
+            {"size (n)"; r["size (n)"]},
+            {"given (context)"; r["given (context)"]},
+            {"next-word"; r["next-word"]},
             {"conditional-probability"; r["conditional-probability"]},
             {"probability"; r["probability"]}]})))
   end
 end
 
 fun stat-lang-model(corpus :: String) -> Table block:
-  doc: "Consumes a corpus and produces a table with columns size, word, follows, conditional-probability and probability, covering every n-gram size up to MAX-GRAM-SIZE. Unigrams have an empty 'follows'. Probabilities are rounded to 5 decimal places, and become roughnums when digits were dropped."
+  doc: "Consumes a corpus and produces a table with columns size (n), given (context), next-word, conditional-probability and probability, covering every n-gram size up to MAX-GRAM-SIZE. Unigrams have an empty 'given (context)'. Probabilities are rounded to 5 decimal places, and become roughnums when digits were dropped."
 
   model = n-grams(corpus)
 
@@ -1293,9 +1293,9 @@ fun stat-lang-model(corpus :: String) -> Table block:
       else: "P(" + word + " | " + follows + ")"
       end
     [T.raw-row:
-      {"size"; size},
-      {"word"; word},
-      {"follows"; follows},
+      {"size (n)"; size},
+      {"given (context)"; follows},
+      {"next-word"; word},
       {"conditional-probability"; cond},
       {"probability"; tidy-probability(p.{2} / totals.get-value(follows))}]
   end
@@ -1303,22 +1303,22 @@ fun stat-lang-model(corpus :: String) -> Table block:
   # shortest first; within a size, most probable first, then alphabetical
   sort-stat-rows(
     T.table-from-rows.make(raw-array-from-list(rows)),
-    {(a, b): if a["size"] <> b["size"]: a["size"] < b["size"] else: probability-first(a, b) end})
+    {(a, b): if a["size (n)"] <> b["size (n)"]: a["size (n)"] < b["size (n)"] else: probability-first(a, b) end})
 end
 
 fun check-stat-model(model :: Table) -> Nothing block:
-  required = [list: "size", "word", "follows", "probability"]
+  required = [list: "size (n)", "next-word", "given (context)", "probability"]
   cols = model.column-names()
   when not(required.all({(c): cols.member(c)})):
     raise(Err.message-exception("This function only works on a statistical language model (with pre-computed probabilities). Check to make sure you're passing in the right kind of model."))
   end
 end
 
-# the longest context (number of words in `follows`) a stat-lang-model has rows for
+# the longest context (number of words in the "given (context)" column) a stat-lang-model has rows for
 fun max-context-size(model :: Table) -> Number:
   for fold(longest from 0, r from model.all-rows()):
-    if r["follows"] == "": longest
-    else: num-max(longest, r["size"])
+    if r["given (context)"] == "": longest
+    else: num-max(longest, r["size (n)"])
     end
   end
 end
@@ -1332,7 +1332,7 @@ fun completions(model :: Table, input :: String) -> Table block:
   doc: "Consumes a stat-lang-model and some text, and produces the rows of the model for words that could follow it, most probable first (ties are alphabetical)."
   check-stat-model(model)
   context = last-words(input, max-context-size(model)).join-str(" ")
-  sort-stat-rows(model.filter({(r): r["follows"] == context}), probability-first)
+  sort-stat-rows(model.filter({(r): r["given (context)"] == context}), probability-first)
 end
 
 fun suggestions(model :: Table, input :: String) -> Table block:
@@ -1354,13 +1354,13 @@ fun suggestions(model :: Table, input :: String) -> Table block:
   # largest size first; within a size, most probable first, then alphabetical
   sort-stat-rows(
     gathered,
-    {(a, b): if a["size"] <> b["size"]: a["size"] > b["size"] else: probability-first(a, b) end})
+    {(a, b): if a["size (n)"] <> b["size (n)"]: a["size (n)"] > b["size (n)"] else: probability-first(a, b) end})
 end
 
 fun next-word-probability(model :: Table, first :: String, second :: String) block:
   check-stat-model(model)
   matching = completions(model, first)
-    .filter({(r): r["word"] == massage-string(second)})
+    .filter({(r): r["next-word"] == massage-string(second)})
   if matching.length() == 0:
     0
   else:
@@ -1371,7 +1371,7 @@ end
 
 fun choose-suggestion(model :: Table, input :: String) -> String:
   doc: "Consumes a stat-lang-model and some text, and produces the word from the top-ranked suggestion."
-  suggestions(model, input).row-n(0)["word"]
+  suggestions(model, input).row-n(0)["next-word"]
 end
 
 # append one generated word; choose-suggestion reduces the input to the last

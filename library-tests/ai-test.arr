@@ -103,16 +103,16 @@ end
 _cmp-lm = stat-lang-model("hello goodbye and farewell hello goodbye hello")
 _c = completions(_cmp-lm, "hello goodbye")
 examples "completions":
-  _c.get-column("word").sort() is [list: "and", "hello"]
+  _c.get-column("next-word").sort() is [list: "and", "hello"]
   # tied at 1/2, so alphabetical
-  _c.get-column("word") is [list: "and", "hello"]
-  _c.get-column("follows") is [list: "hello goodbye", "hello goodbye"]
+  _c.get-column("next-word") is [list: "and", "hello"]
+  _c.get-column("given (context)") is [list: "hello goodbye", "hello goodbye"]
   _c.get-column("conditional-probability").sort() is [list: "P(and | hello goodbye)", "P(hello | hello goodbye)"]
   _c.get-column("probability") is [list: 1/2, 1/2]
   # punctuation and case are ignored
-  completions(_cmp-lm, "Farewell, hello GOODBYE").get-column("follows") is [list: "farewell hello goodbye"]
+  completions(_cmp-lm, "Farewell, hello GOODBYE").get-column("given (context)") is [list: "farewell hello goodbye"]
   # the context is trimmed to the model's longest context (6 words, for a 7-word corpus)
-  completions(_cmp-lm, "zebra zebra zebra hello goodbye and farewell hello goodbye").get-column("word") is [list: "hello"]
+  completions(_cmp-lm, "zebra zebra zebra hello goodbye and farewell hello goodbye").get-column("next-word") is [list: "hello"]
   # an unseen context has no completions
   completions(_cmp-lm, "zebra").length() is 0
 end
@@ -120,7 +120,7 @@ end
 # "a" is followed by "b" twice and by "c" once
 _ord-lm = stat-lang-model("a b a b a c")
 examples "completion probabilities":
-  completions(_ord-lm, "a").get-column("word") is [list: "b", "c"]
+  completions(_ord-lm, "a").get-column("next-word") is [list: "b", "c"]
   # 2/3 and 1/3 are rounded to 5 places, and flagged as roughnums
   _near(completions(_ord-lm, "a").get-column("probability").get(0), 66667/100000) is true
   _near(completions(_ord-lm, "a").get-column("probability").get(1), 33333/100000) is true
@@ -130,33 +130,33 @@ end
 
 examples "suggestions":
   # size 2 ("hello goodbye"), then size 1 ("goodbye" rows), then the size-0 unigrams by probability
-  suggestions(_cmp-lm, "hello goodbye").get-column("follows") is
+  suggestions(_cmp-lm, "hello goodbye").get-column("given (context)") is
   [list: "hello goodbye", "hello goodbye", "goodbye", "goodbye", "", "", "", ""]
   suggestions(_cmp-lm, "hello goodbye").length() is 8
   # sorted by size (descending), then probability (descending)
-  suggestions(_ord-lm, "a").get-column("word") is [list: "b", "c", "a", "b", "c"]
-  suggestions(_ord-lm, "a").get-column("follows") is [list: "a", "a", "", "", ""]
-  suggestions(_ord-lm, "a").get-column("size") is [list: 1, 1, 0, 0, 0]
-  suggestions(_ord-lm, "a b a").get-column("size").first is 3
+  suggestions(_ord-lm, "a").get-column("next-word") is [list: "b", "c", "a", "b", "c"]
+  suggestions(_ord-lm, "a").get-column("given (context)") is [list: "a", "a", "", "", ""]
+  suggestions(_ord-lm, "a").get-column("size (n)") is [list: 1, 1, 0, 0, 0]
+  suggestions(_ord-lm, "a b a").get-column("size (n)").first is 3
   # an unseen word falls through to the unigrams
   suggestions(_cmp-lm, "zebra").length() is 4
   # empty input is just the unigrams
-  suggestions(_cmp-lm, "").get-column("follows") is [list: "", "", "", ""]
+  suggestions(_cmp-lm, "").get-column("given (context)") is [list: "", "", "", ""]
   # input longer than the model's longest context doesn't repeat completions
-  suggestions(_cmp-lm, "zebra zebra zebra hello goodbye and farewell hello goodbye").get-column("follows").first is "hello goodbye and farewell hello goodbye"
+  suggestions(_cmp-lm, "zebra zebra zebra hello goodbye and farewell hello goodbye").get-column("given (context)").first is "hello goodbye and farewell hello goodbye"
 end
 
 # "a" is followed by "y" twice and "z" once; sorted alphabetically, "y" and "z" tie-break by name, not probability
 _alpha-lm = stat-lang-model("a y a z a y")
 examples "stat-lang-model ordering":
-  _alpha-lm.get-column("size") is [list: 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 5]
-  # unigrams (empty "follows") have size 0
-  _alpha-lm.filter(lam(r): r["size"] == 0 end).get-column("follows") is [list: "", "", ""]
+  _alpha-lm.get-column("size (n)") is [list: 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 5]
+  # unigrams (empty "given (context)") have size 0
+  _alpha-lm.filter(lam(r): r["size (n)"] == 0 end).get-column("given (context)") is [list: "", "", ""]
   # within a size: most probable first (y->a and z->a are 1, then a->y is 2/3, a->z is 1/3);
   # the two rows tied at probability 1 are alphabetical
-  _alpha-lm.filter(lam(r): r["size"] == 1 end).get-column("follows") is [list: "y", "z", "a", "a"]
-  _alpha-lm.filter(lam(r): r["size"] == 1 end).get-column("word") is [list: "a", "a", "y", "z"]
-  _alpha-lm.filter(lam(r): r["size"] == 0 end).get-column("word") is [list: "a", "y", "z"]
+  _alpha-lm.filter(lam(r): r["size (n)"] == 1 end).get-column("given (context)") is [list: "y", "z", "a", "a"]
+  _alpha-lm.filter(lam(r): r["size (n)"] == 1 end).get-column("next-word") is [list: "a", "a", "y", "z"]
+  _alpha-lm.filter(lam(r): r["size (n)"] == 0 end).get-column("next-word") is [list: "a", "y", "z"]
 end
 
 examples "add-next-word":
@@ -202,10 +202,10 @@ end
 _stat = stat-lang-model("hello goodbye and farewell")
 examples "stat-lang-model":
   _stat.length() is 10
-  _stat.column-names() is [list: "size", "word", "follows", "conditional-probability", "probability"]
-  _stat.filter(lam(r): r["follows"] == "" end).get-column("probability") is [list: 1/4, 1/4, 1/4, 1/4]
+  _stat.column-names() is [list: "size (n)", "given (context)", "next-word", "conditional-probability", "probability"]
+  _stat.filter(lam(r): r["given (context)"] == "" end).get-column("probability") is [list: 1/4, 1/4, 1/4, 1/4]
   _stat.filter(lam(r): r["conditional-probability"] == "P(goodbye | hello)" end).get-column("probability") is [list: 1]
-  _stat.filter(lam(r): r["conditional-probability"] == "P(farewell | hello goodbye and)" end).get-column("size") is [list: 3]
+  _stat.filter(lam(r): r["conditional-probability"] == "P(farewell | hello goodbye and)" end).get-column("size (n)") is [list: 3]
 end
 
 _img-table = table: ID, DOC
