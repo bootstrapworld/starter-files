@@ -1369,15 +1369,45 @@ fun next-word-probability(model :: Table, first :: String, second :: String) blo
 end
 
 
-fun choose-suggestion(model :: Table, input :: String) -> String:
-  doc: "Consumes a stat-lang-model and some text, and produces the word from the top-ranked suggestion."
-  suggestions(model, input).row-n(0)["next-word"]
+fun check-heat(heat :: Number) -> Nothing block:
+  when (heat < 0) or (heat > 1):
+    raise(Err.message-exception("heat must be a number between 0 and 1, but it was " + to-string(heat)))
+  end
+end
+
+fun choose-suggestion(model :: Table, input :: String, heat :: Number) -> String block:
+  doc: "Consumes a stat-lang-model, some text, and a heat between 0 and 1, and produces a next word. With heat 0 it is always the top-ranked suggestion. Higher heat picks at random among the suggestions for the longest matching context, flattening the odds as heat rises (at 1 each is chosen with its own probability)."
+  check-heat(heat)
+
+  ranked = suggestions(model, input)
+  if heat == 0:
+    ranked.row-n(0)["next-word"]
+  else:
+    top-size = ranked.row-n(0)["size (n)"]
+    pool = ranked.filter({(r): r["size (n)"] == top-size}).all-rows()
+    top-probability = pool.first["probability"]
+
+    # weights relative to the top row, so the best option is always 1 (this
+    # keeps tiny heats from underflowing to zero)
+    weights = pool.map({(r): num-expt(r["probability"] / top-probability, 1 / heat)})
+    total = weights.foldl({(w, acc): acc + w}, 0)
+    target = total * (random(1000000) / 1000000)
+
+    fun pick(rows, ws, remaining):
+      if (remaining < ws.first) or is-empty(rows.rest):
+        rows.first["next-word"]
+      else:
+        pick(rows.rest, ws.rest, remaining - ws.first)
+      end
+    end
+    pick(pool, weights, target)
+  end
 end
 
 # append one generated word; choose-suggestion reduces the input to the last
 # few tokens itself, so just pass the whole string through.
-fun add-next-word(model :: Table, input :: String) -> String:
-  word = choose-suggestion(model, input)
+fun add-next-word(model :: Table, input :: String, heat :: Number) -> String:
+  word = choose-suggestion(model, input, heat)
   if input == "": word else: input + " " + word end
 end
 
@@ -1411,11 +1441,13 @@ fun draw-lines(txt):
   above-align-list("left", build-lines(words, ""))
 end
 
-fun generate-text(model :: Table):
+fun generate-text(model :: Table, heat :: Number) block:
+  check-stat-model(model)
+  check-heat(heat)
   reactor:
     init: "",
     to-draw: draw-lines,
-    on-tick: lam(i): add-next-word(model, i) end,
+    on-tick: lam(i): add-next-word(model, i, heat) end,
     seconds-per-tick: 0.1
   end
     .interact()

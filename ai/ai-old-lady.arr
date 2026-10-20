@@ -43,8 +43,8 @@ perhaps she'll die
 # stat-lang-model :: String -> Model
 # completions :: Model, String -> Table
 # suggestions :: Model, String -> Table
-# choose-suggestion :: Model, String -> String
-# generate-text :: Model -> String
+# choose-suggestion :: Model, String, Number -> String
+# generate-text :: Model, Number -> String
 
 m-short = stat-lang-model(short-corpus)
 m = stat-lang-model(corpus)

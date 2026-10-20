@@ -161,20 +161,38 @@ end
 
 examples "add-next-word":
   # starting from the empty string, the first word is the top unigram (no leading space)
-  add-next-word(_ord-lm, "") is "a"
-  add-next-word(_ord-lm, "a") is "a b"
+  add-next-word(_ord-lm, "", 0) is "a"
+  add-next-word(_ord-lm, "a", 0) is "a b"
+  # with heat, the added word is still one of the candidates for the longest context
+  [list: "a b", "a c"].member(add-next-word(_ord-lm, "a", 1)) is true
+  add-next-word(_ord-lm, "a", 2) raises "heat"
+end
+
+examples "choose-suggestion with heat":
+  # only one candidate for the longest matching context, so heat can't change the result
+  choose-suggestion(_cmp-lm, "hello goodbye and", 1) is "farewell"
+  choose-suggestion(_cmp-lm, "hello goodbye and", 0.5) is "farewell"
+  # heat 0 is always the top-ranked word (2/3 for "b")
+  choose-suggestion(_ord-lm, "a", 0) is "b"
+  # with heat, either word for the context "a" can come back, never a word from a shorter context
+  [list: "b", "c"].member(choose-suggestion(_ord-lm, "a", 1)) is true
+  [list: "b", "c"].member(choose-suggestion(_ord-lm, "a", 0.3)) is true
+  # a tiny heat doesn't underflow
+  choose-suggestion(_ord-lm, "a", 0.001) is "b"
+  choose-suggestion(_ord-lm, "a", 2) raises "heat"
+  choose-suggestion(_ord-lm, "a", -0.1) raises "heat"
 end
 
 examples "choose-suggestion":
   # picks the most probable word even though it isn't first alphabetically
-  choose-suggestion(_alpha-lm, "a") is "y"
-  choose-suggestion(_ord-lm, "a") is "b"
+  choose-suggestion(_alpha-lm, "a", 0) is "y"
+  choose-suggestion(_ord-lm, "a", 0) is "b"
   # an unseen leading word doesn't matter: the top suggestion comes from "a"
-  choose-suggestion(_ord-lm, "zebra a") is "b"
+  choose-suggestion(_ord-lm, "zebra a", 0) is "b"
   # an entirely unseen word falls through to the most probable unigram
-  choose-suggestion(_ord-lm, "zebra") is "a"
+  choose-suggestion(_ord-lm, "zebra", 0) is "a"
   # always exactly one word
-  choose-suggestion(_cmp-lm, "hello goodbye and") is "farewell"
+  choose-suggestion(_cmp-lm, "hello goodbye and", 0) is "farewell"
 end
 
 # "the" x3, "cat" x2: within a size, most frequent first, then alphabetical
@@ -190,7 +208,7 @@ _short-lm = n-grams("hello goodbye and farewell")
 examples "stat-model functions reject a plain lang-model":
   completions(_short-lm, "hello") raises "statistical language model"
   next-word-probability(_short-lm, "hello", "goodbye") raises "statistical language model"
-  choose-suggestion(_short-lm, "hello") raises "statistical language model"
+  choose-suggestion(_short-lm, "hello", 0) raises "statistical language model"
   suggestions(_short-lm, "hello") raises "statistical language model"
 end
 examples "n-grams on a short corpus":
