@@ -164,23 +164,24 @@ examples "add-next-word":
   add-next-word(_ord-lm, "", 0) is "a"
   add-next-word(_ord-lm, "a", 0) is "a b"
   # with heat, the added word is still one of the candidates for the longest context
-  [list: "a b", "a c"].member(add-next-word(_ord-lm, "a", 1)) is true
-  add-next-word(_ord-lm, "a", 2) raises "heat"
+  [list: "a b", "a c"].member(add-next-word(_ord-lm, "a", 100)) is true
+  add-next-word(_ord-lm, "a", 101) raises "heat"
 end
 
 examples "choose-suggestion with heat":
   # only one candidate for the longest matching context, so heat can't change the result
-  choose-suggestion(_cmp-lm, "hello goodbye and", 1) is "farewell"
-  choose-suggestion(_cmp-lm, "hello goodbye and", 0.5) is "farewell"
+  choose-suggestion(_cmp-lm, "hello goodbye and", 100) is "farewell"
+  choose-suggestion(_cmp-lm, "hello goodbye and", 50) is "farewell"
   # heat 0 is always the top-ranked word (2/3 for "b")
   choose-suggestion(_ord-lm, "a", 0) is "b"
   # with heat, either word for the context "a" can come back, never a word from a shorter context
-  [list: "b", "c"].member(choose-suggestion(_ord-lm, "a", 1)) is true
-  [list: "b", "c"].member(choose-suggestion(_ord-lm, "a", 0.3)) is true
+  [list: "b", "c"].member(choose-suggestion(_ord-lm, "a", 100)) is true
+  [list: "b", "c"].member(choose-suggestion(_ord-lm, "a", 30)) is true
   # a tiny heat doesn't underflow
-  choose-suggestion(_ord-lm, "a", 0.001) is "b"
-  choose-suggestion(_ord-lm, "a", 2) raises "heat"
-  choose-suggestion(_ord-lm, "a", -0.1) raises "heat"
+  choose-suggestion(_ord-lm, "a", 0.1) is "b"
+  choose-suggestion(_ord-lm, "a", 0.01) is "b"
+  choose-suggestion(_ord-lm, "a", 101) raises "heat"
+  choose-suggestion(_ord-lm, "a", -1) raises "heat"
 end
 
 examples "choose-suggestion":

@@ -1370,13 +1370,13 @@ end
 
 
 fun check-heat(heat :: Number) -> Nothing block:
-  when (heat < 0) or (heat > 1):
-    raise(Err.message-exception("heat must be a number between 0 and 1, but it was " + to-string(heat)))
+  when (heat < 0) or (heat > 100):
+    raise(Err.message-exception("heat must be a number between 0 and 100, but it was " + to-string(heat)))
   end
 end
 
 fun choose-suggestion(model :: Table, input :: String, heat :: Number) -> String block:
-  doc: "Consumes a stat-lang-model, some text, and a heat between 0 and 1, and produces a next word. With heat 0 it is always the top-ranked suggestion. Higher heat picks at random among the suggestions for the longest matching context, flattening the odds as heat rises (at 1 each is chosen with its own probability)."
+  doc: "Consumes a stat-lang-model, some text, and a heat between 0 and 100, and produces a next word. With heat 0 it is always the top-ranked suggestion. Higher heat picks at random among the suggestions for the longest matching context, flattening the odds as heat rises (at 100 each is chosen with its own probability)."
   check-heat(heat)
 
   ranked = suggestions(model, input)
@@ -1389,7 +1389,7 @@ fun choose-suggestion(model :: Table, input :: String, heat :: Number) -> String
 
     # weights relative to the top row, so the best option is always 1 (this
     # keeps tiny heats from underflowing to zero)
-    weights = pool.map({(r): num-expt(r["probability"] / top-probability, 1 / heat)})
+    weights = pool.map({(r): num-expt(r["probability"] / top-probability, 100 / heat)})
     total = weights.foldl({(w, acc): acc + w}, 0)
     target = total * (random(1000000) / 1000000)
 
