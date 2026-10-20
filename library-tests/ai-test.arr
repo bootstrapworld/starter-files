@@ -163,23 +163,23 @@ examples "add-next-word":
   # starting from the empty string, the first word is the top unigram (no leading space)
   add-next-word(_ord-lm, "", 0) is "a"
   add-next-word(_ord-lm, "a", 0) is "a b"
-  # with heat, the added word is still one of the candidates for the longest context
-  [list: "a b", "a c"].member(add-next-word(_ord-lm, "a", 100)) is true
+  # with heat, the added word is one of the suggestions
+  [list: "a a", "a b", "a c"].member(add-next-word(_ord-lm, "a", 100)) is true
   add-next-word(_ord-lm, "a", 101) raises "heat"
 end
 
 examples "choose-suggestion with heat":
-  # only one candidate for the longest matching context, so heat can't change the result
-  choose-suggestion(_cmp-lm, "hello goodbye and", 100) is "farewell"
-  choose-suggestion(_cmp-lm, "hello goodbye and", 50) is "farewell"
   # heat 0 is always the top-ranked word (2/3 for "b")
   choose-suggestion(_ord-lm, "a", 0) is "b"
-  # with heat, either word for the context "a" can come back, never a word from a shorter context
-  [list: "b", "c"].member(choose-suggestion(_ord-lm, "a", 100)) is true
-  [list: "b", "c"].member(choose-suggestion(_ord-lm, "a", 30)) is true
-  # a tiny heat doesn't underflow
-  choose-suggestion(_ord-lm, "a", 0.1) is "b"
-  choose-suggestion(_ord-lm, "a", 0.01) is "b"
+  # a vanishingly small heat all but always gives the top-ranked word, without underflow trouble
+  choose-suggestion(_ord-lm, "a", 0.0001) is "b"
+  choose-suggestion(_cmp-lm, "hello goodbye and", 0.0001) is "farewell"
+  # with heat, any word in the corpus can come back
+  [list: "a", "b", "c"].member(choose-suggestion(_ord-lm, "a", 30)) is true
+  [list: "a", "b", "c"].member(choose-suggestion(_ord-lm, "a", 100)) is true
+  # at heat 100, suggestions from shorter contexts get picked too: "a" is only a
+  # suggestion for the empty context, and shows up among 100 draws (a miss is ~1 in 10^8)
+  range(0, 100).map(lam(_): choose-suggestion(_ord-lm, "a", 100) end).member("a") is true
   choose-suggestion(_ord-lm, "a", 101) raises "heat"
   choose-suggestion(_ord-lm, "a", -1) raises "heat"
 end

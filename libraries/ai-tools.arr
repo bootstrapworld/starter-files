@@ -1376,31 +1376,44 @@ fun check-heat(heat :: Number) -> Nothing block:
 end
 
 fun choose-suggestion(model :: Table, input :: String, heat :: Number) -> String block:
-  doc: "Consumes a stat-lang-model, some text, and a heat between 0 and 100, and produces a next word. With heat 0 it is always the top-ranked suggestion. Higher heat picks at random among the suggestions for the longest matching context, flattening the odds as heat rises (at 100 each is chosen with its own probability)."
+  doc: "Consumes a stat-lang-model, some text, and a heat between 0 and 100, and produces a next word. With heat 0 it is always the top-ranked suggestion. Higher heat picks at random among all the suggestions: within a context, heat flattens the odds (at 100 each word is chosen with its own probability), and each word of context dropped makes that group of suggestions heat/200 times as likely (so at 100, every step back is half as likely as the one before)."
   check-heat(heat)
 
   ranked = suggestions(model, input)
   if heat == 0:
     ranked.row-n(0)["next-word"]
   else:
-    top-size = ranked.row-n(0)["size (n)"]
-    pool = ranked.filter({(r): r["size (n)"] == top-size}).all-rows()
-    top-probability = pool.first["probability"]
+    rows = ranked.all-rows()
+    top-size = rows.first["size (n)"]
+    sizes = L.distinct(rows.map({(r): r["size (n)"]}))
 
-    # weights relative to the top row, so the best option is always 1 (this
-    # keeps tiny heats from underflowing to zero)
-    weights = pool.map({(r): num-expt(r["probability"] / top-probability, 100 / heat)})
-    total = weights.foldl({(w, acc): acc + w}, 0)
+    # The weights for the suggestions that share one context size: the shape
+    # within the group comes from heat (relative to the group's best row, so
+    # tiny heats underflow to zero rather than overflow), the group's total
+    # weight is (heat / 200) ^ (words of context dropped).
+    fun group-weights(sz):
+      group = rows.filter({(r): r["size (n)"] == sz})
+      top-p = group.first["probability"]
+      relative = group.map({(r): num-expt(num-to-roughnum(r["probability"] / top-p), 100 / heat)})
+      group-total = relative.foldl({(w, acc): acc + w}, 0)
+      level = num-expt(num-to-roughnum(heat / 200), top-size - sz)
+      L.map2({(r, w): {r["next-word"]; level * (w / group-total)}}, group, relative)
+    end
+
+    pairs = for fold(acc from empty, sz from sizes):
+      acc + group-weights(sz)
+    end
+    total = pairs.foldl({(pr, acc): acc + pr.{1}}, 0)
     target = total * (random(1000000) / 1000000)
 
-    fun pick(rows, ws, remaining):
-      if (remaining < ws.first) or is-empty(rows.rest):
-        rows.first["next-word"]
+    fun pick(ps, remaining):
+      if (remaining < ps.first.{1}) or is-empty(ps.rest):
+        ps.first.{0}
       else:
-        pick(rows.rest, ws.rest, remaining - ws.first)
+        pick(ps.rest, remaining - ps.first.{1})
       end
     end
-    pick(pool, weights, target)
+    pick(pairs, target)
   end
 end
 
