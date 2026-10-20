@@ -20,7 +20,7 @@ perhaps she'll die
 
 there was an old lady who swallowed a bird
 how absurd to swallow a bird
-he swallowed the bird to catch the spider
+she swallowed the bird to catch the spider
 that wriggled and jiggled and tickled inside her
 she swallowed the spider to catch the fly
 i don't know why she swallowed a fly
