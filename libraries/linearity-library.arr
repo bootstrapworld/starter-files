@@ -12,6 +12,9 @@ provide from Lst:
   data *
 end
 
+import url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries/", "core.arr") as Core
+provide from Core: * end
+
 #################################################################
 # MYSTERY FUNCTIONS
 
