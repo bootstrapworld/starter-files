@@ -8,8 +8,6 @@ document-2 = ```
 there was an old lady who swallowed a fly there was an old lady who swallowed a fly i don't know why she swallowed a fly perhaps she'll die there was an old lady who swallowed a spider that wriggled and jiggled and tickled inside her she swallowed the spider to catch the fly i don't know why she swallowed a fly perhaps she'll die there was an old lady who swallowed a bird how absurd to swallow a bird she swallowed the bird to catch the spider that wriggled and jiggled and tickled inside her she swallowed the spider to catch the fly i don't know why she swallowed a fly perhaps she'll die there was an old lady who swallowed a cat well fancy that she swallowed a cat she swallowed the cat to catch the bird she swallowed the bird to catch the spider that wriggled and jiggled and tickled inside her she swallowed the spider to catch the fly i don't know why she swallowed a fly perhaps she'll die
 ```
 
-corpus = document-1 + document-2
-
 # Use the contracts below to explore the lyrics
 
 # n-grams :: String -> Model
