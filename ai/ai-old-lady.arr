@@ -10,12 +10,23 @@ there was an old lady who swallowed a fly there was an old lady who swallowed a 
 
 # Use the contracts below to explore the lyrics
 
-# n-grams :: String -> Model
+# n-grams :: String -> Table
+# Given a corpus, make a table of n-grams, their sizes, and their counts
+
 # stat-lang-model :: String -> Model
+# Given a corpus, make a statistical language model (SLM)
+
 # completions :: Model, String -> Table
+# Given an SLM and a starting phrase, make a table of possible completions and their probabilities
+
 # suggestions :: Model, String -> Table
+# Given an SLM  and a starting phrase, make a table of all possible suggestions and their probabilities
+
 # choose-suggestion :: Model, String, Number -> String
+# Given an SLM, starting phrase and temperature, choose a next word
+
 # generate-text :: Model, Number -> String
+# Given an SLM and temperature, generate text one word at a time 
 
 m-short = stat-lang-model(document-1)
 m = stat-lang-model(document-2)
