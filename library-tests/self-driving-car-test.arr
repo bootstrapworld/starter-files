@@ -193,8 +193,8 @@ check "post-processing":
   smooth(recorded).get-column("steering-angle") is [list: 10/3, 5/2, 2, 5/2, 10/3]
   smooth(recorded).get-column("offset") is [list: 0, 1, 2, 3, 4]
   smooth(recorded).length() is 5
-  trim(recorded, "offset", 1, 3).get-column("id") is [list: 1, 2, 3]
-  sample-rows(recorded, 2).get-column("id") is [list: 0, 2, 4]
+  # trim(recorded, "offset", 1, 3).get-column("id") is [list: 1, 2, 3]
+  # sample-rows(recorded, 2).get-column("id") is [list: 0, 2, 4]
 end
 
 check "drawing":
@@ -215,4 +215,97 @@ end
 
 check "drive checks its predictor":
   drive(lam(n): n + 1 end) raises "consumes Rows"
+end
+
+# ---- cleaning a training run ----
+
+fun ints(n :: Number):
+  if n <= 0: empty else: ints(n - 1) + [list: n - 1] end
+end
+fun mk-table(ids, curves, offsets, skews, steers):
+  [Tables.table-from-columns:
+    {"id"; ids}, {"speed"; ids.map({(_): 2.5})}, {"curve"; curves},
+    {"offset"; offsets}, {"skew"; skews}, {"steering-angle"; steers}]
+end
+fun mk-row(c, o, k, s):
+  [Tables.raw-row: {"id"; 0}, {"speed"; 2.5}, {"curve"; c}, {"offset"; o}, {"skew"; k}, {"steering-angle"; s}]
+end
+fun spread(xs): xs.foldl(num-max, xs.first) - xs.foldl(num-min, xs.first) end
+
+check "is-junk-row":
+  # the car's starting state
+  is-junk-row(mk-row(0, 0, 0, 0)) is true
+  # a car that was put back on the road, on either side
+  is-junk-row(mk-row(1.5, SNAP-BACK-OFFSET, 0, 30)) is true
+  is-junk-row(mk-row(1.5, 0 - SNAP-BACK-OFFSET, 0, 30)) is true
+  # ordinary driving, including driving straight or at the same offset with some skew
+  is-junk-row(mk-row(1.5, 3, 4, 30)) is false
+  is-junk-row(mk-row(0, 0, 0, 10)) is false
+  is-junk-row(mk-row(1.5, SNAP-BACK-OFFSET, 1.5, 30)) is false
+end
+
+check "drop-junk-rows":
+  t = mk-table([list: 0, 1, 2, 3], [list: 1, 0, 2, 3], [list: 5, 0, 27, -4], [list: 3, 0, 0, 2], [list: 20, 0, 40, 10])
+  drop-junk-rows(t).get-column("id") is [list: 0, 3]
+end
+
+check "every-nth-row":
+  # by position, not by id
+  every-nth-row(mk-table(ints(7), ints(7), ints(7), ints(7), ints(7)), 3).get-column("id") is [list: 0, 3, 6]
+  every-nth-row(mk-table([list: 0, 1, 5, 6, 9], [list: 1, 1, 1, 1, 1], [list: 1, 1, 1, 1, 1], [list: 1, 1, 1, 1, 1], [list: 1, 1, 1, 1, 1]), 3).get-column("id") is [list: 0, 6]
+  every-nth-row(mk-table([list: 0, 1], [list: 1, 1], [list: 1, 1], [list: 1, 1], [list: 1, 1]), 5).get-column("id") is [list: 0]
+end
+
+check "renumber-rows":
+  renumber-rows(mk-table([list: 4, 9, 12], [list: 1, 2, 3], [list: 4, 5, 6], [list: 7, 8, 9], [list: 1, 2, 3])).get-column("id") is [list: 0, 1, 2]
+end
+
+check "pull-toward-bin-average":
+  # two slices of curve (0 and 10) with three rows each, plus a lone row at 5 that gets dropped
+  t = mk-table(ints(7), [list: 0, 0, 0, 10, 10, 10, 5], [list: 1, 2, 3, 4, 5, 6, 7], [list: 1, 1, 1, 1, 1, 1, 1],
+    [list: 10, 20, 30, -10, -20, -30, 99])
+  # each steering angle moves 3/4 of the way to its slice average (20 and -20)
+  pull-toward-bin-average(t, 3/4).get-column("steering-angle") is [list: 35/2, 20, 45/2, -35/2, -20, -45/2]
+  pull-toward-bin-average(t, 0).get-column("steering-angle") is [list: 10, 20, 30, -10, -20, -30]
+  pull-toward-bin-average(t, 1).get-column("steering-angle") is [list: 20, 20, 20, -20, -20, -20]
+  # only the steering angle changes, and the thin slice is gone
+  pull-toward-bin-average(t, 3/4).get-column("id") is [list: 0, 1, 2, 3, 4, 5]
+  pull-toward-bin-average(t, 3/4).get-column("curve") is [list: 0, 0, 0, 10, 10, 10]
+  pull-toward-bin-average(t, 3/4).get-column("offset") is [list: 1, 2, 3, 4, 5, 6]
+  # nothing to bin: one row, no spread in curve, or no slice with enough rows
+  single = mk-table([list: 0], [list: 1], [list: 1], [list: 1], [list: 50])
+  pull-toward-bin-average(single, 3/4) is single
+  flat = mk-table([list: 0, 1, 2], [list: 2, 2, 2], [list: 1, 1, 1], [list: 1, 1, 1], [list: 10, 20, 90])
+  pull-toward-bin-average(flat, 3/4) is flat
+  pull-toward-bin-average(mk-table([list: 0, 1, 2, 3], [list: 0, 5, 10, 15], [list: 1, 1, 1, 1], [list: 1, 1, 1, 1], [list: 1, 2, 3, 4]), 3/4).length() is 0
+end
+
+check "clean-training-table":
+  n = 60
+  ids = ints(n)
+  curves = ids.map({(i): if num-modulo(i, 2) == 0: -1 else: 1 end})
+  steers = ids.map({(i): if num-modulo(i, 2) == 0: 60 + (5 * num-modulo(i, 7)) else: -60 - (5 * num-modulo(i, 5)) end})
+  offsets = ids.map({(i): num-modulo(i, 10) - 5})
+  skews = ids.map({(i): 1 + num-modulo(i, 3)})
+  # a starting-state row at the front, and a snapped-back row in the middle
+  raw = mk-table(ids,
+    ids.map({(i): if i == 0: 0 else: curves.get(i) end}),
+    ids.map({(i): if i == 30: SNAP-BACK-OFFSET else if i == 0: 0 else: offsets.get(i) end}),
+    ids.map({(i): if (i == 30) or (i == 0): 0 else: skews.get(i) end}),
+    ids.map({(i): if i == 0: 0 else: steers.get(i) end}))
+  cleaned = clean-training-table(raw)
+  cleaned.column-names() is [list: "id", "speed", "curve", "offset", "skew", "steering-angle"]
+  # a third of the rows, minus the junk, numbered from zero
+  (cleaned.length() >= 15) and (cleaned.length() <= 25) is true
+  cleaned.get-column("id") is ints(cleaned.length())
+  cleaned.filter(lam(r): is-junk-row(r) end).length() is 0
+  # the steering angles are pulled together, and stay on the same side as before
+  (spread(cleaned.get-column("steering-angle")) < spread(raw.get-column("steering-angle"))) is true
+  cleaned.filter(lam(r): (r["curve"] < 0) and (r["steering-angle"] < 0) end).length() is 0
+  cleaned.filter(lam(r): (r["curve"] > 0) and (r["steering-angle"] > 0) end).length() is 0
+end
+
+check "cleanup settings":
+  CLEANUP-STRENGTH is 3/4
+  CLEANUP-BINS is 20
 end

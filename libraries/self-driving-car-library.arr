@@ -68,6 +68,16 @@ MIN-SPEED       = 2.0
 MAX-SPEED       = 3.0
 SPEED-STEP      = 0.05      # how much speed changes per tick
 STEER-DEAD-BAND = 15        # |steering| < this counts as "near-straight"
+SNAP-BACK-OFFSET = ROAD-HALF-WIDTH * 0.6   # where a training car is put back after leaving the road
+
+# Cleaning up the table a training run returns (see clean-training-table).
+# CLEANUP-STRENGTH is how far (0 to 1) each steering angle is pulled toward the
+# average steering of the cars with a similar curve: 0 leaves the data as it
+# was driven, 1 gives every nearby row the exact same steering angle.
+CLEANUP-STRENGTH   = 0.75
+CLEANUP-BINS       = 20     # how many equal-width slices of "curve" count as "similar"
+CLEANUP-MIN-BIN    = 3      # slices with fewer rows than this are too thin to trust, and are dropped
+CLEANUP-KEEP-EVERY = 3      # keep every 3rd row, so the plot is not one dense smear
 
 # Closest-t search constants
 CLOSEST-T-STEPS  = 480
@@ -373,8 +383,8 @@ fun snap-back(trk :: TrackParams, t-i :: Number, s :: CarState,
   cx          = track-cx(trk, t)
   cy          = track-cy(trk, t)
   h           = track-heading(trk, t)
-  signed-snap = if offset >= 0: ROAD-HALF-WIDTH * 0.6
-  else:           0 - (ROAD-HALF-WIDTH * 0.6)
+  signed-snap = if offset >= 0: SNAP-BACK-OFFSET
+  else:           0 - SNAP-BACK-OFFSET
   end
   new-x       = cx - (signed-snap * num-sin(h))
   new-y       = cy + (signed-snap * num-cos(h))
@@ -659,7 +669,8 @@ fun states-to-table(ids, states):
     {"skew";   states.map({(s): s.skew-val })},
     {"steering-angle";  states.map({(s): s.steer-val         })}]
 end
-# Runs a training session and returns the recorded data table.
+# Runs a training session and returns the recorded data table, cleaned up by
+# clean-training-table so that lines of best fit are easy to see.
 # `draw-fn` is a (Game -> Image) — each train variant supplies its
 # own to pick the rendering style and overlay the banner.
 fun run-training(frames-per-second, draw-fn):
@@ -676,7 +687,7 @@ fun run-training(frames-per-second, draw-fn):
   end
   alive  = r.interact-trace().filter({(row): row["state"].car.alive})
   states = alive.all-rows().map({(row): row["state"].car})
-  states-to-table(alive.column("tick"), states)
+  clean-training-table(states-to-table(alive.column("tick"), states))
 end
 # Birds-eye training: track viewed from above.
 fun train-bev(frames-per-second):
@@ -722,11 +733,112 @@ fun smooth(t):
     {"skew";    t.column("skew")},
     {"steering-angle";  moving-average(t.column("steering-angle"), 5)}]
 end
+# trim and sample-rows were the manual post-processing steps, before every
+# training run was cleaned automatically (see clean-training-table).  Nothing
+# uses them now, so they are commented out.
+#|
 fun trim(t, col :: String, lo :: Number, hi :: Number):
   t.filter(lam(r): (r[col] >= lo) and (r[col] <= hi) end)
 end
 fun sample-rows(t, n :: Number):
   t.filter(lam(r): num-modulo(r["id"], n) == 0 end)
+end
+|#
+# ============================================================
+# CLEANING A TRAINING RUN
+# A raw run holds a few rows that are artifacts of the simulator, and a steering
+# wheel that sits pegged at +/-90 whenever an arrow key is held.  Both make it hard
+# to see a line of best fit, so every training run is cleaned before it is returned:
+#   1. drop the artifact rows
+#   2. smooth the steering angle (a moving average over 5 rows)
+#   3. keep every CLEANUP-KEEP-EVERY-th row
+#   4. pull each steering angle CLEANUP-STRENGTH of the way toward the average
+#      steering of the rows whose curve is similar, then renumber the ids
+# ============================================================
+fun near(x :: Number, target :: Number) -> Boolean:
+  num-abs(x - target) < 0.000001
+end
+# The all-zero rows are the car's starting state (at the start line and at each new
+# lap).  The snapped-back rows are where a car that left the road was put back.
+fun is-junk-row(r) -> Boolean:
+  at-start = near(r["curve"], 0) and near(r["offset"], 0) and near(r["skew"], 0) and near(r["steering-angle"], 0)
+  snapped  = near(r["skew"], 0) and near(num-abs(r["offset"]), SNAP-BACK-OFFSET)
+  at-start or snapped
+end
+fun drop-junk-rows(t):
+  t.filter(lam(r): not(is-junk-row(r)) end)
+end
+fun every-nth-row(t, n :: Number):
+  fun pick(xs, i :: Number):
+    cases (List) xs:
+      | empty => empty
+      | link(f, rest) =>
+        if num-modulo(i, n) == 0: link(f, pick(rest, i + 1))
+        else: pick(rest, i + 1)
+        end
+    end
+  end
+  kept = pick(t.column("id"), 0)
+  t.filter(lam(r): kept.member(r["id"]) end)
+end
+fun renumber-rows(t):
+  [Tables.table-from-columns:
+    {"id";      Lists.range(0, t.length())},
+    {"speed";   t.column("speed")},
+    {"curve";   t.column("curve")},
+    {"offset";  t.column("offset")},
+    {"skew";    t.column("skew")},
+    {"steering-angle";  t.column("steering-angle")}]
+end
+# Cut the range of curve into CLEANUP-BINS equal slices.  Each row's steering angle
+# moves `strength` of the way to the average steering of its slice (strength 0 leaves
+# it alone, 1 puts it on the average).  Slices with fewer than CLEANUP-MIN-BIN rows
+# are dropped.  Only the steering angle changes.
+fun pull-toward-bin-average(t, strength :: Number):
+  curves = t.column("curve")
+  if curves.length() < 2:
+    t
+  else:
+    lo = curves.foldl(num-min, curves.first)
+    hi = curves.foldl(num-max, curves.first)
+    if (hi - lo) <= 0:
+      t
+    else:
+      width = (hi - lo) / CLEANUP-BINS
+      fun bin-key(c :: Number) -> String:
+        to-string(num-min(CLEANUP-BINS - 1, num-exact(num-floor((c - lo) / width))))
+      end
+      # bin -> {number of rows; total steering}
+      totals = for fold(d from [string-dict:], r from t.all-rows()):
+        k    = bin-key(r["curve"])
+        prev = d.get(k).or-else({0; 0})
+        d.set(k, {prev.{0} + 1; prev.{1} + r["steering-angle"]})
+      end
+      kept = t.filter(lam(r): totals.get-value(bin-key(r["curve"])).{0} >= CLEANUP-MIN-BIN end)
+      if kept.length() == 0:
+        kept
+      else:
+        pulled = kept.all-rows().map(lam(r):
+            tot  = totals.get-value(bin-key(r["curve"]))
+            bin-average = tot.{1} / tot.{0}
+            r["steering-angle"] + (strength * (bin-average - r["steering-angle"]))
+          end)
+        [Tables.table-from-columns:
+          {"id";      kept.column("id")},
+          {"speed";   kept.column("speed")},
+          {"curve";   kept.column("curve")},
+          {"offset";  kept.column("offset")},
+          {"skew";    kept.column("skew")},
+          {"steering-angle";  pulled}]
+      end
+    end
+  end
+end
+fun clean-training-table(t):
+  renumber-rows(
+    pull-toward-bin-average(
+      every-nth-row(smooth(drop-junk-rows(t)), CLEANUP-KEEP-EVERY),
+      CLEANUP-STRENGTH))
 end
 # ============================================================
 # Load some really good, pre-trained data
