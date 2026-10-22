@@ -382,9 +382,11 @@ fun snap-back(trk :: TrackParams, t-i :: Number, s :: CarState,
     s.speed-val, sharpness, signed-snap, 0, s.steer-val,
     s.key-left, s.key-right, t-i)
 end
-# Per-tick CarState update.  Identical to the previous version —
-# game-step calls this and then handles lap-counting and track-
-# regeneration on top.
+# Per-tick CarState update: measure the sensors at the car's current
+# position, ask `get-steering` for a steering angle, then move the car.
+# In survival mode a car that leaves the road is snapped back to the
+# road; otherwise it crashes.  game-step calls this and then generates
+# a new track whenever the car crosses the start line.
 fun make-tick(trk :: TrackParams, get-steering, survival :: Boolean):
   lam(s :: CarState) -> CarState:
     if not(s.alive):
@@ -423,9 +425,10 @@ fun make-tick(trk :: TrackParams, get-steering, survival :: Boolean):
   end
 end
 # Per-tick Game update.  Runs the underlying car-state update,
-# then regenerates the track whenever the car crosses the start
-# line.  Key state carries across regeneration so the driver
-# doesn't have to release-and-re-press keys.
+# then replaces the track with a new random one whenever the car
+# crosses the start line (there is no lap counter: driving continues
+# until the car crashes).  Key state carries across the new track so
+# the driver doesn't have to release-and-re-press keys.
 fun game-step(g :: Game, get-steering, survival :: Boolean) -> Game:
   if not(g.car.alive):
     g
@@ -552,9 +555,10 @@ fun draw-pov(s :: CarState, trk :: TrackParams, hud-top, crash-msg):
   end
 end
 # ============================================================
-# REACTOR FACTORY
-# `frames-per-second` is your knob for slow machines: recommend
-# 20fps on fast machines, and 12fps on slow ones
+# DRIVING REACTOR
+# `drive` always runs at 15 frames per second.  (The training
+# functions below take `frames-per-second` as their knob for slow
+# machines: recommend 20fps on fast machines, and 12fps on slow ones.)
 # ============================================================
 fun drive(predictor :: (Row -> Number)) block:
   test-row = [Tables.raw-row: {"speed"; 0}, {"curve"; 0}, {"offset"; 0}, {"skew"; 0}]
@@ -637,6 +641,24 @@ fun training-hud-top(s :: CarState):
       square(TEXT-SPACING, "solid", "transparent")
     ])
 end
+# Build the training table from the ids and car states of a session.
+# Each state holds the sensor readings and steering angle from one tick, but
+# its speed-val is the speed AFTER that tick's speed update.  A model driving
+# the car is given the speed from BEFORE the update, so the `speed` column is
+# the previous state's speed-val (the first row uses its own).
+fun states-to-table(ids, states):
+  speeds =
+    if states.length() == 0: empty
+    else: link(states.first.speed-val, states.take(states.length() - 1).map({(s): s.speed-val}))
+    end
+  [Tables.table-from-columns:
+    {"id";     ids},
+    {"speed";  speeds},
+    {"curve";  states.map({(s): s.sharpness-val     })},
+    {"offset"; states.map({(s): s.offset-val        })},
+    {"skew";   states.map({(s): s.skew-val })},
+    {"steering-angle";  states.map({(s): s.steer-val         })}]
+end
 # Runs a training session and returns the recorded data table.
 # `draw-fn` is a (Game -> Image) — each train variant supplies its
 # own to pick the rendering style and overlay the banner.
@@ -654,13 +676,7 @@ fun run-training(frames-per-second, draw-fn):
   end
   alive  = r.interact-trace().filter({(row): row["state"].car.alive})
   states = alive.all-rows().map({(row): row["state"].car})
-  [Tables.table-from-columns:
-    {"id";     alive.column("tick")},
-    {"speed";  states.map({(s): s.speed-val         })},
-    {"curve";  states.map({(s): s.sharpness-val     })},
-    {"offset"; states.map({(s): s.offset-val        })},
-    {"skew";   states.map({(s): s.skew-val })},
-    {"steering-angle";  states.map({(s): s.steer-val         })}]
+  states-to-table(alive.column("tick"), states)
 end
 # Birds-eye training: track viewed from above.
 fun train-bev(frames-per-second):
@@ -710,8 +726,7 @@ fun trim(t, col :: String, lo :: Number, hi :: Number):
   t.filter(lam(r): (r[col] >= lo) and (r[col] <= hi) end)
 end
 fun sample-rows(t, n :: Number):
-  kept = t.all-rows().filter(lam(r): num-modulo(r["id"], n) == 0 end)
-  Tables.table-from-rows(kept)
+  t.filter(lam(r): num-modulo(r["id"], n) == 0 end)
 end
 # ============================================================
 # Load some really good, pre-trained data
@@ -740,5 +755,5 @@ end
      (sharp * 22) - (off * 3.0) - (he * 2.5)
    end
    # Uncomment to try it out:
-   # drive(stub-trained, 0.1)
+   # drive(stub-trained)
 |#
