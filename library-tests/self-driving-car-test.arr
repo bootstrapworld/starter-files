@@ -299,13 +299,135 @@ check "clean-training-table":
   (cleaned.length() >= 15) and (cleaned.length() <= 25) is true
   cleaned.get-column("id") is ints(cleaned.length())
   cleaned.filter(lam(r): is-junk-row(r) end).length() is 0
-  # the steering angles are pulled together, and stay on the same side as before
+  # the steering angles are pulled together
   (spread(cleaned.get-column("steering-angle")) < spread(raw.get-column("steering-angle"))) is true
-  cleaned.filter(lam(r): (r["curve"] < 0) and (r["steering-angle"] < 0) end).length() is 0
-  cleaned.filter(lam(r): (r["curve"] > 0) and (r["steering-angle"] > 0) end).length() is 0
+  # pulling toward the average for each curve keeps the steering on the side its curve calls for
+  bins-only = clean-training-table-with(raw, "curve-bins")
+  bins-only.filter(lam(r): (r["curve"] < 0) and (r["steering-angle"] < 0) end).length() is 0
+  bins-only.filter(lam(r): (r["curve"] > 0) and (r["steering-angle"] > 0) end).length() is 0
+end
+
+# how far apart two lists of numbers are (the balanced plane makes roughnums, which can't be compared with ==)
+fun max-diff(a, b): map2(lam(x, y): num-abs(x - y) end, a, b).foldl(num-max, 0) end
+
+fun var-of(xs):
+  n = xs.length()
+  m = xs.foldl(lam(x, acc): acc + x end, 0) / n
+  xs.map(lam(x): (x - m) * (x - m) end).foldl(lam(x, acc): acc + x end, 0) / n
+end
+
+# steering = 1 + 2*curve + 3*offset + noise, where the noise is exactly orthogonal to
+# (1, curve, offset), so the least-squares plane is exactly 1 + 2*curve + 3*offset
+_plane-curve = [list: 0, 1, 2, 3, 0, 1, 2, 3]
+_plane-offset = [list: 0, 0, 0, 0, 1, 1, 1, 1]
+_plane-noise = [list: 1, -1, -1, 1, -1, 1, 1, -1]
+_plane-t = mk-table(ints(8), _plane-curve, _plane-offset, [list: 1, 1, 1, 1, 1, 1, 1, 1],
+  [list: 2, 2, 4, 8, 3, 7, 9, 9])
+
+check "plane-fit":
+  fit = plane-fit(_plane-t)
+  fit.{0} is true
+  fit.{1} is 2
+  fit.{2} is 3
+  # no plane to fit: too few rows, no variation, or curve and offset in lockstep
+  plane-fit(mk-table([list: 0, 1], [list: 0, 1], [list: 0, 1], [list: 0, 0], [list: 1, 2])).{0} is false
+  plane-fit(mk-table(ints(4), [list: 2, 2, 2, 2], [list: 0, 1, 2, 3], [list: 0, 0, 0, 0], [list: 1, 2, 3, 4])).{0} is false
+  plane-fit(mk-table(ints(4), [list: 0, 1, 2, 3], [list: 5, 5, 5, 5], [list: 0, 0, 0, 0], [list: 1, 2, 3, 4])).{0} is false
+  plane-fit(mk-table(ints(4), [list: 0, 1, 2, 3], [list: 0, 2, 4, 6], [list: 0, 0, 0, 0], [list: 1, 2, 3, 4])).{0} is false
+end
+
+check "pull-toward-plane, best fit":
+  # the plane is 1, 3, 5, 7, 4, 6, 8, 10 and the noise around it is +1 or -1, so a 3/4 pull leaves a quarter of it
+  pull-toward-plane(_plane-t, 3/4, false).get-column("steering-angle") is
+  [list: 5/4, 11/4, 19/4, 29/4, 15/4, 25/4, 33/4, 39/4]
+  pull-toward-plane(_plane-t, 1, false).get-column("steering-angle") is [list: 1, 3, 5, 7, 4, 6, 8, 10]
+  pull-toward-plane(_plane-t, 0, false).get-column("steering-angle") is _plane-t.get-column("steering-angle")
+  # only the steering angle changes
+  pull-toward-plane(_plane-t, 3/4, false).get-column("curve") is _plane-curve
+  pull-toward-plane(_plane-t, 3/4, false).get-column("id") is ints(8)
+  # a model fit to the pulled data is the same plane
+  plane-fit(pull-toward-plane(_plane-t, 3/4, false)).{1} is 2
+  plane-fit(pull-toward-plane(_plane-t, 3/4, false)).{2} is 3
+  # nothing to fit: the table comes back unchanged
+  pull-toward-plane(mk-table([list: 0, 1], [list: 0, 1], [list: 0, 1], [list: 0, 0], [list: 1, 2]), 3/4, false).get-column("steering-angle") is [list: 1, 2]
+end
+
+check "pull-toward-plane, balanced":
+  full = pull-toward-plane(_plane-t, 1, true)
+  slopes = plane-fit(full)
+  # curve varies 1.25 and offset 0.25, so equal shares of the 7.25 explained need slopes sqrt(2.9) and sqrt(14.5)
+  slopes.{1} is-roughly num-sqrt(29 / 10)
+  slopes.{2} is-roughly num-sqrt(29 / 2)
+  # each sensor now explains the same variance, and the total explained is unchanged
+  var-of(_plane-curve.map({(c): slopes.{1} * c })) is-roughly var-of(_plane-offset.map({(o): slopes.{2} * o }))
+  var-of(_plane-curve.map({(c): slopes.{1} * c })) + var-of(_plane-offset.map({(o): slopes.{2} * o })) is-roughly 29/4
+  # the tilt keeps its direction in each sensor
+  down = mk-table(ints(8), _plane-curve, _plane-offset, [list: 1, 1, 1, 1, 1, 1, 1, 1],
+    [list: -2, -4, -6, -6, -9, -9, -13, -15])
+  down-slopes = plane-fit(pull-toward-plane(down, 1, true))
+  (down-slopes.{1} < 0) is true
+  (down-slopes.{2} < 0) is true
+  # at strength 0 nothing moves
+  pull-toward-plane(_plane-t, 0, true).get-column("steering-angle") is _plane-t.get-column("steering-angle")
+end
+
+_cm-ids = ints(60)
+_cm-curves = _cm-ids.map({(i): if num-modulo(i, 2) == 0: -1 else: 1 end})
+_cm-offsets = _cm-ids.map({(i): num-modulo(i, 10) - 5})
+_cm-steers = _cm-ids.map({(i): if num-modulo(i, 2) == 0: 60 + (5 * num-modulo(i, 7)) else: -60 - (5 * num-modulo(i, 5)) end})
+# skew repeats every 4 rows, so it still varies after every 3rd row is kept
+_cm-raw = mk-table(_cm-ids, _cm-curves, _cm-offsets, _cm-ids.map({(i): 1 + num-modulo(i, 4)}), _cm-steers)
+
+check "clean-training-table methods":
+  bins = clean-training-table-with(_cm-raw, "curve-bins")
+  best = clean-training-table-with(_cm-raw, "best-fit-plane")
+  balanced = clean-training-table-with(_cm-raw, "balanced-plane")
+  # every method thins, numbers and keeps the same columns
+  [list: bins, best, balanced].map({(t): t.column-names()}) is
+  [list: [list: "id", "speed", "curve", "offset", "skew", "steering-angle"], [list: "id", "speed", "curve", "offset", "skew", "steering-angle"], [list: "id", "speed", "curve", "offset", "skew", "steering-angle"]]
+  best.get-column("id") is ints(best.length())
+  balanced.get-column("id") is ints(balanced.length())
+  # the planes keep every thinned row (the bin method may drop thin slices)
+  best.length() is balanced.length()
+  best.length() is bins.length()
+  # the three methods give different steering angles
+  (max-diff(best.get-column("steering-angle"), bins.get-column("steering-angle")) > 0.001) is true
+  (max-diff(best.get-column("steering-angle"), balanced.get-column("steering-angle")) > 0.001) is true
+  (max-diff(balanced.get-column("steering-angle"), bins.get-column("steering-angle")) > 0.001) is true
+  # the switch is the constant: the default is the balanced plane
+  CLEANUP-METHOD is "balanced-plane"
+  default = clean-training-table(_cm-raw)
+  (max-diff(default.get-column("steering-angle"), balanced.get-column("steering-angle")) < 0.000001) is true
+  default.get-column("id") is balanced.get-column("id")
+  default.get-column("curve") is balanced.get-column("curve")
+  # a bad name says what is allowed
+  clean-training-table-with(_cm-raw, "nonsense") raises "CLEANUP-METHOD must be"
 end
 
 check "cleanup settings":
-  CLEANUP-STRENGTH is 3/4
+  CLEANUP-METHOD is "balanced-plane"
+  CLEANUP-STRENGTH is 17/20
   CLEANUP-BINS is 20
+  CLEANUP-MIN-BIN is 3
+  CLEANUP-KEEP-EVERY is 3
+end
+
+# the recipe in ai/Self-Driving-Car.arr: fit models to the cleaned table, then look at what is left over
+check "the starter file's leftover-variability recipe works on a cleaned table":
+  d = clean-training-table(_cm-raw)
+  curve-fit = regression-model-fun(d, [list: "curve"], "steering-angle")
+  leftover = build-column(d, "steering (curve removed)", lam(r): r["steering-angle"] - curve-fit(r) end)
+  leftover.column-names() is (d.column-names() + [list: "steering (curve removed)"])
+  leftover.length() is d.length()
+  # least-squares residuals add up to zero
+  leftover.get-column("steering (curve removed)").foldl(lam(x, acc): acc + x end, 0) is-roughly 0
+  # each model that adds a sensor can only leave less unexplained
+  fun unexplained(cols):
+    fit = regression-model-fun(d, cols, "steering-angle")
+    d.all-rows().map(lam(r): (r["steering-angle"] - fit(r)) * (r["steering-angle"] - fit(r)) end).foldl(lam(x, acc): acc + x end, 0)
+  end
+  (unexplained([list: "curve", "offset"]) <= (unexplained([list: "curve"]) + 0.000001)) is true
+  (unexplained([list: "curve", "offset", "skew"]) <= (unexplained([list: "curve", "offset"]) + 0.000001)) is true
+  # the columns that lr-plot is given in the starter file are all there
+  d.column-names().member("id") is true
 end

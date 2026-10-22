@@ -291,7 +291,7 @@ end
 # ============================================================
 fun make-banner():
   overlay(
-    rotate(180, text("FINISH", 20, "black")), 
+    rotate(180, text("FINISH", 20, "black")),
     rectangle(80, 30, "solid", "yellow"))
 end
 fun make-banner-sized(w :: Number, h :: Number):
@@ -584,11 +584,11 @@ fun drive(predictor :: (Row -> Number)) block:
   test-row = [Tables.raw-row: {"speed"; 0}, {"curve"; 0}, {"offset"; 0}, {"skew"; 0}]
   cases(Eth.Either) run-task(lam(): predictor(test-row) end):
     | left(v) => v
-    | right(v) => 
+    | right(v) =>
       raise(Err_.message-exception("The driving simulator makes speed, curve, offset, AND skew accessible to the predictor function, so all predictors must consume a Row with those four values - even if they only use one of them. Check to make sure your driving function consumes Rows."))
   end
-  
-  
+
+
   initial = fresh-game()
   fun get-steering(s, sharpness, offset, heading-err):
     r = [Tables.raw-row:
