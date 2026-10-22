@@ -71,12 +71,22 @@ STEER-DEAD-BAND = 15        # |steering| < this counts as "near-straight"
 SNAP-BACK-OFFSET = ROAD-HALF-WIDTH * 0.6   # where a training car is put back after leaving the road
 
 # Cleaning up the table a training run returns (see clean-training-table).
-# CLEANUP-STRENGTH is how far (0 to 1) each steering angle is pulled toward the
-# average steering of the cars with a similar curve: 0 leaves the data as it
-# was driven, 1 gives every nearby row the exact same steering angle.
-CLEANUP-STRENGTH   = 0.75
-CLEANUP-BINS       = 20     # how many equal-width slices of "curve" count as "similar"
-CLEANUP-MIN-BIN    = 3      # slices with fewer rows than this are too thin to trust, and are dropped
+# CLEANUP-METHOD picks what each steering angle is pulled toward:
+#   "curve-bins"     the average steering of the rows with a similar curve.  Gives the
+#                    tightest steering-vs-curve plot, but flattens the effect of offset
+#                    and skew, so models fit to it drive badly.
+#   "best-fit-plane" the plane of best fit for steering from curve and offset.  Tightens
+#                    both plots, and a model fit to the result drives as well as one fit
+#                    to the raw data, but the plot for offset is much tighter than curve.
+#   "balanced-plane" the same plane, re-tilted so curve and offset each explain the same
+#                    share of the steering (an equal tightness at strength 1).  This
+#                    changes the slopes, so models fit to it drive worse.
+# CLEANUP-STRENGTH is how far (0 to 1) each steering angle is pulled toward that
+# target: 0 leaves the data as it was driven, 1 puts every row exactly on it.
+CLEANUP-METHOD     = "balanced-plane"
+CLEANUP-STRENGTH   = 0.85
+CLEANUP-BINS       = 20     # "curve-bins" only: how many equal-width slices of curve count as "similar"
+CLEANUP-MIN-BIN    = 3      # "curve-bins" only: slices with fewer rows than this are dropped
 CLEANUP-KEEP-EVERY = 3      # keep every 3rd row, so the plot is not one dense smear
 
 # Closest-t search constants
@@ -752,8 +762,8 @@ end
 #   1. drop the artifact rows
 #   2. smooth the steering angle (a moving average over 5 rows)
 #   3. keep every CLEANUP-KEEP-EVERY-th row
-#   4. pull each steering angle CLEANUP-STRENGTH of the way toward the average
-#      steering of the rows whose curve is similar, then renumber the ids
+#   4. pull each steering angle CLEANUP-STRENGTH of the way toward the target
+#      picked by CLEANUP-METHOD, then renumber the ids
 # ============================================================
 fun near(x :: Number, target :: Number) -> Boolean:
   num-abs(x - target) < 0.000001
@@ -834,15 +844,88 @@ fun pull-toward-bin-average(t, strength :: Number):
     end
   end
 end
+fun sign-of(x :: Number) -> Number:
+  if x >= 0: 1 else: 0 - 1 end
+end
+# The least-squares plane  steering = my + a * (curve - mc) + b * (offset - mo).
+# Produces {ok; a; b; Scc; Soo; mc; mo; my}, where Scc and Soo are the sums of squared
+# deviations of curve and offset.  `ok` is false when there is no plane to fit: fewer
+# than 3 rows, or curve or offset hardly varies, or they move in lockstep.
+fun plane-fit(t):
+  n = t.length()
+  if n < 3:
+    {false; 0; 0; 0; 0; 0; 0; 0}
+  else:
+    cs = t.column("curve")
+    os = t.column("offset")
+    ys = t.column("steering-angle")
+    mean-of = lam(xs): xs.foldl(lam(x, acc): acc + x end, 0) / n end
+    mc = mean-of(cs)
+    mo = mean-of(os)
+    my = mean-of(ys)
+    dcs = cs.map(lam(c): c - mc end)
+    dos = os.map(lam(o): o - mo end)
+    dys = ys.map(lam(y): y - my end)
+    sum-of-products = lam(xs, zs): Lists.map2(lam(x, z): x * z end, xs, zs).foldl(lam(p, acc): acc + p end, 0) end
+    scc = sum-of-products(dcs, dcs)
+    soo = sum-of-products(dos, dos)
+    sco = sum-of-products(dcs, dos)
+    scy = sum-of-products(dcs, dys)
+    soy = sum-of-products(dos, dys)
+    det = (scc * soo) - (sco * sco)
+    if (scc <= 0.000000001) or (soo <= 0.000000001) or (det <= (0.000001 * scc * soo)):
+      {false; 0; 0; scc; soo; mc; mo; my}
+    else:
+      {true; ((soo * scy) - (sco * soy)) / det; ((scc * soy) - (sco * scy)) / det; scc; soo; mc; mo; my}
+    end
+  end
+end
+# Move each steering angle `strength` of the way to the plane of best fit for steering
+# from curve and offset.  With `balanced`, the plane is first re-tilted: it keeps the
+# same direction of tilt in curve and in offset and the same total variation explained,
+# but curve and offset each explain half of it.  Only the steering angle changes.
+fun pull-toward-plane(t, strength :: Number, balanced :: Boolean):
+  fit = plane-fit(t)
+  if not(fit.{0}):
+    t
+  else:
+    a      = fit.{1}
+    b      = fit.{2}
+    shared = ((a * a * fit.{3}) + (b * b * fit.{4})) / 2
+    slope-c = if balanced: sign-of(a) * num-sqrt(shared / fit.{3}) else: a end
+    slope-o = if balanced: sign-of(b) * num-sqrt(shared / fit.{4}) else: b end
+    pulled = t.all-rows().map(lam(r):
+        target = fit.{7} + (slope-c * (r["curve"] - fit.{5})) + (slope-o * (r["offset"] - fit.{6}))
+        r["steering-angle"] + (strength * (target - r["steering-angle"]))
+      end)
+    [Tables.table-from-columns:
+      {"id";      t.column("id")},
+      {"speed";   t.column("speed")},
+      {"curve";   t.column("curve")},
+      {"offset";  t.column("offset")},
+      {"skew";    t.column("skew")},
+      {"steering-angle";  pulled}]
+  end
+end
+fun clean-training-table-with(t, which :: String):
+  prepared = every-nth-row(smooth(drop-junk-rows(t)), CLEANUP-KEEP-EVERY)
+  pulled =
+    ask:
+      | which == "curve-bins"     then: pull-toward-bin-average(prepared, CLEANUP-STRENGTH)
+      | which == "best-fit-plane" then: pull-toward-plane(prepared, CLEANUP-STRENGTH, false)
+      | which == "balanced-plane" then: pull-toward-plane(prepared, CLEANUP-STRENGTH, true)
+      | otherwise: raise(Err_.message-exception("CLEANUP-METHOD must be \"curve-bins\", \"best-fit-plane\" or \"balanced-plane\", but it was " + to-string(which)))
+    end
+  renumber-rows(pulled)
+end
 fun clean-training-table(t):
-  renumber-rows(
-    pull-toward-bin-average(
-      every-nth-row(smooth(drop-junk-rows(t)), CLEANUP-KEEP-EVERY),
-      CLEANUP-STRENGTH))
+  clean-training-table-with(t, CLEANUP-METHOD)
 end
 # ============================================================
 # Load some really good, pre-trained data
 # ============================================================
+
+#|
 training-url = "https://docs.google.com/spreadsheets/d/1G6zAS1QS7OTRLaLMCm3yO_ug45VJJNxAK8_uTyY1sYo/export?format=csv"
 training = load-table: id, curve, speed, offset, skew, steering-angle
   source: csv.csv-table-url(training-url, {
@@ -850,6 +933,7 @@ training = load-table: id, curve, speed, offset, skew, steering-angle
         infer-content: true
       })
 end
+|#
 #|
    # ============================================================
    # OPTIONAL stub controller — *not* a learned model. It's a
