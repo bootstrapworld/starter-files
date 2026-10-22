@@ -1,4 +1,4 @@
-use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/main/libraries", "self-driving-car-library.arr")
+use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-files/refs/heads/fall2026/libraries", "self-driving-car-library.arr")
 import tables as Tables
 
 # a circular track: radius 200 about (400, 300), starting at (600, 300), heading straight "down" the screen
