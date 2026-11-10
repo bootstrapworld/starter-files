@@ -136,6 +136,16 @@ COLORS = [list:
 var string-colors = [SD.mutable-string-dict:]
 var colorIdx = 0
 
+# Word clouds (see word-cloud).  These are defined up here, with the other values: a value
+# defined between two functions would stop the functions above it from calling the ones below it.
+WORD-CLOUD-WIDTH     = 800
+WORD-CLOUD-HEIGHT    = 500
+WORD-CLOUD-MAX-WORDS = 40    # only the most frequent words are drawn
+WORD-CLOUD-MIN-FONT  = 16
+WORD-CLOUD-MAX-FONT  = 96
+WORD-CLOUD-PADDING   = 4     # minimum gap, in pixels, between two words
+WORD-CLOUD-MAX-STEPS = 4000  # how far along the spiral to look for a free spot
+
 fun nextColor() block:
   if (colorIdx < (COLORS.length() - 1)):
     colorIdx := colorIdx + 1
@@ -1348,6 +1358,114 @@ fun word-frequency(txt) block:
     .add-column("count", unique-counts.{1})
   t.build-column("characters", lam(r): string-length(r["word"]) end)
     .order-by("count", false)
+end
+
+#####################################################################
+## Word Clouds
+
+# The font size for a word that appears `times` times, when the least frequent
+# word drawn appears `lo` times and the most frequent appears `hi` times.
+# Sizes grow with the square root of the count, so a very common word does not
+# swallow the rest of the cloud.
+word-cloud-font-size :: (times :: Number, lo :: Number, hi :: Number) -> Number
+fun word-cloud-font-size(times, lo, hi):
+  if hi <= lo:
+    num-round((WORD-CLOUD-MIN-FONT + WORD-CLOUD-MAX-FONT) / 2)
+  else:
+    share = num-sqrt((times - lo) / (hi - lo))
+    num-exact(num-round(WORD-CLOUD-MIN-FONT + ((WORD-CLOUD-MAX-FONT - WORD-CLOUD-MIN-FONT) * share)))
+  end
+end
+
+# Consumes a list of {word; width; height}, most important first, and finds each
+# a spot on the canvas: the first free spot along a spiral that winds out from the
+# center.  Produces a list of {word; x; y; width; height} (x and y are the center
+# of the word) in the same order, leaving out any word that does not fit.
+word-cloud-layout :: List<{String; Number; Number}> -> List<{String; Number; Number; Number; Number}>
+fun word-cloud-layout(items):
+  cx = WORD-CLOUD-WIDTH / 2
+  cy = WORD-CLOUD-HEIGHT / 2
+  stretch = WORD-CLOUD-WIDTH / WORD-CLOUD-HEIGHT  # wider than tall, like the canvas
+  growth = 2    # how far the spiral moves out, in pixels per radian
+  arc = 8       # how far apart, in pixels, the spots we try are
+
+  fun fits-on-canvas(x, y, w, h):
+    ((x - (w / 2)) >= 0) and ((x + (w / 2)) <= WORD-CLOUD-WIDTH)
+      and ((y - (h / 2)) >= 0) and ((y + (h / 2)) <= WORD-CLOUD-HEIGHT)
+  end
+
+  fun overlaps(placed, x, y, w, h):
+    placed.any(lam(p):
+      ((num-abs(x - p.{1}) * 2) < (w + p.{3} + WORD-CLOUD-PADDING))
+        and ((num-abs(y - p.{2}) * 2) < (h + p.{4} + WORD-CLOUD-PADDING))
+    end)
+  end
+
+  # `angle` is a roughnum on purpose: with exact numbers, the fractions it adds up to
+  # get longer with every step, and the search becomes very slow.
+  fun find-spot(angle, steps-left, w, h, placed):
+    if steps-left <= 0:
+      none
+    else:
+      r = growth * angle
+      x = num-exact(num-round(cx + (stretch * r * num-cos(angle))))
+      y = num-exact(num-round(cy + (r * num-sin(angle))))
+      if fits-on-canvas(x, y, w, h) and not(overlaps(placed, x, y, w, h)):
+        some({x; y})
+      else:
+        find-spot(angle + (arc / num-max(r, arc)), steps-left - 1, w, h, placed)
+      end
+    end
+  end
+
+  newest-first = for fold(placed from [list:], item from items):
+    cases (Option) find-spot(~0, WORD-CLOUD-MAX-STEPS, item.{1}, item.{2}, placed):
+      | none => placed
+      | some(spot) => link({item.{0}; spot.{0}; spot.{1}; item.{1}; item.{2}}, placed)
+    end
+  end
+  newest-first.reverse()
+end
+
+# Consumes a string and produces a word cloud of the words in it: the most
+# frequent words (at most WORD-CLOUD-MAX-WORDS), each sized by how often it
+# appears.  Words are counted the way word-frequency counts them.
+word-cloud :: String -> Image
+fun word-cloud(txt) block:
+  freq = word-frequency(txt)
+  when freq.length() == 0:
+    raise(Err.message-exception("word-cloud needs some words to work with, but this text has no letters in it."))
+  end
+
+  # most frequent first, with ties in alphabetical order
+  by-count = freq.all-rows().sort-by(
+    lam(a, b): (a["count"] > b["count"]) or ((a["count"] == b["count"]) and (a["word"] < b["word"])) end,
+    lam(a, b): a["word"] == b["word"] end)
+  top = by-count.take(num-min(by-count.length(), WORD-CLOUD-MAX-WORDS))
+  counts = top.map(lam(r): r["count"] end)
+  lo = counts.foldl(num-min, counts.first)
+  hi = counts.foldl(num-max, counts.first)
+
+  # {word; font size; color}.  A word wider than the canvas is shrunk to fit.
+  fun style-of(r, i):
+    wanted = word-cloud-font-size(r["count"], lo, hi)
+    width = image-width(text(r["word"], wanted, "black"))
+    room = WORD-CLOUD-WIDTH * 0.9
+    size = if width <= room: wanted else: num-max(1, num-exact(num-floor((wanted * room) / width))) end
+    {r["word"]; size; COLORS.get(num-modulo(i, COLORS.length()))}
+  end
+  styles = L.map2(style-of, top, L.range(0, top.length()))
+
+  items = styles.map(lam(st):
+      img = text(st.{0}, st.{1}, st.{2})
+      {st.{0}; image-width(img); image-height(img)}
+    end)
+
+  for fold(scene from rectangle(WORD-CLOUD-WIDTH, WORD-CLOUD-HEIGHT, "solid", "white"),
+      spot from word-cloud-layout(items)):
+    st = styles.filter(lam(s): s.{0} == spot.{0} end).first
+    place-image(text(st.{0}, st.{1}, st.{2}), spot.{1}, spot.{2}, scene)
+  end
 end
 
 #####################################################################

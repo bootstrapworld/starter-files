@@ -146,6 +146,90 @@ examples "word-frequency":
   word-frequency("the cat sat on the mat").get-column("count") is [L.list: 2, 1, 1, 1, 1]
 end
 
+check "word-cloud-font-size":
+  word-cloud-font-size(1, 1, 9) is WORD-CLOUD-MIN-FONT
+  word-cloud-font-size(9, 1, 9) is WORD-CLOUD-MAX-FONT
+  # sizes grow with the square root of the count: a quarter of the way up the counts is half way up the sizes
+  word-cloud-font-size(3, 1, 9) is ((WORD-CLOUD-MIN-FONT + WORD-CLOUD-MAX-FONT) / 2)
+  # when every word is equally frequent, they are all the same size, half way between
+  word-cloud-font-size(4, 4, 4) is ((WORD-CLOUD-MIN-FONT + WORD-CLOUD-MAX-FONT) / 2)
+end
+
+fun overlap-free(a, b):
+  ((num-abs(a.{1} - b.{1}) * 2) >= (a.{3} + b.{3} + WORD-CLOUD-PADDING))
+    or ((num-abs(a.{2} - b.{2}) * 2) >= (a.{4} + b.{4} + WORD-CLOUD-PADDING))
+end
+fun no-overlaps(placed):
+  placed.all(lam(a): placed.all(lam(b): (a.{0} == b.{0}) or overlap-free(a, b) end) end)
+end
+fun on-canvas(placed):
+  placed.all(lam(p):
+    ((p.{1} - (p.{3} / 2)) >= 0) and ((p.{1} + (p.{3} / 2)) <= WORD-CLOUD-WIDTH)
+      and ((p.{2} - (p.{4} / 2)) >= 0) and ((p.{2} + (p.{4} / 2)) <= WORD-CLOUD-HEIGHT)
+  end)
+end
+fun sample-items(n):
+  L.range(0, n).map(lam(i): {"w" + to-string(i); 40 + num-modulo(i * 37, 90); 14 + num-modulo(i * 11, 40)} end)
+end
+
+check "word-cloud-layout":
+  placed = word-cloud-layout([L.list: {"big"; 200; 80}, {"mid"; 120; 40}, {"small"; 60; 20}])
+  # every word is placed, in order, and the first goes in the middle of the canvas
+  placed.map(lam(p): p.{0} end) is [L.list: "big", "mid", "small"]
+  placed.get(0).{1} is (WORD-CLOUD-WIDTH / 2)
+  placed.get(0).{2} is (WORD-CLOUD-HEIGHT / 2)
+  # each keeps the size it was given
+  placed.map(lam(p): p.{3} end) is [L.list: 200, 120, 60]
+  placed.map(lam(p): p.{4} end) is [L.list: 80, 40, 20]
+  no-overlaps(placed) is true
+  on-canvas(placed) is true
+  # the same words always land in the same places
+  word-cloud-layout(sample-items(20)) is word-cloud-layout(sample-items(20))
+  # nothing to place
+  word-cloud-layout([L.list:]) is [L.list:]
+end
+
+check "word-cloud-layout with many words":
+  placed = word-cloud-layout(sample-items(30))
+  placed.length() is 30
+  no-overlaps(placed) is true
+  on-canvas(placed) is true
+end
+
+check "word-cloud-layout when words do not fit":
+  # a word wider than the canvas is left out, and the rest are still placed
+  word-cloud-layout([L.list: {"wide"; 900; 20}, {"ok"; 50; 20}]).map(lam(p): p.{0} end) is [L.list: "ok"]
+  # too many big words: only some fit, but those never overlap or leave the canvas
+  crowded = word-cloud-layout(L.range(0, 40).map(lam(i): {"c" + to-string(i); 300; 120} end))
+  (crowded.length() < 40) is true
+  (crowded.length() > 0) is true
+  no-overlaps(crowded) is true
+  on-canvas(crowded) is true
+end
+
+check "word-cloud":
+  c = word-cloud("the cat sat on the mat the cat ran")
+  image-width(c) is WORD-CLOUD-WIDTH
+  image-height(c) is WORD-CLOUD-HEIGHT
+  # one word, and one repeated word
+  image-width(word-cloud("hello")) is WORD-CLOUD-WIDTH
+  image-height(word-cloud("hello hello hello")) is WORD-CLOUD-HEIGHT
+  # punctuation and capitals are handled the way word-frequency handles them
+  image-width(word-cloud("Hello, hello! HELLO? hello...")) is WORD-CLOUD-WIDTH
+  # text with no words in it says so
+  word-cloud("") raises "needs some words"
+  word-cloud("123 !!! ???") raises "needs some words"
+end
+
+check "word-cloud with more words than it draws":
+  letters = string-explode("abcdefgh")
+  pairs = L.foldr(lam(row, acc): row + acc end, [L.list:], letters.map(lam(a): letters.map(lam(b): a + b end) end))
+  (pairs.length() > WORD-CLOUD-MAX-WORDS) is true
+  big = word-cloud(pairs.join-str(" "))
+  image-width(big) is WORD-CLOUD-WIDTH
+  image-height(big) is WORD-CLOUD-HEIGHT
+end
+
 examples "pivot-row":
   pivot-row(row-n(xy, 0)).get-column("labels") is [L.list: "x", "y"]
 end
