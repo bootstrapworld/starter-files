@@ -2,7 +2,7 @@ use context url-file("https://raw.githubusercontent.com/bootstrapworld/starter-f
 
 # There are EIGHT "mystery tables" defined: tableA, tableB...tableH. 
 
-# 1a) Click Run and type table1 into the interactions area.
+# 1a) Click Run and type tableA into the interactions area.
 
 # 1b) Decide whether or not you think it represents a linear relationship.
 #     - If you think it's linear, what is the slope and y-intercept?
